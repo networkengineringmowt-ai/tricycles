@@ -1,0 +1,45 @@
+AUTOMATIC TRAFFIC COUNTERS
+Uganda’s road network is the backbone of the country’s transport system, accounting for over 90% of passenger and freight movement. 80% of this traffic moves along national roads and continues to grow due to urbanization, economic expansion, and regional trade. The national road network faces several key challenges, like road capacity constraints due to increasing traffic volumes, especially along major corridors, limited historical and real-time traffic data for planning, pavement deterioration due to axle overloading, urban congestion, rising road safety concerns and inadequate monitoring systems for traffic trends and performance. 
+Traditionally, traffic data collection has relied on periodic manual classified counts and radar traffic counters, which are costly, time-bound, and often unreliable, limiting planners' ability to make informed, data-driven decisions. This drives the need for accurate, reliable, and continuous traffic data, which is critical for effective planning and management.
+In response, the Government of Uganda, through the Ministry of Works and Transport, has implemented Automatic Traffic Counters (ATCs) on the National Road Network. This initiative represents a major step toward modernizing traffic data collection and transitioning from manual surveys to automated systems.
+A pilot of 10 ATC stations was installed at strategic locations across the national road network, including high-traffic corridors and economically significant routes.
+Kampala being the focal point for Traffic, 6 ATC stations were installed at all exit links for traffic from this area to the other regions of the country, and 4 were installed along major highways in each region, as shown in the table below.   
+Table 1 : Pilot ATC stations
+Upon Commissioning in November 2025, real-time data transmission and remote access were implemented, enhancing continuous traffic monitoring and marking a significant improvement in the availability and reliability of traffic data on Uganda’s road network.
+ FEATURES AND OPERATION OF ATC SYSTEMS  
+The ATC system installed on the road network is functioning effectively, with key features including:
+Real-time remote monitoring via GSM/4G connectivity
+Solar-powered operation ensuring reliability in remote areas
+Automated data logging and storage systems
+High accuracy in vehicle detection and classification
+Weigh In Motion is ready. 
+All inspected stations were found to be online and in good working condition, confirming system reliability.
+Compared with the Manual and Rader Counts, ATCs can continuously record and automatically perform vehicular classification up to 12 Classes as configured in accordance with national standards, recording the number of axles per vehicle, distance between axles  used to identify vehicle type and differentiating between loaded vs empty trucks    (Weigh in motion). 
+Table 2 : Comparison of ATCs and Tradition Traffic Counting methods
+In addition, ATCs accurately calculate both Annual Daily Traffic (ADT) and Annual Average Daily Traffic (AADT), providing a comprehensive analysis of the data captured.
+ATC systems follow the sequence below as they function; 
+Detection Technology - Inductive Loops enable the identification of passing vehicles.
+Vehicle Detection- the inductive loops detect magnetic field disturbances to detect a vehicle when it passes over or near them.
+Signal Generation - The sensor converts physical movement into electrical pulses, creating measurable data.
+Data Recording Unit - A central logger records signals from sensors, microprocesses, timestamps each signal and stores it in memory building raw traffic data. 
+Vehicle Counting - The system counts vehicles based on signal triggers; each pulse or detection event equals one vehicle (or axle, depending on setup). This produces traffic volume data.
+Classification- The ATC classifies vehicle types based on axle count, spacing, length, or speed and provides detailed traffic composition. 
+Speed Measurement - Speed is calculated using time differences, aided by two sensors spaced apart that measure how long a vehicle takes to travel between them to determine the vehicle speed. 
+Direction Detection - the ATC identifies travel direction. The sequence of sensor activation indicates direction (e.g., Sensor A → B vs B → A) hence differentiating traffic flow directions.
+Data Storage - Data is stored locally and transmitted via the internet producing traffic volume data. 
+Data Processing- the raw data is processed into usable formats as software aggregates counts into hourly, daily, or weekly statistics to produces meaningful reports.
+Power Supply - ATCs require energy to operate. Power is provided by the electricity mains and batteries connected to solar panels to ensure continuous operation. 
+Data Output / Reporting - Final results are presented to users. Reports include traffic volume, speed, classification, and trends. Which Supports planning and decision-making.
+
+To enhance institutional Capacity and readiness, a 12-month Operation and Maintenance Period commenced in December 2025 to ensure proper functionality whilst conducting a structured training program for MoWT staff to enhance capacity in:
+ATC operation and configuration
+Data retrieval and validation
+Preventive maintenance
+Traffic data analysis
+This has improved institutional readiness to utilize ATC data for planning and management. However, continued capacity development is required to sustain and maximize system benefits.
+Automatic Traffic Counters (ATCs) provide both technical and financial advantages that significantly improve the efficiency and management of Uganda’s road network. Technically, ATCs enable accurate, real-time collection of traffic data such as vehicle volume, speed, and flow patterns, which is essential for understanding how roads are used. This continuous and automated monitoring reduces human error and eliminates the need for manual traffic counts, ensuring reliable data at all times. The information gathered supports better traffic management by helping authorities reduce congestion, optimize traffic signals, and improve overall road safety by identifying speeding and high-risk areas. In addition, ATCs play a crucial role in infrastructure planning, allowing engineers and policymakers to design, upgrade, and maintain roads based on actual usage patterns. They can also integrate with modern intelligent transport systems, enhancing enforcement, monitoring, and decision-making across urban centers 
+From a financial perspective, ATCs contribute to cost savings and increased economic efficiency. By automating data collection, they reduce the need for labor-intensive surveys, lowering operational costs over time. Accurate traffic data also ensures that government funds for road construction and maintenance are allocated effectively, preventing unnecessary expenditure. Furthermore, ATCs support revenue generation through improved enforcement of traffic regulations, such as speeding fines, while minimizing leakages. Improved traffic flow reduces fuel consumption, travel time, and vehicle wear and tear, leading to savings for both individuals and businesses. Additionally, enhanced road safety reduces the economic burden of accidents, including medical expenses and property damage. Overall, by improving transport efficiency and supporting better planning, ATCs contribute to increased productivity, smoother logistics, and economic growth in Uganda.
+The introduction of Automatic Traffic Counters (ATCs) has significantly improved the situational understanding of Uganda’s road network. The system provides reliable, real-time data that supports planning, design, maintenance, and policy decisions per region.
+While the current deployment is a strong foundation, expanding coverage, strengthening institutional capacity, and improving data utilization will be critical to fully transforming the road network into a modern, efficient, and data-driven system.
+The ATC initiative, therefore, represents a key milestone in Uganda’s journey toward sustainable and evidence-based transport infrastructure management.
+ATC DATA AND REPORTING
