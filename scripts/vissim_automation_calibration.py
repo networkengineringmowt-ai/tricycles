@@ -39,6 +39,11 @@ def run_pcu_simulation(vissim_path, ax_val, bx_add, bx_mult):
     Vissim = None
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="VISSIM Calibration")
+    parser.add_argument("--vissim-path", required=True, help="Path to VISSIM Models directory")
+    args = parser.parse_args()
+    
     # Example Calibration Suite
     calibration_runs = [
         {"ax": 0.5, "bx_add": 2.0, "bx_mult": 3.0},
@@ -46,7 +51,7 @@ if __name__ == "__main__":
         {"ax": 1.0, "bx_add": 3.0, "bx_mult": 5.0}
     ]
     
-    v_path = r"D:\OneDrive\PROJECTS\Ambrose\VISSIM_Models"
+    v_path = args.vissim_path
     
     for run in calibration_runs:
         print(f"Starting Simulation with ax={run['ax']}...")

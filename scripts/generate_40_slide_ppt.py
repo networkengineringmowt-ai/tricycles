@@ -74,7 +74,10 @@ prs.slide_height = Inches(7.5)
 
 # Title Slide (Slide 1)
 slide = prs.slides.add_slide(prs.slide_layouts[6])
-slide.shapes.add_picture("kampala_neon_title.png", 0, 0, width=prs.slide_width)
+try:
+    slide.shapes.add_picture(r".\visualizations\kampala_neon_title.png", 0, 0, width=prs.slide_width)
+except:
+    pass
 overlay = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, prs.slide_height)
 overlay.fill.solid(); overlay.fill.fore_color.rgb = RGBColor(0, 0, 0) # Simulated opacity isn't direct, but we can layer
 
@@ -139,6 +142,11 @@ while slide_count < 40:
 add_premium_slide(prs, "Thank You", "Q&A Session\nPresenter: Sserunjogi Ambrose\na.sserunjogi@kiu.ac.ug")
 
 # Save to the specific file requested
-output_path = r"d:\OneDrive\PROJECTS\Ambrose\Thesis_Presentation_40_Slides.pptx"
-prs.save(output_path)
-print(f"STUNNING 40-slide premium PPT updated at: {output_path}")
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Generate Thesis PPT")
+    parser.add_argument("--output", required=True, help="Output PPTX path")
+    args = parser.parse_args()
+    output_path = args.output
+    prs.save(output_path)
+    print(f"STUNNING 40-slide premium PPT updated at: {output_path}")

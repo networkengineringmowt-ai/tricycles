@@ -1,23 +1,33 @@
 import pandas as pd
 import numpy as np
 import xlsxwriter
+import argparse
 
-output_excel = r"d:\OneDrive\PROJECTS\Ambrose\Tricycle_PCU_Analysis_Tool.xlsx"
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Generate PCU Workbook")
+    parser.add_argument("--output", required=True, help="Output XLSX path")
+    parser.add_argument("--n-samples", type=int, default=10000, help="Number of samples")
+    parser.add_argument("--mean-speed", type=float, default=35.0, help="Mean speed")
+    parser.add_argument("--std-speed", type=float, default=10.0, help="Std dev of speed")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    args = parser.parse_args()
 
-# 1. Generate 10,000 rows of Stochastic Data
-np.random.seed(42)
-n_samples = 10000
+    output_excel = args.output
 
-# Vehicle types
-v_types = ['Car', 'Tricycle', 'Motorcycle', 'Heavy Truck']
-p_dist = [0.65, 0.12, 0.20, 0.03]
+    # 1. Generate rows of Stochastic Data
+    np.random.seed(args.seed)
+    n_samples = args.n_samples
 
-df_bulky = pd.DataFrame({
-    'Timestamp': pd.date_range(start='2024-01-01 06:00', periods=n_samples, freq='15s'),
-    'Vehicle_Class': np.random.choice(v_types, n_samples, p=p_dist),
-    'Speed_kmh': np.random.normal(35, 10, size=n_samples),
-    'Headway_s': np.random.gamma(shape=2.5, scale=1.2, size=n_samples)
-})
+    # Vehicle types
+    v_types = ['Car', 'Tricycle', 'Motorcycle', 'Heavy Truck']
+    p_dist = [0.65, 0.12, 0.20, 0.03]
+
+    df_bulky = pd.DataFrame({
+        'Timestamp': pd.date_range(start='2024-01-01 06:00', periods=n_samples, freq='15s'),
+        'Vehicle_Class': np.random.choice(v_types, n_samples, p=p_dist),
+        'Speed_kmh': np.random.normal(args.mean_speed, args.std_speed, size=n_samples),
+        'Headway_s': np.random.gamma(shape=2.5, scale=1.2, size=n_samples)
+    })
 
 # Filter for tricycles and calculate dynamic PCU
 df_bulky['Dynamic_PCU'] = 0.0

@@ -1,19 +1,29 @@
 import pandas as pd
 import json
 import os
+import argparse
 
-# Paths
-json_path = r"D:\OneDrive\Uganda National Road Network Repository\3.Traffic\analytics\traffic_dashboard_data.json"
-output_excel = r"d:\OneDrive\PROJECTS\Ambrose\Uganda_Traffic_Thesis_Workbook.xlsx"
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Generate Thesis Workbook")
+    parser.add_argument("--json", required=True, help="Input traffic_dashboard_data.json path")
+    parser.add_argument("--output", required=True, help="Output XLSX path")
+    parser.add_argument("--base-adt", type=float, required=True, help="Base ADT (Kireka)")
+    parser.add_argument("--growth-rate", type=float, required=True, help="Annual Growth Rate")
+    args = parser.parse_args()
 
-# 1. Load Data
-with open(json_path, 'r') as f:
-    data = json.load(f)
+    json_path = args.json
+    output_excel = args.output
+    base_adt = args.base_adt
+    growth_rate = args.growth_rate
 
-stations_2021 = data['observedYears'][0]['stations']
-df = pd.DataFrame(stations_2021)
-cols = ['Section_ID', 'Link_Name', 'Region', 'Surface_Type', 'ADT_including_motorbikes', 'ADT_excluding_motorbikes', 'Motorcycles & scooters', 'Truck trailers and semi-trailers']
-df = df[cols]
+    # 1. Load Data
+    with open(json_path, 'r') as f:
+        data = json.load(f)
+
+    stations_2021 = data['observedYears'][0]['stations']
+    df = pd.DataFrame(stations_2021)
+    cols = ['Section_ID', 'Link_Name', 'Region', 'Surface_Type', 'ADT_including_motorbikes', 'ADT_excluding_motorbikes', 'Motorcycles & scooters', 'Truck trailers and semi-trailers']
+    df = df[cols]
 
 # 2. Performance Data (from the report)
 perf_data = {
@@ -37,8 +47,8 @@ header_format = workbook.add_format({'bold': True, 'bg_color': '#D7E4BC', 'borde
 calc_sheet.write('A3', 'Parameter', header_format)
 calc_sheet.write('B3', 'Value', header_format)
 calc_sheet.write('A4', 'Base Year'); calc_sheet.write('B4', 2021)
-calc_sheet.write('A5', 'Base ADT (Kireka)'); calc_sheet.write('B5', 103899.86)
-calc_sheet.write('A6', 'Annual Growth Rate (%)'); calc_sheet.write('B6', 0.052)
+calc_sheet.write('A5', 'Base ADT (Kireka)'); calc_sheet.write('B5', base_adt)
+calc_sheet.write('A6', 'Annual Growth Rate (%)'); calc_sheet.write('B6', growth_rate)
 calc_sheet.write('A8', 'Target Year', header_format); calc_sheet.write('B8', 'Projected ADT', header_format)
 for i, year in enumerate(range(2022, 2036)):
     row = 8 + i
