@@ -38,7 +38,7 @@ writer = pd.ExcelWriter(output_excel, engine='xlsxwriter')
 workbook = writer.book
 header_fmt = workbook.add_format({'bold': True, 'bg_color': '#D7E4BC', 'border': 1})
 
-# --- NEW: ADVANCED DATA COMPENDIUM ---
+# --- Data Compendium ---
 sheet_bulky = workbook.add_worksheet('Data_Compendium')
 sheet_bulky.write('A1', 'Consolidated Stochastic Headway Data (N=10,000)', header_fmt)
 
@@ -54,7 +54,7 @@ for row_num, row_data in enumerate(df_bulky.values):
         else:
             sheet_bulky.write(row_num + 3, col_num, value)
 
-# --- NEW: THEORETICAL PARAMETERS ---
+# --- Theoretical Parameters ---
 sheet_theory = workbook.add_worksheet('Theoretical_Framework')
 sheet_theory.write('A1', 'Advanced Traffic Flow Parameters', header_fmt)
 sheet_theory.write_row('A3', ['Parameter', 'Notation', 'Value', 'Unit', 'Source'], header_fmt)
@@ -64,4 +64,4 @@ sheet_theory.write_row('A6', ['Weaving Displ.', 'delta', 0.85, 'm', 'Field Surve
 sheet_theory.write_row('A7', ['Tricycle ESAL', 'e_T', 0.005, '-', 'Axle Load Survey'])
 
 writer.close()
-print(f"Bulky Technical data integrated into: {output_excel}")
+print(f"Generated PCU workbook: {output_excel}")

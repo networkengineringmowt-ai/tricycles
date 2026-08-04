@@ -134,7 +134,7 @@ for section, slides in content_map:
             add_premium_slide(prs, f"{title} (Part {i+1})", content if i==0 else f"Further detailed data analysis regarding {title.lower()} and its implications for the research study objectives.")
             slide_count += 1
 
-# Filler to reach 40
+# Additional appendix slides
 while slide_count < 40:
     add_premium_slide(prs, f"Appendix {slide_count-30}: Technical Data", "Detailed data tables, statistical significance results (p-values), and regression residuals for the PCU estimation models.")
     slide_count += 1
@@ -149,4 +149,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     output_path = args.output
     prs.save(output_path)
-    print(f"STUNNING 40-slide premium PPT updated at: {output_path}")
+    print(f"Saved presentation to {output_path}")
