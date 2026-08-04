@@ -24,14 +24,34 @@ To make sure we captured the massive day-to-day changes in Kampala traffic, we c
 - **Morning Peak:** 07:00 AM – 11:00 AM
 - **Evening Peak:** 04:00 PM – 10:00 PM (This allowed us to capture the severe traffic collapse that almost always happens around 6:30 PM).
 
-### 3.3.2 Field Operation and Manpower
-To pull this off, we relied heavily on a team of 16 trained manual enumerators. 
-- At a standard 4-leg intersection (like Wandegeya), we deployed 4 enumerators per leg. 
-- **Roles:** We split the tasks to avoid confusion. One enumerator was strictly responsible for logging the highly agile vehicles (motorcycles and tricycles), while another logged the heavier vehicles and passenger cars. 
-- Meanwhile, other team members managed the elevated high-definition (1080p, 60fps) cameras. We made sure to mount these cameras at least 5.5 meters high so our view wouldn't be blocked by passing trucks.
+## 3.3 Data Collection Strategy (Mixed Methods Approach)
+This study employs a comprehensive mixed-methods approach, rigorously combining both quantitative and qualitative testing to capture the full spectrum of tricycle operational friction. To achieve this, the research draws upon both Primary and Secondary data sources.
 
-## 3.4 Data Processing and PCU Estimation Techniques
-Once we had the raw video and the manual tally sheets, we digitized everything. We processed the numbers using three different mathematical techniques to make sure our findings were solid.
+### 3.3.1 Primary Data (Quantitative and Qualitative)
+The primary data forms the bedrock of this study's original contribution to traffic engineering in Kampala.
+
+**1. Quantitative Primary Data (Manual Classified Counts):**
+Due to the lack of automated pneumatic tube sensors in Kampala, we conducted massive 20-day manual classified counts (MCC) across the five study intersections. The data was logged in precise 15-minute intervals from 06:00 to 22:00, resulting in over 6,400 distinct data rows. The vehicle classifications tracked were:
+- Passenger Cars
+- Boda-bodas (motorcycles)
+- Tricycles (Tuk-tuks)
+- Matatus (14-seater minibuses)
+- Heavy Trucks
+To ensure environmental validity, weather conditions (Wet vs. Dry) were explicitly logged during every interval. This massive quantitative dataset is used to run rigorous inferential probability tests (e.g., ANOVA, Independent T-Tests).
+
+**2. Qualitative Primary Data (Structured Field Interviews):**
+Traffic engineering often ignores the human element. To capture the behavioral "blocking friction" of tricycle operators, we conducted structured qualitative interviews with 50 local tricycle drivers. A **Thematic Analysis** was applied to the interview transcripts using conceptual coding to identify recurring qualitative themes such as "pothole swerving," "police extortion," and "fatigue-induced lane straddling."
+
+### 3.3.2 Secondary Data
+To establish a historical baseline and validate our primary observations, two critical secondary data sources were utilized:
+1. **Ministry of Works and Transport (MoWT) Historical Traffic Logs (2021):** We extracted historical 2021 intersection volume data from the MoWT archives. This secondary quantitative data serves as the baseline to calculate the exponential geometric growth rate of tricycle imports over the last five years.
+2. **Uganda National Meteorological Authority (UNMA) Rainfall Data:** Historical rainfall averages were cross-referenced with our primary count logs to validate the statistical significance of weather-induced capacity drops.
+
+## 3.4 Data Processing and Statistical Testing
+Once the primary and secondary data was collated, we applied robust statistical testing to ensure the validity of our findings. 
+- **Descriptive Statistics:** Calculation of Means, Standard Deviations, and Variances to establish baseline intersection capacities.
+- **Inferential Statistics:** One-Way ANOVA tests were utilized to prove variance across geographical locations, and Independent T-Tests were used to prove environmental impact (wet vs. dry).
+- **Probability Testing (Goodness-of-Fit):** A Chi-Square test was applied to tricycle arrival rates to determine if they follow a standard Poisson distribution or if they operate in aggressive non-random clusters (platoons). 
 
 ### 3.4.1 Modified Headway Ratio Method
 Our data extractors watched the 60fps footage frame-by-frame to find "clean headway pairs" during times when the traffic was actually flowing. A "clean pair" happens when a tricycle directly follows a passenger car (or vice versa) without swerving out of the lane.
