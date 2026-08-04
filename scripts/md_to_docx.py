@@ -76,4 +76,4 @@ def convert_md_to_docx(md_path, docx_path):
     print(f"Successfully generated Word Document: {docx_path} (Size: {os.path.getsize(docx_path)/1024:.2f} KB)")
 
 if __name__ == "__main__":
-    convert_md_to_docx("Final_Thesis.md", "Final_Thesis.docx")
+    convert_md_to_docx("final_deliverables/Final_Thesis.md", "final_deliverables/Final_Thesis.docx")

@@ -65,10 +65,11 @@ def generate_appendices():
         f.write("```\n")
 
 def compile_thesis():
-    print("Compiling all chapters into Final_Thesis.md...")
+    output_file = "final_deliverables/Final_Thesis.md"
+    print(f"Compiling all chapters into {output_file}...")
     chapters = sorted([f for f in os.listdir("thesis_draft") if f.endswith(".md")])
     
-    with open("Final_Thesis.md", "w", encoding="utf-8") as outfile:
+    with open(output_file, "w", encoding="utf-8") as outfile:
         for chapter in chapters:
             with open(os.path.join("thesis_draft", chapter), "r", encoding="utf-8") as infile:
                 outfile.write(infile.read())
