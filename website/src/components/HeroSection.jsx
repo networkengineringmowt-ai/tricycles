@@ -5,8 +5,8 @@ const HeroSection = () => {
     <section id="hero" className="hero">
       <div className="container" style={{ position: 'relative', zIndex: 2 }}>
         <img 
-          src="/kampala_neon_title.png" 
-          alt="Kampala Neon Title" 
+          src="/kampala_traffic_title.png" 
+          alt="Kampala Tricycle Traffic Flow" 
           style={{ maxWidth: '100%', height: 'auto', marginBottom: '30px', filter: 'drop-shadow(0 0 20px rgba(0,242,255,0.3))' }} 
         />
         <h1 className="text-primary">Tricycle PCU Analytics</h1>

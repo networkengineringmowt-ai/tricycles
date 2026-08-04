@@ -75,7 +75,8 @@ prs.slide_height = Inches(7.5)
 # Title Slide (Slide 1)
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 try:
-    slide.shapes.add_picture(r".\visualizations\kampala_neon_title.png", 0, 0, width=prs.slide_width)
+    # Add background image
+    slide.shapes.add_picture(r".\visualizations\kampala_traffic_title.png", 0, 0, width=prs.slide_width)
 except:
     pass
 overlay = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, prs.slide_height)
