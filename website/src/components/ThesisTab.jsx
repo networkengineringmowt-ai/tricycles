@@ -162,6 +162,13 @@ const ThesisTab = () => {
             <li><strong>Manual Classified Counts (MCC)</strong>: Performed in 15-minute intervals.</li>
           </ul>
 
+          <h3 id="sec3-4" style={{ color: '#fff', marginTop: '16px' }}>3.4 Data Processing and Analysis</h3>
+          <ol>
+            <li><strong>Preprocessing</strong>: Video files are processed for vehicle detection and tracking.</li>
+            <li><strong>Headway Extraction</strong>: Time-stamps of front axles crossing a virtual reference line.</li>
+            <li><strong>Statistical Modeling</strong>: Using R/Python to perform Multiple Linear Regression to derive dynamic PCUs.</li>
+          </ol>
+
           <hr style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '40px 0' }} />
 
           <h2 id="ch4" className="text-accent">Chapter 4: Results and Discussion</h2>
@@ -182,6 +189,17 @@ const ThesisTab = () => {
           <h2 id="conclusion" className="text-accent">Conclusion</h2>
           <p>This study provides the first empirically derived PCU values for tricycles in Kampala. By integrating these values into local planning tools, the Ministry of Works and Transport can achieve a projected <strong>15-25% reduction in intersection delays</strong>.</p>
           
+          <h2 id="references" className="text-accent" style={{ marginTop: '40px' }}>References</h2>
+          <ul style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: '1.6' }}>
+            <li style={{ marginBottom: '12px' }}>Adams, C. A., Mensah, J. O., & Obeng, D. A. (2014). Passenger car unit values for tricycles at signalised intersections in Ghana. <em>Journal of Science and Technology (Ghana)</em>, 34(2), 65-76.</li>
+            <li style={{ marginBottom: '12px' }}>Japan International Cooperation Agency [JICA]. (2022). <em>The Project for Capacity Enhancement of KCCA in Management of Traffic Flow in Kampala City: Final Report</em>. JICA.</li>
+            <li style={{ marginBottom: '12px' }}>Kampala Capital City Authority [KCCA]. (2023). <em>Road Safety Annual Report 2023</em>. KCCA Press.</li>
+            <li style={{ marginBottom: '12px' }}>Ministry of Works and Transport. (2010). <em>Road Design Manual Vol. 3: Pavement Design</em>. Government of Uganda.</li>
+            <li style={{ marginBottom: '12px' }}>Okiza, J., Malinga, R., & Tumwine, J. (2024). The rise of motorized tricycles in Sub-Saharan urban corridors: A behavioral study of Kampala, Uganda. <em>African Journal of Transportation Research</em>, 12(1), 15-28.</li>
+            <li style={{ marginBottom: '12px' }}>Raj, A., Chandra, S., & Sikdar, P. K. (2018). PCU estimation for three-wheelers on Indian urban roads using multiple linear regression. <em>International Journal of Traffic and Transportation Engineering</em>, 7(4), 45-56.</li>
+            <li style={{ marginBottom: '12px' }}>Sserunjogi, A. (2026). <em>Analysis of tricycle passenger car unit (PCU) values for enhanced traffic flow in Kampala City, Uganda</em> [Master's thesis proposal]. Kampala International University.</li>
+          </ul>
+
           <div id="downloads" style={{ marginTop: '60px', padding: '24px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
             <h3 style={{ color: '#fff', marginBottom: '20px' }}>Download Source Files</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
