@@ -46,31 +46,36 @@ const InfographicDashboard = () => {
       </div>
 
       {/* MACRO TELEMETRY STRIP */}
-      <div className="col-span-12" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
+      <div className="col-span-12" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }}>
         <div className="glass-card" style={{ padding: '16px', borderTop: '2px solid #00f2ff', textAlign: 'center' }}>
           <p className="stat-label">Network Flow State</p>
-          <div className="stat-value text-primary" style={{ fontSize: '1.8rem' }}>SATURATED</div>
+          <div className="stat-value text-primary" style={{ fontSize: '1.5rem' }}>SATURATED</div>
           <p className="text-muted" style={{ fontSize: '0.7rem' }}>LOS E Detected</p>
         </div>
         <div className="glass-card" style={{ padding: '16px', borderTop: '2px solid #10b981', textAlign: 'center' }}>
           <p className="stat-label">Live Active Vehicles</p>
-          <div className="stat-value" style={{ fontSize: '1.8rem', color: '#10b981' }}>{liveVehicles.toLocaleString()}</div>
+          <div className="stat-value" style={{ fontSize: '1.5rem', color: '#10b981' }}>{liveVehicles.toLocaleString()}</div>
           <p className="text-muted" style={{ fontSize: '0.7rem' }}>±1.2% variance</p>
         </div>
         <div className="glass-card" style={{ padding: '16px', borderTop: '2px solid #f59e0b', textAlign: 'center' }}>
           <p className="stat-label">Mean Network Delay</p>
-          <div className="stat-value" style={{ fontSize: '1.8rem', color: '#f59e0b' }}>142.5s</div>
+          <div className="stat-value" style={{ fontSize: '1.5rem', color: '#f59e0b' }}>142.5s</div>
           <p className="text-muted" style={{ fontSize: '0.7rem' }}>Per Intersection</p>
         </div>
         <div className="glass-card" style={{ padding: '16px', borderTop: '2px solid #ef4444', textAlign: 'center', animation: vcRatio > 0.9 ? 'pulse 2s infinite' : 'none' }}>
           <p className="stat-label">Critical V/C Ratio</p>
-          <div className="stat-value" style={{ fontSize: '1.8rem', color: vcRatio > 0.9 ? '#ef4444' : '#fff' }}>{vcRatio.toFixed(2)}</div>
+          <div className="stat-value" style={{ fontSize: '1.5rem', color: vcRatio > 0.9 ? '#ef4444' : '#fff' }}>{vcRatio.toFixed(2)}</div>
           <p className="text-muted" style={{ fontSize: '0.7rem' }}>Wandegeya Node</p>
         </div>
         <div className="glass-card" style={{ padding: '16px', borderTop: '2px solid #3b82f6', textAlign: 'center' }}>
           <p className="stat-label">Tricycle Share</p>
-          <div className="stat-value" style={{ fontSize: '1.8rem', color: '#3b82f6' }}>{modalShare}%</div>
+          <div className="stat-value" style={{ fontSize: '1.5rem', color: '#3b82f6' }}>{modalShare}%</div>
           <p className="text-muted" style={{ fontSize: '0.7rem' }}>System Average</p>
+        </div>
+        <div className="glass-card" style={{ padding: '16px', borderTop: '2px solid #8b5cf6', textAlign: 'center' }}>
+          <p className="stat-label">Economic Delay Cost</p>
+          <div className="stat-value" style={{ fontSize: '1.5rem', color: '#8b5cf6' }}>$1.5M</div>
+          <p className="text-muted" style={{ fontSize: '0.7rem' }}>Daily Est. GKMA</p>
         </div>
       </div>
 
@@ -112,34 +117,40 @@ const InfographicDashboard = () => {
         </div>
       </div>
 
-      {/* CAPACITY COLLAPSE MULTI-AXIS */}
+      {/* MONTE CARLO DELAY SIMULATION (NEW) */}
       <div className="glass-card col-span-8">
-        <p className="nexus-eyebrow">MACROSCOPIC ANALYSIS</p>
-        <h3>Volume vs Delay Curve (Capacity Collapse)</h3>
+        <p className="nexus-eyebrow">STOCHASTIC MONTE CARLO ANALYSIS</p>
+        <h3>Intersection Delay by Tricycle PCU Profile</h3>
         <div style={{ flex: 1, minHeight: '320px', position: 'relative', width: '100%' }}>
           <Line 
             data={{
-              labels: ['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'],
+              labels: ['V/C 0.6', 'V/C 0.7', 'V/C 0.8', 'V/C 0.9', 'V/C 1.0', 'V/C 1.1'],
               datasets: [
                 {
-                  type: 'bar',
-                  label: 'Traffic Volume (Veh/Hr)',
-                  data: [1200, 3500, 8500, 7200, 4100, 3800, 4200, 4500, 4100, 4600, 6800, 8900, 7500, 3200],
-                  backgroundColor: 'rgba(148, 163, 184, 0.2)',
+                  label: 'Baseline (PCU 1.0)',
+                  data: [46, 62, 97, 373, 1994, 1948],
                   borderColor: '#94a3b8',
-                  borderWidth: 1,
-                  yAxisID: 'y'
+                  backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                  borderWidth: 2,
+                  tension: 0.4
                 },
                 {
-                  type: 'line',
-                  label: 'Mean Delay (Seconds)',
-                  data: [12, 25, 142, 110, 45, 38, 41, 48, 42, 55, 95, 168, 120, 35],
-                  borderColor: '#ef4444',
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  label: 'Empirical Tricycle (PCU 1.35)',
+                  data: [51, 76, 176, 1803, 2075, 1901],
+                  borderColor: '#00f2ff',
+                  backgroundColor: 'rgba(0, 242, 255, 0.1)',
                   borderWidth: 3,
                   fill: true,
-                  tension: 0.4,
-                  yAxisID: 'y1'
+                  tension: 0.4
+                },
+                {
+                  label: 'Severe Weather/Rain (PCU 1.5)',
+                  data: [54, 84, 279, 2228, 2623, 1915],
+                  borderColor: '#ef4444',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  borderWidth: 2,
+                  borderDash: [5, 5],
+                  tension: 0.4
                 }
               ]
             }}
@@ -147,9 +158,47 @@ const InfographicDashboard = () => {
               animation: animConfig,
               maintainAspectRatio: false,
               scales: {
-                y: { type: 'linear', display: true, position: 'left', grid: { color: '#2a2a2a' } },
-                y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } },
+                y: { title: { display: true, text: 'Delay (Seconds / Veh)', color: '#94a3b8' }, grid: { color: '#2a2a2a' } },
                 x: { grid: { display: false } }
+              },
+              plugins: { legend: { labels: { color: '#f1f5f9' } } }
+            }}
+          />
+        </div>
+      </div>
+
+      {/* SAFETY IMPACT ANALYSIS (NEW) */}
+      <div className="glass-card col-span-6">
+        <p className="nexus-eyebrow">SAFETY ANALYSIS (N=840 INCIDENTS)</p>
+        <h3>Incident Severity by Type in Tricycle Corridors</h3>
+        <div style={{ flex: 1, minHeight: '280px', position: 'relative', width: '100%' }}>
+          <Bar 
+            data={{
+              labels: ['Rollover', 'Pedestrian', 'Moto Crash', 'Rear-End', 'Single Veh', 'Side-swipe'],
+              datasets: [
+                {
+                  label: 'Fatal',
+                  data: [25, 45, 30, 15, 20, 12],
+                  backgroundColor: '#ef4444'
+                },
+                {
+                  label: 'Serious',
+                  data: [40, 30, 35, 30, 25, 25],
+                  backgroundColor: '#f59e0b'
+                },
+                {
+                  label: 'Minor',
+                  data: [40, 15, 23, 42, 40, 46],
+                  backgroundColor: '#10b981'
+                }
+              ]
+            }}
+            options={{
+              animation: animConfig,
+              maintainAspectRatio: false,
+              scales: {
+                x: { stacked: true, grid: { display: false } },
+                y: { stacked: true, grid: { color: '#2a2a2a' } }
               },
               plugins: { legend: { labels: { color: '#f1f5f9' } } }
             }}
@@ -191,7 +240,7 @@ const InfographicDashboard = () => {
       </div>
 
       {/* CAUSAL DOUGHNUT */}
-      <div className="glass-card col-span-3">
+      <div className="glass-card col-span-4">
         <p className="nexus-eyebrow">CAUSAL FACTORS</p>
         <h3>Weaving Triggers</h3>
         <div style={{ flex: 1, minHeight: '250px', position: 'relative', width: '100%', marginTop: '20px' }}>
@@ -216,7 +265,7 @@ const InfographicDashboard = () => {
       </div>
 
       {/* RADAR CHART */}
-      <div className="glass-card col-span-3">
+      <div className="glass-card col-span-4">
         <p className="nexus-eyebrow">PERFORMANCE VECTORS</p>
         <h3>Flow Impact Profile</h3>
         <div style={{ flex: 1, minHeight: '250px', position: 'relative', width: '100%', marginTop: '20px' }}>
@@ -237,52 +286,16 @@ const InfographicDashboard = () => {
           />
         </div>
       </div>
-
-      {/* HEADWAY DISTRIBUTION LINE */}
-      <div className="glass-card col-span-6">
-        <p className="nexus-eyebrow">STOCHASTIC MODELING</p>
-        <h3>Time Headway Distribution (Mixed Flow)</h3>
-        <div style={{ flex: 1, minHeight: '280px', position: 'relative', width: '100%' }}>
-          <Line 
-            data={{
-              labels: ['0.5s', '1.0s', '1.5s', '2.0s', '2.5s', '3.0s', '3.5s', '4.0s', '4.5s', '5.0s', '6.0s+'],
-              datasets: [
-                {
-                  label: 'Empirical Data (Kibuye)',
-                  data: [5, 45, 120, 180, 160, 110, 80, 50, 30, 15, 5],
-                  borderColor: '#00f2ff',
-                  backgroundColor: 'rgba(0, 242, 255, 0.1)',
-                  fill: true,
-                  tension: 0.4
-                },
-                {
-                  label: 'Negative Exponential Model',
-                  data: [10, 60, 150, 140, 120, 100, 70, 45, 25, 10, 2],
-                  borderColor: '#94a3b8',
-                  borderDash: [5, 5],
-                  tension: 0.4
-                }
-              ]
-            }}
-            options={{
-              animation: animConfig,
-              maintainAspectRatio: false,
-              scales: { y: { grid: { color: '#2a2a2a' } }, x: { grid: { display: false } } },
-              plugins: { legend: { labels: { color: '#f1f5f9' } } }
-            }}
-          />
-        </div>
-      </div>
-
-      {/* HEATMAP / PREDICTIVE MODELING */}
-      <div className="glass-card col-span-6">
+      
+      {/* HEATMAP / PREDICTIVE MODELING (Moved to 4 col to complete 12 col row) */}
+      <div className="glass-card col-span-4">
         <p className="nexus-eyebrow">PREDICTIVE MATRIX</p>
         <h3>Multivariate PCU Matrix (Modal Share vs V/C)</h3>
-        <div style={{ flex: 1, minHeight: '280px', position: 'relative', overflowX: 'auto', marginTop: '16px' }}>
-          <table className="heatmap-table" style={{ width: '100%', height: '100%' }}>
+        <div style={{ flex: 1, minHeight: '250px', position: 'relative', overflowX: 'auto', marginTop: '16px' }}>
+          <table className="heatmap-table" style={{ width: '100%', height: '100%', fontSize: '0.85rem' }}>
             <thead>
               <tr>
-                <th>V/C \ Modal %</th>
+                <th>V/C</th>
                 {modalShares.map(ms => <th key={ms}>{ms * 100}%</th>)}
               </tr>
             </thead>
