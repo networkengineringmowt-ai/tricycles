@@ -352,6 +352,30 @@ const InfographicDashboard = () => {
         </div>
       </div>
 
+      {/* REAL-WORLD COMMUTE (OD MATRIX) */}
+      <div className="glass-card col-span-6" style={{ padding: 0, position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column' }}>
+        <img src="/assets/commute.jpg" alt="Commuter Flow" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 60%, transparent 100%)', padding: '24px', zIndex: 2 }}>
+          <p className="nexus-eyebrow" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>ORIGIN-DESTINATION FLOW</p>
+          <h3 style={{ margin: '0 0 8px 0', textShadow: '0 2px 4px rgba(0,0,0,0.8)', color: '#00f2ff' }}>The Commuter Arteries</h3>
+          <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem', color: '#f1f5f9', textShadow: '0 1px 3px rgba(0,0,0,1)' }}>
+            Analysis of 1,446 OD zones reveals exactly where traffic pulses. Tricycles act as essential last-mile suburban feeders but heavily choke the glowing primary arteries during peak hours.
+          </p>
+        </div>
+      </div>
+
+      {/* REAL-WORLD CHOKEPOINT (GEOSPATIAL) */}
+      <div className="glass-card col-span-6" style={{ padding: 0, position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column' }}>
+        <img src="/assets/chokepoint.jpg" alt="Structural Chokepoint" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 60%, transparent 100%)', padding: '24px', zIndex: 2 }}>
+          <p className="nexus-eyebrow" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>STRUCTURAL GEOMETRY</p>
+          <h3 style={{ margin: '0 0 8px 0', textShadow: '0 2px 4px rgba(0,0,0,0.8)', color: '#ef4444' }}>The Physical Impossible</h3>
+          <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem', color: '#f1f5f9', textShadow: '0 1px 3px rgba(0,0,0,1)' }}>
+            Geospatial shapefile mapping (gis_osm_roads) exposes the structural truth: many Kampala routes are physically too narrow for safe mixed flow. It is geometrically impossible to safely overtake.
+          </p>
+        </div>
+      </div>
+
     </div>
   );
 };
