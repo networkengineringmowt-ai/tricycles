@@ -211,84 +211,39 @@ const InfographicDashboard = () => {
         </div>
       </div>
 
-      {/* WEAVING SCATTER PLOT */}
-      <div className="glass-card col-span-6">
-        <p className="nexus-eyebrow">MICROSCOPIC BEHAVIOR</p>
-        <h3>Tricycle Speed vs Network Density</h3>
-        <div style={{ flex: 1, minHeight: '280px', position: 'relative', width: '100%' }}>
-          <Scatter 
-            data={{
-              datasets: [
-                {
-                  label: 'Free Flow State',
-                  data: Array.from({length: 40}, () => ({x: Math.random()*30 + 10, y: Math.random()*15 + 30})),
-                  backgroundColor: '#10b981'
-                },
-                {
-                  label: 'Forced Flow (Weaving)',
-                  data: Array.from({length: 60}, () => ({x: Math.random()*60 + 40, y: Math.random()*20 + 5})),
-                  backgroundColor: '#00f2ff'
-                }
-              ]
-            }}
-            options={{
-              animation: animConfig,
-              maintainAspectRatio: false,
-              scales: {
-                x: { title: { display: true, text: 'Density (Veh/km)', color: '#94a3b8' }, grid: { color: '#2a2a2a' } },
-                y: { title: { display: true, text: 'Speed (km/h)', color: '#94a3b8' }, grid: { color: '#2a2a2a' } }
-              },
-              plugins: { legend: { labels: { color: '#f1f5f9' } } }
-            }}
-          />
+      {/* REAL-WORLD WEAVING (REPLACES SCATTER PLOT) */}
+      <div className="glass-card col-span-6" style={{ padding: 0, position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column' }}>
+        <img src="/assets/weaving.jpg" alt="Tricycle Weaving" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 60%, transparent 100%)', padding: '24px', zIndex: 2 }}>
+          <p className="nexus-eyebrow" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>THE WEAVING EFFECT</p>
+          <h3 style={{ margin: '0 0 8px 0', textShadow: '0 2px 4px rgba(0,0,0,0.8)', color: '#00f2ff' }}>Space Thieves</h3>
+          <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem', color: '#f1f5f9', textShadow: '0 1px 3px rgba(0,0,0,1)' }}>
+            Notice how tricycles don't wait in line. They aggressively wedge into the tight gaps between cars, stealing the essential safety buffer (headway). This forces cars to brake abruptly, killing the flow of the entire road.
+          </p>
         </div>
       </div>
 
-      {/* CAUSAL DOUGHNUT */}
-      <div className="glass-card col-span-4">
-        <p className="nexus-eyebrow">CAUSAL FACTORS</p>
-        <h3>Weaving Triggers</h3>
-        <div style={{ flex: 1, minHeight: '250px', position: 'relative', width: '100%', marginTop: '20px' }}>
-          <Doughnut 
-            data={{
-              labels: ['Passenger Alighting', 'Pothole Evasion', 'Boda Conflict', 'Police Avoidance'],
-              datasets: [{
-                data: [45, 25, 20, 10],
-                backgroundColor: ['#00f2ff', '#10b981', '#f59e0b', '#ef4444'],
-                borderWidth: 0,
-                hoverOffset: 10
-              }]
-            }}
-            options={{
-              animation: animConfig,
-              maintainAspectRatio: false,
-              cutout: '70%',
-              plugins: { legend: { position: 'bottom', labels: { color: '#f1f5f9', padding: 15, font: { size: 10 } } } }
-            }}
-          />
+      {/* REAL-WORLD SHOCKWAVE (REPLACES DOUGHNUT) */}
+      <div className="glass-card col-span-4" style={{ padding: 0, position: 'relative', overflow: 'hidden', minHeight: '300px' }}>
+        <img src="/assets/shockwave.jpg" alt="Traffic Shockwave" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 60%, transparent 100%)', padding: '20px', zIndex: 2 }}>
+          <p className="nexus-eyebrow" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>THE RIPPLE EFFECT</p>
+          <h3 style={{ margin: '0 0 8px 0', textShadow: '0 2px 4px rgba(0,0,0,0.8)', fontSize: '1.2rem', color: '#10b981' }}>Stop & Go Chaos</h3>
+          <p className="text-muted" style={{ margin: 0, fontSize: '0.8rem', color: '#f1f5f9', textShadow: '0 1px 3px rgba(0,0,0,1)' }}>
+            A single tricycle dropping off a passenger blocks the lane for 10 seconds. In Kampala, this triggers a backward shockwave that piles up cars for a kilometer.
+          </p>
         </div>
       </div>
 
-      {/* RADAR CHART */}
-      <div className="glass-card col-span-4">
-        <p className="nexus-eyebrow">PERFORMANCE VECTORS</p>
-        <h3>Flow Impact Profile</h3>
-        <div style={{ flex: 1, minHeight: '250px', position: 'relative', width: '100%', marginTop: '20px' }}>
-          <Radar 
-            data={{
-              labels: ['Space', 'Speed', 'Weaving', 'Headway', 'Delay'],
-              datasets: [
-                { label: 'Car', data: [1.0, 1.0, 0.4, 0.9, 0.8], borderColor: '#94a3b8', backgroundColor: 'rgba(148, 163, 184, 0.2)' },
-                { label: 'Tricycle', data: [0.6, 0.7, 1.5, 1.4, 1.3], borderColor: '#00f2ff', backgroundColor: 'rgba(0, 242, 255, 0.2)' }
-              ]
-            }}
-            options={{
-              animation: animConfig,
-              maintainAspectRatio: false,
-              scales: { r: { grid: { color: '#2a2a2a' }, angleLines: { color: '#2a2a2a' }, ticks: { display: false } } },
-              plugins: { legend: { position: 'bottom', labels: { color: '#f1f5f9', font: { size: 10 } } } }
-            }}
-          />
+      {/* REAL-WORLD SAFETY (REPLACES RADAR CHART) */}
+      <div className="glass-card col-span-4" style={{ padding: 0, position: 'relative', overflow: 'hidden', minHeight: '300px' }}>
+        <img src="/assets/accident.jpg" alt="Tricycle Accident" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 60%, transparent 100%)', padding: '20px', zIndex: 2 }}>
+          <p className="nexus-eyebrow" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>SAFETY REALITY</p>
+          <h3 style={{ margin: '0 0 8px 0', textShadow: '0 2px 4px rgba(0,0,0,0.8)', fontSize: '1.2rem', color: '#f59e0b' }}>The Friction Tax</h3>
+          <p className="text-muted" style={{ margin: 0, fontSize: '0.8rem', color: '#f1f5f9', textShadow: '0 1px 3px rgba(0,0,0,1)' }}>
+            Tricycles operate in the blind spots of sedans on narrow lanes. Minor side-swipes are inevitable, causing sudden gridlock out of nowhere.
+          </p>
         </div>
       </div>
       
