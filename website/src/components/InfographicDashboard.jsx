@@ -46,7 +46,7 @@ const InfographicDashboard = () => {
       </div>
 
       {/* MACRO TELEMETRY STRIP */}
-      <div className="col-span-12" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }}>
+      <div className="col-span-12" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '16px' }}>
         <div className="glass-card" style={{ padding: '16px', borderTop: '2px solid #00f2ff', textAlign: 'center' }}>
           <p className="stat-label">Network Flow State</p>
           <div className="stat-value text-primary" style={{ fontSize: '1.5rem' }}>SATURATED</div>
@@ -76,6 +76,11 @@ const InfographicDashboard = () => {
           <p className="stat-label">Economic Delay Cost</p>
           <div className="stat-value" style={{ fontSize: '1.5rem', color: '#8b5cf6' }}>$1.5M</div>
           <p className="text-muted" style={{ fontSize: '0.7rem' }}>Daily Est. GKMA</p>
+        </div>
+        <div className="glass-card" style={{ padding: '16px', borderTop: '2px solid #a855f7', textAlign: 'center' }}>
+          <p className="stat-label">Excess CO2</p>
+          <div className="stat-value" style={{ fontSize: '1.5rem', color: '#a855f7' }}>+12.4%</div>
+          <p className="text-muted" style={{ fontSize: '0.7rem' }}>Due to Weaving</p>
         </div>
       </div>
 
@@ -316,6 +321,79 @@ const InfographicDashboard = () => {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* NEW FUNDAMENTAL DIAGRAM (GREENSHIELDS) */}
+      <div className="glass-card col-span-6">
+        <p className="nexus-eyebrow">MACROSCOPIC FLOW PHYSICS</p>
+        <h3>Greenshields Fundamental Diagram</h3>
+        <div style={{ flex: 1, minHeight: '280px', position: 'relative', width: '100%' }}>
+          <Line 
+            data={{
+              labels: [0, 6.8, 13.7, 20.5, 27.4, 34.2, 41.1, 47.9, 54.7, 61.6, 68.4, 75.3, 82.1, 88.9, 95.8, 102.6, 109.5, 116.3, 123.2, 130.0],
+              datasets: [
+                {
+                  label: 'Standard Traffic (q_max = 1798)',
+                  data: [0, 387, 727, 1020, 1267, 1467, 1620, 1726, 1786, 1798, 1764, 1683, 1555, 1381, 1159, 891, 576, 214, 0, 0],
+                  borderColor: '#94a3b8',
+                  borderWidth: 2,
+                  tension: 0.4
+                },
+                {
+                  label: '20% Tricycles (q_max = 1068)',
+                  data: [0, 285, 527, 724, 876, 985, 1049, 1068, 1043, 974, 861, 703, 501, 255, 0, 0, 0, 0, 0, 0],
+                  borderColor: '#ef4444',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  borderWidth: 3,
+                  fill: true,
+                  tension: 0.4
+                }
+              ]
+            }}
+            options={{
+              animation: animConfig,
+              maintainAspectRatio: false,
+              scales: {
+                x: { title: { display: true, text: 'Density (Veh/km)', color: '#94a3b8' }, grid: { display: false } },
+                y: { title: { display: true, text: 'Flow (Veh/hr)', color: '#94a3b8' }, grid: { color: '#2a2a2a' } }
+              },
+              plugins: { legend: { labels: { color: '#f1f5f9' } } }
+            }}
+          />
+        </div>
+      </div>
+
+      {/* SHOCKWAVE PROFILE */}
+      <div className="glass-card col-span-6">
+        <p className="nexus-eyebrow">KINEMATIC WAVE THEORY (LWR)</p>
+        <h3>Backward Shockwave Velocity (Stop-and-Go)</h3>
+        <div style={{ flex: 1, minHeight: '280px', position: 'relative', width: '100%' }}>
+          <Line 
+            data={{
+              labels: ['0s', '10s', '20s', '30s', '40s', '50s', '60s'],
+              datasets: [
+                {
+                  label: 'Queue Length (meters)',
+                  data: [0, 51, 102, 153, 205, 256, 307],
+                  borderColor: '#00f2ff',
+                  backgroundColor: 'rgba(0, 242, 255, 0.1)',
+                  borderWidth: 3,
+                  fill: true,
+                  tension: 0.1
+                }
+              ]
+            }}
+            options={{
+              animation: animConfig,
+              maintainAspectRatio: false,
+              scales: {
+                x: { title: { display: true, text: 'Time since Tricycle stop (seconds)', color: '#94a3b8' }, grid: { display: false } },
+                y: { title: { display: true, text: 'Queue Platoon Length (meters)', color: '#94a3b8' }, grid: { color: '#2a2a2a' } }
+              },
+              plugins: { legend: { labels: { color: '#f1f5f9' } } }
+            }}
+          />
         </div>
       </div>
 
