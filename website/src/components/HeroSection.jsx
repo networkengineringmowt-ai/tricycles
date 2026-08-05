@@ -1,6 +1,6 @@
 import React from 'react';
 
-const HeroSection = () => {
+const HeroSection = ({ setActiveTab }) => {
   return (
     <section id="hero" className="workspace-grid" style={{ marginBottom: '24px' }}>
       <div className="glass-card col-span-12" style={{ textAlign: 'center', padding: '60px 24px', background: 'radial-gradient(circle at top, rgba(0, 242, 255, 0.05) 0%, rgba(20, 20, 20, 0.8) 60%)' }}>
@@ -16,14 +16,14 @@ const HeroSection = () => {
         </p>
         
         <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
-          <a href="#dashboard" className="btn active" style={{ textDecoration: 'none' }}>
+          <button onClick={() => setActiveTab('analytics')} className="btn active" style={{ textDecoration: 'none' }}>
             <i className="fa-solid fa-satellite-dish" style={{ marginRight: '8px' }}></i>
             Deploy Dashboard
-          </a>
-          <a href="#explorer" className="btn" style={{ textDecoration: 'none' }}>
+          </button>
+          <button onClick={() => setActiveTab('explorer')} className="btn" style={{ textDecoration: 'none' }}>
             <i className="fa-solid fa-database" style={{ marginRight: '8px' }}></i>
             Access Data Core
-          </a>
+          </button>
         </div>
       </div>
     </section>

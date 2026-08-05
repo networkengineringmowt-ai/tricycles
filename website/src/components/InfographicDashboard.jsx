@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, RadialLinearScale, Filler, Tooltip, Legend } from 'chart.js';
-import { Bar, Line, Pie, Radar } from 'react-chartjs-2';
+import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
+import { Radar } from 'react-chartjs-2';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, RadialLinearScale, Filler, Tooltip, Legend);
+ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 // Fix Leaflet default marker icon issue in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -34,7 +34,7 @@ const InfographicDashboard = () => {
   const modalShares = [0.05, 0.10, 0.15, 0.20];
 
   return (
-    <div id="dashboard" className="workspace-grid">
+    <div className="workspace-grid">
       
       {/* Dynamic Map Card */}
       <div className="glass-card col-span-8">
@@ -211,44 +211,6 @@ const InfographicDashboard = () => {
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Mixed Methods Section Header */}
-      <div id="explorer" className="col-span-12" style={{ marginTop: '40px', textAlign: 'center' }}>
-        <p className="nexus-eyebrow">DATA CORE ENUMERATION</p>
-        <h2 className="text-primary" style={{ fontSize: '2.5rem' }}>Mixed Methods Analysis</h2>
-        <p className="text-muted">Primary & Secondary Data Synthesis</p>
-      </div>
-        
-      <div className="glass-card col-span-6">
-        <p className="nexus-eyebrow">MACRO TRENDS</p>
-        <h3>Longitudinal Growth</h3>
-        <div style={{ height: '300px' }}>
-          <Bar 
-            data={{
-              labels: ['Peak Volume (Veh/Hr)', 'Tricycle Modal Share (%)'],
-              datasets: [
-                { label: 'Secondary (MoWT 2021)', data: [215, 4.2], backgroundColor: '#10b981' },
-                { label: 'Primary (2026)', data: [700, 14.8], backgroundColor: '#00f2ff' }
-              ]
-            }}
-            options={{ maintainAspectRatio: false, plugins: { legend: { labels: { color: '#f1f5f9' } } }, scales: { y: { grid: { color: '#2a2a2a' } }, x: { grid: { display: false } } } }}
-          />
-        </div>
-      </div>
-
-      <div className="glass-card col-span-6">
-        <p className="nexus-eyebrow">BEHAVIORAL INSIGHTS</p>
-        <h3>Qualitative Thematic Analysis</h3>
-        <div style={{ height: '300px' }}>
-          <Pie 
-            data={{
-              labels: ['Pothole Swerving Fear', 'Police Extortion Avoidance', 'Fatigue Straddling'],
-              datasets: [{ data: [92, 78, 65], backgroundColor: ['#00f2ff', '#10b981', '#3b82f6'], borderColor: '#111' }]
-            }}
-            options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#f1f5f9' } } } }}
-          />
         </div>
       </div>
 

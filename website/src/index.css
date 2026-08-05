@@ -65,7 +65,7 @@ h1 {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 24px;
+  padding: 12px 24px;
 }
 
 /* Topbar */
@@ -220,9 +220,9 @@ h1 {
 .workspace-grid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: 24px;
-  max-width: 1600px;
-  margin: 0 auto;
+  gap: 16px;
+  max-width: 100%;
+  margin: 0;
   width: 100%;
 }
 

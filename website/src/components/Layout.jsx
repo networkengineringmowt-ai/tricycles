@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const Layout = ({ children }) => {
+const Layout = ({ children, activeTab, setActiveTab }) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
 
   useEffect(() => {
@@ -20,18 +20,38 @@ const Layout = ({ children }) => {
         </div>
 
         <nav className="nav-links">
-          <a href="#hero" className="nav-item active">
+          <button 
+            type="button"
+            onClick={() => setActiveTab('overview')}
+            className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`}
+          >
             <i className="fa-solid fa-map"></i>
             <span>Overview</span>
-          </a>
-          <a href="#dashboard" className="nav-item">
+          </button>
+          <button 
+            type="button"
+            onClick={() => setActiveTab('analytics')}
+            className={`nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
+          >
             <i className="fa-solid fa-chart-pie"></i>
             <span>Analytics</span>
-          </a>
-          <a href="#explorer" className="nav-item">
-            <i className="fa-solid fa-book-open"></i>
+          </button>
+          <button 
+            type="button"
+            onClick={() => setActiveTab('explorer')}
+            className={`nav-item ${activeTab === 'explorer' ? 'active' : ''}`}
+          >
+            <i className="fa-solid fa-database"></i>
             <span>Explorer</span>
-          </a>
+          </button>
+          <button 
+            type="button"
+            onClick={() => setActiveTab('thesis')}
+            className={`nav-item ${activeTab === 'thesis' ? 'active' : ''}`}
+          >
+            <i className="fa-solid fa-book-open"></i>
+            <span>Thesis</span>
+          </button>
         </nav>
 
         <div className="topbar-actions">
