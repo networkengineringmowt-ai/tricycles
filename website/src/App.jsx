@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Layout from './components/Layout';
 import HeroSection from './components/HeroSection';
 import InfographicDashboard from './components/InfographicDashboard';
-import DataExplorer from './components/DataExplorer';
+import SummaryTables from './components/SummaryTables';
 import ThesisTab from './components/ThesisTab';
 import './index.css';
 
@@ -13,10 +13,10 @@ function App() {
     switch (activeTab) {
       case 'overview':
         return <HeroSection setActiveTab={setActiveTab} />;
+      case 'summary':
+        return <SummaryTables />;
       case 'analytics':
         return <InfographicDashboard />;
-      case 'explorer':
-        return <DataExplorer />;
       case 'thesis':
         return <ThesisTab />;
       default:

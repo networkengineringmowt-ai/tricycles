@@ -20,9 +20,9 @@ const HeroSection = ({ setActiveTab }) => {
             <i className="fa-solid fa-satellite-dish" style={{ marginRight: '8px' }}></i>
             Deploy Dashboard
           </button>
-          <button onClick={() => setActiveTab('explorer')} className="btn" style={{ textDecoration: 'none' }}>
-            <i className="fa-solid fa-database" style={{ marginRight: '8px' }}></i>
-            Access Data Core
+          <button onClick={() => setActiveTab('summary')} className="btn" style={{ textDecoration: 'none' }}>
+            <i className="fa-solid fa-table" style={{ marginRight: '8px' }}></i>
+            Traffic Summaries
           </button>
         </div>
       </div>

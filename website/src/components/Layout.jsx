@@ -30,19 +30,19 @@ const Layout = ({ children, activeTab, setActiveTab }) => {
           </button>
           <button 
             type="button"
+            onClick={() => setActiveTab('summary')}
+            className={`nav-item ${activeTab === 'summary' ? 'active' : ''}`}
+          >
+            <i className="fa-solid fa-table-list"></i>
+            <span>Summary Tables</span>
+          </button>
+          <button 
+            type="button"
             onClick={() => setActiveTab('analytics')}
             className={`nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
           >
             <i className="fa-solid fa-chart-pie"></i>
             <span>Analytics</span>
-          </button>
-          <button 
-            type="button"
-            onClick={() => setActiveTab('explorer')}
-            className={`nav-item ${activeTab === 'explorer' ? 'active' : ''}`}
-          >
-            <i className="fa-solid fa-database"></i>
-            <span>Explorer</span>
           </button>
           <button 
             type="button"
