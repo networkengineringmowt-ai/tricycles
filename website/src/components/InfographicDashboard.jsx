@@ -116,7 +116,7 @@ const InfographicDashboard = () => {
       <div className="glass-card col-span-8">
         <p className="nexus-eyebrow">MACROSCOPIC ANALYSIS</p>
         <h3>Volume vs Delay Curve (Capacity Collapse)</h3>
-        <div style={{ height: '320px' }}>
+        <div style={{ flex: 1, minHeight: '320px', position: 'relative', width: '100%' }}>
           <Line 
             data={{
               labels: ['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'],
@@ -161,7 +161,7 @@ const InfographicDashboard = () => {
       <div className="glass-card col-span-6">
         <p className="nexus-eyebrow">MICROSCOPIC BEHAVIOR</p>
         <h3>Tricycle Speed vs Network Density</h3>
-        <div style={{ height: '280px' }}>
+        <div style={{ flex: 1, minHeight: '280px', position: 'relative', width: '100%' }}>
           <Scatter 
             data={{
               datasets: [
@@ -194,7 +194,7 @@ const InfographicDashboard = () => {
       <div className="glass-card col-span-3">
         <p className="nexus-eyebrow">CAUSAL FACTORS</p>
         <h3>Weaving Triggers</h3>
-        <div style={{ height: '240px', marginTop: '20px' }}>
+        <div style={{ flex: 1, minHeight: '250px', position: 'relative', width: '100%', marginTop: '20px' }}>
           <Doughnut 
             data={{
               labels: ['Passenger Alighting', 'Pothole Evasion', 'Boda Conflict', 'Police Avoidance'],
@@ -219,7 +219,7 @@ const InfographicDashboard = () => {
       <div className="glass-card col-span-3">
         <p className="nexus-eyebrow">PERFORMANCE VECTORS</p>
         <h3>Flow Impact Profile</h3>
-        <div style={{ height: '240px', marginTop: '20px' }}>
+        <div style={{ flex: 1, minHeight: '250px', position: 'relative', width: '100%', marginTop: '20px' }}>
           <Radar 
             data={{
               labels: ['Space', 'Speed', 'Weaving', 'Headway', 'Delay'],
@@ -242,7 +242,7 @@ const InfographicDashboard = () => {
       <div className="glass-card col-span-6">
         <p className="nexus-eyebrow">STOCHASTIC MODELING</p>
         <h3>Time Headway Distribution (Mixed Flow)</h3>
-        <div style={{ height: '280px' }}>
+        <div style={{ flex: 1, minHeight: '280px', position: 'relative', width: '100%' }}>
           <Line 
             data={{
               labels: ['0.5s', '1.0s', '1.5s', '2.0s', '2.5s', '3.0s', '3.5s', '4.0s', '4.5s', '5.0s', '6.0s+'],
@@ -278,7 +278,7 @@ const InfographicDashboard = () => {
       <div className="glass-card col-span-6">
         <p className="nexus-eyebrow">PREDICTIVE MATRIX</p>
         <h3>Multivariate PCU Matrix (Modal Share vs V/C)</h3>
-        <div style={{ overflowX: 'auto', marginTop: '16px', height: '280px' }}>
+        <div style={{ flex: 1, minHeight: '280px', position: 'relative', overflowX: 'auto', marginTop: '16px' }}>
           <table className="heatmap-table" style={{ width: '100%', height: '100%' }}>
             <thead>
               <tr>
