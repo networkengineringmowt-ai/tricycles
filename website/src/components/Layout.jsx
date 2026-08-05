@@ -1,45 +1,54 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Layout = ({ children }) => {
+  const [time, setTime] = useState(new Date().toLocaleTimeString());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <header style={{ 
-        padding: '20px 40px', 
-        background: 'rgba(11, 14, 20, 0.8)', 
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid var(--card-border)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 1000,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <h2 className="text-primary" style={{ margin: 0, fontSize: '1.5rem' }}>Kampala Traffic PCU</h2>
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="brand-block">
+          <div className="brand-mark"><i className="fa-solid fa-satellite-dish"></i></div>
+          <div>
+            <h1>TRICYCLE Nexus</h1>
+            <p className="nexus-version">V2.0 PREMIUM</p>
+          </div>
         </div>
-        <nav style={{ display: 'flex', gap: '20px' }}>
-          <a href="#hero" className="text-muted" style={{ textDecoration: 'none', color: 'var(--text-muted)' }}>Overview</a>
-          <a href="#dashboard" className="text-muted" style={{ textDecoration: 'none', color: 'var(--text-muted)' }}>Dashboard</a>
-          <a href="#explorer" className="text-muted" style={{ textDecoration: 'none', color: 'var(--text-muted)' }}>Data Explorer</a>
+
+        <nav className="nav-links">
+          <a href="#hero" className="nav-item active">
+            <i className="fa-solid fa-map"></i>
+            <span>Overview</span>
+          </a>
+          <a href="#dashboard" className="nav-item">
+            <i className="fa-solid fa-chart-pie"></i>
+            <span>Analytics</span>
+          </a>
+          <a href="#explorer" className="nav-item">
+            <i className="fa-solid fa-book-open"></i>
+            <span>Explorer</span>
+          </a>
         </nav>
+
+        <div className="topbar-actions">
+          <div className="live-clock" aria-label="Live local time">{time}</div>
+          <div className="status-block">
+            <div className="system-status">
+              <span className="status-dot"></span>
+              <span className="status-text">System Online</span>
+            </div>
+            <p className="agency-text">Kampala Capital City Authority</p>
+          </div>
+        </div>
       </header>
 
-      <main style={{ flex: 1 }}>
+      <main className="main-content">
         {children}
       </main>
-
-      <footer style={{ 
-        padding: '40px 20px', 
-        textAlign: 'center', 
-        borderTop: '1px solid var(--card-border)',
-        background: 'var(--bg-color)',
-        color: 'var(--text-muted)',
-        marginTop: '40px'
-      }}>
-        <p>Research Thesis by Sserunjogi Ambrose | KiU</p>
-        <p style={{ fontSize: '0.8rem' }}>Data Source: MOWT/UNRA Repository</p>
-      </footer>
     </div>
   );
 };
