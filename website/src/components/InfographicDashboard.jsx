@@ -3,7 +3,7 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, 
   BarElement, RadialLinearScale, ArcElement, Filler, Tooltip, Legend 
 } from 'chart.js';
-import { Radar, Line, Bar, Doughnut, Scatter } from 'react-chartjs-2';
+import { Line, Bar } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale, LinearScale, PointElement, LineElement, 
@@ -94,7 +94,7 @@ const InfographicDashboard = () => {
             <span className="text-muted">Volume/Capacity (V/C)</span>
             <span className="text-primary" style={{ fontWeight: 'bold' }}>{vcRatio.toFixed(2)}</span>
           </div>
-          <input type="range" min="0.2" max="1.2" step="0.05" value={vcRatio} onChange={(e) => setVcRatio(parseFloat(e.target.value))} className="custom-slider" />
+          <input type="range" min="0.2" max="1.5" step="0.05" value={vcRatio} onChange={(e) => setVcRatio(parseFloat(e.target.value))} className="custom-slider" />
         </div>
 
         <div style={{ marginTop: '10px' }}>
@@ -129,11 +129,11 @@ const InfographicDashboard = () => {
         <div style={{ flex: 1, minHeight: '320px', position: 'relative', width: '100%' }}>
           <Line 
             data={{
-              labels: ['V/C 0.6', 'V/C 0.7', 'V/C 0.8', 'V/C 0.9', 'V/C 1.0', 'V/C 1.1'],
+              labels: ['V/C 0.6', 'V/C 0.7', 'V/C 0.8', 'V/C 0.9', 'V/C 1.0', 'V/C 1.1', 'V/C 1.2', 'V/C 1.3'],
               datasets: [
                 {
                   label: 'Baseline (PCU 1.0)',
-                  data: [46, 62, 97, 373, 1994, 1948],
+                  data: [46, 62, 97, 373, 1994, 1948, 2011, 2150],
                   borderColor: '#94a3b8',
                   backgroundColor: 'rgba(148, 163, 184, 0.1)',
                   borderWidth: 2,
@@ -141,7 +141,7 @@ const InfographicDashboard = () => {
                 },
                 {
                   label: 'Empirical Tricycle (PCU 1.35)',
-                  data: [51, 76, 176, 1803, 2075, 1901],
+                  data: [51, 76, 176, 1803, 2075, 1901, 2180, 2405],
                   borderColor: '#00f2ff',
                   backgroundColor: 'rgba(0, 242, 255, 0.1)',
                   borderWidth: 3,
@@ -150,7 +150,7 @@ const InfographicDashboard = () => {
                 },
                 {
                   label: 'Severe Weather/Rain (PCU 1.5)',
-                  data: [54, 84, 279, 2228, 2623, 1915],
+                  data: [54, 84, 279, 2228, 2623, 1915, 2300, 2650],
                   borderColor: '#ef4444',
                   backgroundColor: 'rgba(239, 68, 68, 0.1)',
                   borderWidth: 2,
