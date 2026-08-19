@@ -370,3 +370,142 @@ h1 {
   font-weight: 600;
   color: var(--text-muted);
 }
+
+
+/* ===================================================================
+   MOBILE RESPONSIVENESS (additive — appended, does not alter rules above)
+   =================================================================== */
+
+/* Global overflow safety */
+html, body { max-width: 100%; overflow-x: hidden; }
+img { max-width: 100%; }
+
+/* Hamburger toggle button (hidden on desktop; JS-injected into .topbar) */
+.hamburger-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.hamburger-toggle:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--border-light); }
+.hamburger-toggle.is-active { color: var(--accent-cyan); border-color: var(--accent-cyan); }
+
+@media (max-width: 768px) {
+  /* Prevent CSS grid/flex "blowout": without this, a grid/flex item's
+     default min-width:auto lets its content push it wider than its
+     track, causing horizontal overflow that html/body overflow-x:hidden
+     would otherwise silently clip instead of truly fixing. */
+  * { min-width: 0; }
+
+  /* Topbar wraps into two rows: [brand | hamburger] then [status/clock] */
+  .topbar {
+    height: auto;
+    min-height: 64px;
+    padding: 10px 16px;
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .brand-block { order: 1; }
+  .brand-block h1 { font-size: 1rem; }
+  .nexus-version { font-size: 0.6rem; }
+  .hamburger-toggle { display: flex; order: 2; margin-left: auto; }
+  .topbar-actions {
+    order: 3;
+    flex: 1 1 100%;
+    justify-content: center;
+    gap: 16px;
+  }
+  .live-clock { font-size: 0.8rem; padding: 4px 10px; }
+  .agency-text { font-size: 0.62rem; }
+
+  /* Nav becomes an off-canvas dropdown toggled by .hamburger-toggle */
+  .nav-links {
+    order: 4;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 16px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease, padding 0.25s ease;
+    z-index: 999;
+  }
+  .nav-links.mobile-open { max-height: 480px; padding: 8px 16px 16px; }
+  .nav-item { width: 100%; min-height: 44px; }
+
+  /* Dashboard grid: single column, no implicit tracks from col-span-N */
+  .workspace-grid { grid-template-columns: 1fr; gap: 12px; }
+  .glass-card.col-span-12,
+  .glass-card.col-span-8,
+  .glass-card.col-span-6,
+  .glass-card.col-span-4,
+  .glass-card.col-span-3,
+  .col-span-12,
+  .col-span-8,
+  .col-span-6,
+  .col-span-4,
+  .col-span-3 { grid-column: 1 / -1; }
+  .glass-card { padding: 16px; }
+  .glass-card h3 { font-size: 1rem; }
+
+  /* Font sizes */
+  h1 { font-size: 1.8rem; }
+
+  /* Touch targets */
+  .btn, .nav-item { min-height: 44px; }
+
+  /* Tables scroll horizontally inside their existing overflow-x wrapper
+     instead of being crushed illegibly */
+  .heatmap-table { min-width: 620px; }
+
+  /* KPI/stat strips using inline grid-template-columns (Analytics telemetry
+     strip = repeat(7,1fr); Summary Tables NMT strip = repeat(5,1fr)) */
+  [style*="grid-template-columns: repeat(7, 1fr)"],
+  [style*="grid-template-columns: repeat(5, 1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Leaflet map card takes near full viewport height on mobile
+     (desktop wrapper is a fixed inline height: 400px) */
+  [style*="height: 400px"] { height: 70vh !important; }
+
+  /* Thesis tab: stack the sticky TOC sidebar above the article instead of
+     a fixed 300px side-by-side column, and let it flow with the page */
+  [style*="max-width: 1400px"] { flex-direction: column !important; }
+  [style*="flex: 0 0 300px"] {
+    flex: 1 1 auto !important;
+    position: static !important;
+    max-height: none !important;
+    width: 100% !important;
+  }
+  [style*="padding: 40px;"] { padding: 20px !important; }
+  [style*="font-size: 2.2rem"] { font-size: 1.5rem !important; }
+  [style*="font-size: 2.5rem"] { font-size: 1.7rem !important; }
+}
+
+@media (max-width: 480px) {
+  .brand-block h1 { font-size: 0.85rem; }
+  h1 { font-size: 1.5rem; }
+  .stat-value { font-size: 1.5rem; }
+  .glass-card { padding: 14px; }
+
+  [style*="grid-template-columns: repeat(7, 1fr)"],
+  [style*="grid-template-columns: repeat(5, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+  [style*="font-size: 3rem"] { font-size: 2.2rem !important; }
+  [style*="font-size: 2.2rem"] { font-size: 1.3rem !important; }
+}
