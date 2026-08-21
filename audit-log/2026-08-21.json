@@ -12,18 +12,14 @@
     "hashLinksFound": [],
     "chartElementCount": 1
   },
-  "uiCohesion": {
-    "amber": "fail",
-    "darkBackground": "fail",
-    "nav": "pass",
-    "mowtBranding": "fail"
-  },
   "accuracy": {
     "extractedFigures": [],
     "discrepancies": []
   },
   "consistency": {
     "districtList": null,
-    "notes": []
+    "notes": [
+      "uganda_npms: no audit-log available yet for comparison"
+    ]
   }
 }
