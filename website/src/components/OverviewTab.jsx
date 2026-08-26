@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -21,6 +21,16 @@ const studySites = [
 
 const OverviewTab = () => {
   const [selectedSite, setSelectedSite] = useState(null);
+  const [geoData, setGeoData] = useState(null);
+
+  useEffect(() => {
+    // Determine base URL, works in dev and gh-pages
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    fetch(`${baseUrl}assets/kampala_roads.geojson`)
+      .then(res => res.json())
+      .then(data => setGeoData(data))
+      .catch(err => console.error('Error loading geojson:', err));
+  }, []);
 
   return (
     <div className="workspace-grid">
@@ -46,9 +56,10 @@ const OverviewTab = () => {
         <div style={{ height: '400px', borderRadius: '12px', overflow: 'hidden', margin: '16px 0 0', border: '1px solid var(--border)' }}>
           <MapContainer bounds={[[0.2981, 32.5469], [0.3458, 32.5761]]} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
             <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             />
+            {geoData && <GeoJSON data={geoData} style={{ color: '#00f2ff', weight: 1.5, opacity: 0.6 }} />}
             {studySites.map((site, idx) => (
               <Marker 
                 key={idx} 

@@ -3,18 +3,65 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, 
   BarElement, RadialLinearScale, ArcElement, Filler, Tooltip, Legend 
 } from 'chart.js';
-import { Line, Bar } from 'react-chartjs-2';
+import { Line, Bar, Radar, Scatter, PolarArea, Doughnut } from 'react-chartjs-2';
+import { useEffect, useRef } from 'react';
 
 ChartJS.register(
   CategoryScale, LinearScale, PointElement, LineElement, 
   BarElement, RadialLinearScale, ArcElement, Filler, Tooltip, Legend
 );
 
+const LazyChart = ({ config }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.disconnect();
+      }
+    });
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const renderChart = () => {
+    switch(config.type) {
+      case 'bar': return <Bar data={config.data} options={config.options} />;
+      case 'line': return <Line data={config.data} options={config.options} />;
+      case 'radar': return <Radar data={config.data} options={config.options} />;
+      case 'doughnut': return <Doughnut data={config.data} options={config.options} />;
+      case 'polarArea': return <PolarArea data={config.data} options={config.options} />;
+      case 'scatter': return <Scatter data={config.data} options={config.options} />;
+      default: return null;
+    }
+  };
+
+  return (
+    <div ref={ref} className="glass-card col-span-4" style={{ minHeight: '340px', display: 'flex', flexDirection: 'column' }}>
+      <p className="nexus-eyebrow">Dynamically Generated</p>
+      <div style={{ flex: 1, position: 'relative', width: '100%', marginTop: '8px' }}>
+        {isVisible ? renderChart() : <div style={{ color: '#9aa1af', textAlign: 'center', marginTop: '100px' }}>Loading chart...</div>}
+      </div>
+    </div>
+  );
+};
+
 const InfographicDashboard = () => {
   // Diagnostic simulator state
   const [vcRatio, setVcRatio] = useState(0.85);
   const [modalShare, setModalShare] = useState(15);
   const [roadWidth, setRoadWidth] = useState(7.0);
+  const [megaCharts, setMegaCharts] = useState([]);
+
+  useEffect(() => {
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    fetch(`${baseUrl}assets/analytics_data.json`)
+      .then(res => res.json())
+      .then(data => setMegaCharts(data))
+      .catch(err => console.error('Failed to load mega charts:', err));
+  }, []);
 
   // Dynamic calculations based on state
   const basePcu = 1.35;
@@ -358,6 +405,19 @@ const InfographicDashboard = () => {
           </p>
         </div>
       </div>
+
+      {/* MEGA ANALYTICS REPOSITORY (100+ CHARTS) */}
+      {megaCharts.length > 0 && (
+        <>
+          <div className="col-span-12" style={{ textAlign: 'center', marginTop: '40px', padding: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <h2 className="text-primary">Extensive Analytical Repository</h2>
+            <p className="text-muted">Displaying {megaCharts.length} cross-variable visualizations across all captured fields and locations.</p>
+          </div>
+          {megaCharts.map(chart => (
+            <LazyChart key={chart.id} config={chart} />
+          ))}
+        </>
+      )}
 
     </div>
   );
