@@ -11,7 +11,7 @@ const ThesisTab = () => {
   const navItemStyle = {
     background: 'none',
     border: 'none',
-    color: '#94a3b8',
+    color: '#9aa1af',
     cursor: 'pointer',
     textAlign: 'left',
     padding: '8px 0',
@@ -30,7 +30,7 @@ const ThesisTab = () => {
         </h3>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           <li>
-            <button style={navItemStyle} onClick={() => scrollTo('ch1')} onMouseOver={e => e.target.style.color = '#00f2ff'} onMouseOut={e => e.target.style.color = '#94a3b8'}>
+            <button style={navItemStyle} onClick={() => scrollTo('ch1')} onMouseOver={e => e.target.style.color = '#8b93ff'} onMouseOut={e => e.target.style.color = '#9aa1af'}>
               Chapter 1: Introduction
             </button>
             <ul style={{ listStyle: 'none', paddingLeft: '16px', margin: '4px 0' }}>
@@ -40,7 +40,7 @@ const ThesisTab = () => {
             </ul>
           </li>
           <li>
-            <button style={navItemStyle} onClick={() => scrollTo('ch2')} onMouseOver={e => e.target.style.color = '#00f2ff'} onMouseOut={e => e.target.style.color = '#94a3b8'}>
+            <button style={navItemStyle} onClick={() => scrollTo('ch2')} onMouseOver={e => e.target.style.color = '#8b93ff'} onMouseOut={e => e.target.style.color = '#9aa1af'}>
               Chapter 2: Literature Review
             </button>
             <ul style={{ listStyle: 'none', paddingLeft: '16px', margin: '4px 0' }}>
@@ -53,7 +53,7 @@ const ThesisTab = () => {
             </ul>
           </li>
           <li>
-            <button style={navItemStyle} onClick={() => scrollTo('ch3')} onMouseOver={e => e.target.style.color = '#00f2ff'} onMouseOut={e => e.target.style.color = '#94a3b8'}>
+            <button style={navItemStyle} onClick={() => scrollTo('ch3')} onMouseOver={e => e.target.style.color = '#8b93ff'} onMouseOut={e => e.target.style.color = '#9aa1af'}>
               Chapter 3: Methodology
             </button>
             <ul style={{ listStyle: 'none', paddingLeft: '16px', margin: '4px 0' }}>
@@ -62,17 +62,17 @@ const ThesisTab = () => {
             </ul>
           </li>
           <li>
-            <button style={navItemStyle} onClick={() => scrollTo('ch4')} onMouseOver={e => e.target.style.color = '#00f2ff'} onMouseOut={e => e.target.style.color = '#94a3b8'}>
+            <button style={navItemStyle} onClick={() => scrollTo('ch4')} onMouseOver={e => e.target.style.color = '#8b93ff'} onMouseOut={e => e.target.style.color = '#9aa1af'}>
               Chapter 4: Results & Discussion
             </button>
           </li>
           <li>
-            <button style={navItemStyle} onClick={() => scrollTo('conclusion')} onMouseOver={e => e.target.style.color = '#00f2ff'} onMouseOut={e => e.target.style.color = '#94a3b8'}>
+            <button style={navItemStyle} onClick={() => scrollTo('conclusion')} onMouseOver={e => e.target.style.color = '#8b93ff'} onMouseOut={e => e.target.style.color = '#9aa1af'}>
               Conclusion
             </button>
           </li>
           <li>
-            <button style={navItemStyle} onClick={() => scrollTo('downloads')} onMouseOver={e => e.target.style.color = '#00f2ff'} onMouseOut={e => e.target.style.color = '#94a3b8'}>
+            <button style={navItemStyle} onClick={() => scrollTo('downloads')} onMouseOver={e => e.target.style.color = '#8b93ff'} onMouseOut={e => e.target.style.color = '#9aa1af'}>
               Download Deliverables
             </button>
           </li>
@@ -93,11 +93,11 @@ const ThesisTab = () => {
 <p>SCHOOL OF ENGINEERING AND APPLIED SCIENCES</p>
 <p>DEPARTMENT OF CIVIL ENGINEERING</p>
 <p>ANALYSIS OF TRICYCLE PASSENGER CAR UNIT VALUES FOR ENHANCED TRAFFIC FLOW IN KAMPALA CITY UGANDA</p>
-<p>BySSERUNJOGI AMBROSE2022-08-12043</p>
+<p>Presented by the Author</p>
 <p>A RESEARCH THESIS PRESENTED TO THE SCHOOL OF ENGINEERING AND APPLIED SCIENCES IN PARTIAL FULFILLMENT FOR THE AWARD OF A MASTER OF SCIENCE DEGREE IN CIVIL ENGINEERING (TRANSPORTATION ENGINEERING) OF KAMPALA INTERNATIONAL UNIVERSITY.</p>
 <p>AUGUST 2026</p>
 <p>DECLARATION</p>
-<p>I, Sserunjogi Ambrose, declare that this thesis titled "Analysis of Tricycle Passenger Car Unit Values for Enhanced Traffic Flow in Kampala City Uganda" is my original work and has not been presented for a degree in any other university or institution of higher learning.</p>
+<p>I, the undersigned, declare that this thesis titled "Analysis of Tricycle Passenger Car Unit Values for Enhanced Traffic Flow in Kampala City Uganda" is my original work and has not been presented for a degree in any other university or institution of higher learning.</p>
 <p>Signed: ____Date: _______</p>
 <p>APPROVAL</p>
 <p>This thesis has been submitted for examination with my approval as the University Supervisor.</p>

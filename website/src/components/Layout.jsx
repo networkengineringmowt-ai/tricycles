@@ -12,10 +12,10 @@ const Layout = ({ children, activeTab, setActiveTab }) => {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-block">
-          <div className="brand-mark"><i className="fa-solid fa-satellite-dish"></i></div>
+          <div className="brand-mark"><i className="fa-solid fa-route"></i></div>
           <div>
-            <h1>TRICYCLE Nexus</h1>
-            <p className="nexus-version">V2.0 PREMIUM</p>
+            <h1>Tricycle PCU Research Platform</h1>
+            <p className="nexus-version">Kampala Traffic Study</p>
           </div>
         </div>
 
@@ -55,13 +55,13 @@ const Layout = ({ children, activeTab, setActiveTab }) => {
         </nav>
 
         <div className="topbar-actions">
-          <div className="live-clock" aria-label="Live local time">{time}</div>
+          <div className="live-clock" aria-label="Local time">{time}</div>
           <div className="status-block">
             <div className="system-status">
               <span className="status-dot"></span>
-              <span className="status-text">System Online</span>
+              <span className="status-text">Dashboard Active</span>
             </div>
-            <p className="agency-text">Kampala Capital City Authority</p>
+            <p className="agency-text">Kampala Capital City Authority · Study Area</p>
           </div>
         </div>
       </header>
