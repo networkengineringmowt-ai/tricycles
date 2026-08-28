@@ -26,7 +26,9 @@ function App() {
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
-      {renderContent()}
+      <div className="tab-panel" key={activeTab}>
+        {renderContent()}
+      </div>
     </Layout>
   );
 }
