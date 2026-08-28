@@ -126,6 +126,38 @@ const InfographicDashboard = () => {
         </div>
       </div>
 
+      {/* FLEET COMPOSITION */}
+      <div className="glass-card col-span-4">
+        <p className="nexus-eyebrow">Fleet Composition</p>
+        <h3>Vehicle-Class Share, Full Study</h3>
+        <div style={{ flex: 1, minHeight: '260px', position: 'relative', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Doughnut
+            data={{
+              labels: ['Boda Bodas (Motorcycle Taxis)', 'Tricycles', 'Passenger Cars', 'Matatus (14-Seater)', 'Heavy Trucks'],
+              datasets: [{
+                data: [51.96, 12.77, 24.39, 9.71, 1.18],
+                backgroundColor: ['#8891a0', '#34d399', '#6d7bff', '#38bdf8', '#f87171'],
+                borderColor: '#0c0e11',
+                borderWidth: 2,
+                hoverOffset: 6,
+              }]
+            }}
+            options={{
+              animation: animConfig,
+              maintainAspectRatio: false,
+              cutout: '62%',
+              plugins: {
+                legend: { position: 'bottom', labels: { color: legendColor, boxWidth: 12, padding: 10, font: { size: 10.5 } } },
+                tooltip: { callbacks: { label: (ctx) => ctx.label + ': ' + ctx.parsed + '%' } }
+              }
+            }}
+          />
+        </div>
+        <p className="text-muted" style={{ fontSize: '0.72rem', marginTop: '10px', textAlign: 'center' }}>
+          Share of all 6,400 recorded 15-minute intervals across the five study intersections.
+        </p>
+      </div>
+
       {/* DIAGNOSTIC SIMULATOR */}
       <div className="glass-card col-span-4" style={{ display: 'flex', flexDirection: 'column' }}>
         <p className="nexus-eyebrow">Interactive Simulator</p>

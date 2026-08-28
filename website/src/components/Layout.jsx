@@ -1,15 +1,29 @@
 import React, { useState, useEffect } from 'react';
 
+const TABS = [
+  { id: 'overview', label: 'Overview', icon: 'fa-map' },
+  { id: 'summary', label: 'Summary Tables', icon: 'fa-table-list' },
+  { id: 'analytics', label: 'Analytics', icon: 'fa-chart-pie' },
+  { id: 'thesis', label: 'Thesis', icon: 'fa-book-open' },
+];
+
 const Layout = ({ children, activeTab, setActiveTab }) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  const selectTab = (id) => {
+    setActiveTab(id);
+    setMenuOpen(false);
+  };
+
   return (
     <div className="app-shell">
+      <div className="grain-overlay" aria-hidden="true"></div>
       <header className="topbar">
         <div className="brand-block">
           <div className="brand-mark"><i className="fa-solid fa-route"></i></div>
@@ -20,38 +34,17 @@ const Layout = ({ children, activeTab, setActiveTab }) => {
         </div>
 
         <nav className="nav-links">
-          <button 
-            type="button"
-            onClick={() => setActiveTab('overview')}
-            className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`}
-          >
-            <i className="fa-solid fa-map"></i>
-            <span>Overview</span>
-          </button>
-          <button 
-            type="button"
-            onClick={() => setActiveTab('summary')}
-            className={`nav-item ${activeTab === 'summary' ? 'active' : ''}`}
-          >
-            <i className="fa-solid fa-table-list"></i>
-            <span>Summary Tables</span>
-          </button>
-          <button 
-            type="button"
-            onClick={() => setActiveTab('analytics')}
-            className={`nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
-          >
-            <i className="fa-solid fa-chart-pie"></i>
-            <span>Analytics</span>
-          </button>
-          <button 
-            type="button"
-            onClick={() => setActiveTab('thesis')}
-            className={`nav-item ${activeTab === 'thesis' ? 'active' : ''}`}
-          >
-            <i className="fa-solid fa-book-open"></i>
-            <span>Thesis</span>
-          </button>
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => selectTab(tab.id)}
+              className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
+            >
+              <i className={`fa-solid ${tab.icon}`}></i>
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </nav>
 
         <div className="topbar-actions">
@@ -63,6 +56,28 @@ const Layout = ({ children, activeTab, setActiveTab }) => {
             </div>
             <p className="agency-text">Kampala Capital City Authority · Study Area</p>
           </div>
+          <button
+            type="button"
+            className="nav-toggle"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            onClick={() => setMenuOpen(o => !o)}
+          >
+            <i className={`fa-solid ${menuOpen ? 'fa-xmark' : 'fa-bars'}`}></i>
+          </button>
+        </div>
+
+        <div className={`nav-mobile-panel ${menuOpen ? 'open' : ''}`}>
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => selectTab(tab.id)}
+              className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
+            >
+              <i className={`fa-solid ${tab.icon}`}></i>
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </div>
       </header>
 
