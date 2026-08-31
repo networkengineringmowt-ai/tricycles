@@ -59,7 +59,7 @@ const OverviewTab = () => {
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             />
-            {geoData && <GeoJSON data={geoData} style={{ color: '#00f2ff', weight: 1.5, opacity: 0.6 }} />}
+            {geoData && <GeoJSON data={geoData} style={{ color: '#6366f1', weight: 1.5, opacity: 0.6 }} />}
             {studySites.map((site, idx) => (
               <Marker 
                 key={idx} 

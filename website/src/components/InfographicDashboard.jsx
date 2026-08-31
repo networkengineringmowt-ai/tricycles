@@ -55,8 +55,12 @@ const InfographicDashboard = () => {
   const [roadWidth, setRoadWidth] = useState(7.0);
   const [megaCharts, setMegaCharts] = useState([]);
 
+  // Base path for static assets - must be prefixed (site is served from
+  // the /tricycles/ subpath on GitHub Pages), so plain "/assets/..." src
+  // strings 404 in production even though they work under `vite dev`.
+  const baseUrl = import.meta.env.BASE_URL || '/';
+
   useEffect(() => {
-    const baseUrl = import.meta.env.BASE_URL || '/';
     fetch(`${baseUrl}assets/analytics_data.json`)
       .then(res => res.json())
       .then(data => setMegaCharts(data))
@@ -275,7 +279,7 @@ const InfographicDashboard = () => {
 
       {/* WEAVING PHOTO CARD */}
       <div className="glass-card col-span-6" style={{ padding: 0, position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column' }}>
-        <img src="/assets/weaving.jpg" alt="Tricycle Weaving" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
+        <img src={`${baseUrl}assets/weaving.jpg`} alt="Tricycle Weaving" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(5,6,8,0.96) 0%, rgba(5,6,8,0.72) 60%, transparent 100%)', padding: '24px', zIndex: 2 }}>
           <p className="nexus-eyebrow" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>The Weaving Effect</p>
           <h3 style={{ margin: '0 0 8px 0', textShadow: '0 2px 4px rgba(0,0,0,0.8)', color: '#8b93ff' }}>Space Thieves</h3>
@@ -287,7 +291,7 @@ const InfographicDashboard = () => {
 
       {/* SHOCKWAVE PHOTO CARD */}
       <div className="glass-card col-span-4" style={{ padding: 0, position: 'relative', overflow: 'hidden', minHeight: '300px' }}>
-        <img src="/assets/shockwave.jpg" alt="Traffic Shockwave" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
+        <img src={`${baseUrl}assets/shockwave.jpg`} alt="Traffic Shockwave" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(5,6,8,0.96) 0%, rgba(5,6,8,0.72) 60%, transparent 100%)', padding: '20px', zIndex: 2 }}>
           <p className="nexus-eyebrow" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>The Ripple Effect</p>
           <h3 style={{ margin: '0 0 8px 0', textShadow: '0 2px 4px rgba(0,0,0,0.8)', fontSize: '1.15rem', color: '#34d399' }}>Stop-and-Go Chaos</h3>
@@ -299,7 +303,7 @@ const InfographicDashboard = () => {
 
       {/* SAFETY PHOTO CARD */}
       <div className="glass-card col-span-4" style={{ padding: 0, position: 'relative', overflow: 'hidden', minHeight: '300px' }}>
-        <img src="/assets/accident.jpg" alt="Tricycle Accident" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
+        <img src={`${baseUrl}assets/accident.jpg`} alt="Tricycle Accident" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(5,6,8,0.96) 0%, rgba(5,6,8,0.72) 60%, transparent 100%)', padding: '20px', zIndex: 2 }}>
           <p className="nexus-eyebrow" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>Safety Reality</p>
           <h3 style={{ margin: '0 0 8px 0', textShadow: '0 2px 4px rgba(0,0,0,0.8)', fontSize: '1.15rem', color: '#f59e0b' }}>The Friction Tax</h3>
@@ -416,7 +420,7 @@ const InfographicDashboard = () => {
 
       {/* COMMUTE PHOTO CARD */}
       <div className="glass-card col-span-6" style={{ padding: 0, position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column' }}>
-        <img src="/assets/commute.jpg" alt="Commuter Flow" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
+        <img src={`${baseUrl}assets/commute.jpg`} alt="Commuter Flow" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(5,6,8,0.96) 0%, rgba(5,6,8,0.72) 60%, transparent 100%)', padding: '24px', zIndex: 2 }}>
           <p className="nexus-eyebrow" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>Origin-Destination Flow</p>
           <h3 style={{ margin: '0 0 8px 0', textShadow: '0 2px 4px rgba(0,0,0,0.8)', color: '#8b93ff' }}>The Commuter Arteries</h3>
@@ -428,7 +432,7 @@ const InfographicDashboard = () => {
 
       {/* CHOKEPOINT PHOTO CARD */}
       <div className="glass-card col-span-6" style={{ padding: 0, position: 'relative', overflow: 'hidden', minHeight: '320px', display: 'flex', flexDirection: 'column' }}>
-        <img src="/assets/chokepoint.jpg" alt="Structural Chokepoint" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
+        <img src={`${baseUrl}assets/chokepoint.jpg`} alt="Structural Chokepoint" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0, zIndex: 1, opacity: 0.8 }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(5,6,8,0.96) 0%, rgba(5,6,8,0.72) 60%, transparent 100%)', padding: '24px', zIndex: 2 }}>
           <p className="nexus-eyebrow" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>Structural Geometry</p>
           <h3 style={{ margin: '0 0 8px 0', textShadow: '0 2px 4px rgba(0,0,0,0.8)', color: '#f87171' }}>Physical Constraints</h3>

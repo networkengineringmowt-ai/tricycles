@@ -155,7 +155,7 @@ const ThesisTab = () => {
 <h3 id="sec1-7" style={{ color: '#fff', marginTop: '16px' }}>1.7 Conceptual Framework</h3>
 <p>Traffic modeling relies heavily on converting different types of vehicles into a standard unit using PCU values. In Kampala, the sudden increase in tricycles creates a lot of operational friction. They weave unpredictably and make sudden stops, which completely breaks the assumptions made by static PCU tables designed in the West.</p>
 <p>This study is based on the idea that by collecting high-quality field data (headways, speeds, volumes) using video and manual counts across different intersection types and weather conditions, we can calculate dynamic PCU values using statistical methods. Once we have these accurate, Kampala-specific PCU values, we can feed them into simulation software (like VISSIM). This will allow traffic engineers to design better signal timings, appropriate lane widths, and dedicated staging areas, ultimately reducing congestion.</p>
-<p>CHAPTER TWO</p>
+<p id="ch2">CHAPTER TWO</p>
 <p>LITERATURE REVIEW</p>
 <h3 id="sec2-1" style={{ color: '#fff', marginTop: '16px' }}>2.1 Introduction</h3>
 <p>Determining Passenger Car Unit (PCU) values is a basic part of traffic engineering. It allows engineers to take a mix of different vehicles and convert them into a single, standardized number for capacity analysis. However, as public transport in developing countries continues to change, often looking very different from the organized traffic seen in North America or Europe, the existing literature on how to calculate PCU struggles to keep up. This chapter reviews the theories behind PCU estimation, looks at how tricycles operate in mixed traffic, and points out the gaps in current methods, especially regarding the aggressive weaving and heavy congestion we see in Kampala.</p>
@@ -172,8 +172,8 @@ const ThesisTab = () => {
 <p>Passenger Cars</p>
 <p>Typical Width (m)</p>
 <p>0.7 – 0.8</p>
-<h3 id="sec1-3" style={{ color: '#fff', marginTop: '16px' }}>1.3 – 1.5</h3>
-<h3 id="sec1-5" style={{ color: '#fff', marginTop: '16px' }}>1.5 – 1.8</h3>
+<p>1.3 – 1.5</p>
+<p>1.5 – 1.8</p>
 <p>Average Speed (km/h)</p>
 <p>30 – 50</p>
 <p>20 – 35</p>
@@ -222,15 +222,15 @@ const ThesisTab = () => {
 <p>The qualitative component of this study (Section 3.3.1) follows the six-phase thematic analysis process formalised by Braun and Clarke (2006): familiarisation with the transcripts, generation of initial codes, searching for themes, reviewing themes, defining and naming themes, and producing the final analytic narrative. This approach is well established in transport research; Sweet et al. (2022) argue explicitly for the value of qualitative methods in transport studies, noting that semi-structured interviews and thematic coding are particularly suited to capturing the subjective, context-dependent driving behaviours, such as pothole avoidance and lane-straddling, that purely quantitative count data cannot explain on its own. Combining this qualitative layer with the quantitative count and simulation data (Sections 3.4 and 4.9) follows the concurrent mixed-methods design recommended for applied transport research, where numerical and narrative evidence are triangulated rather than treated as separate, unconnected strands of enquiry.</p>
 <h3 id="sec2-7" style={{ color: '#fff', marginTop: '16px' }}>2.7 Conclusion</h3>
 <p>The literature shows pretty clearly that using imported, static PCU values for Kampala's highly aggressive tricycle fleet doesn't make mathematical sense. If we want to accurately model and solve Kampala's daily congestion problems, we need to establish empirical, dynamic, and locally calibrated PCU values. The next chapter will detail the methodology used to do exactly that.</p>
-<p>CHAPTER THREE</p>
+<p id="ch3">CHAPTER THREE</p>
 <p>METHODOLOGY</p>
 <h3 id="sec3-1" style={{ color: '#fff', marginTop: '16px' }}>3.1 Introduction</h3>
 <p>This chapter outlines the research methods we used to figure out the actual Passenger Car Unit (PCU) values for tricycles in Kampala City. Because Kampala’s traffic is so chaotic and mixed, we couldn't just use traditional automated counting machines like pneumatic road tubes. When vehicles don't stay in their lanes, those tubes get run over diagonally or miss smaller vehicles entirely, leading to terrible data. Instead, we decided to use a more labor-intensive but accurate approach: combining high-definition video recording from above with a lot of manual counting by trained enumerators, and then validating that data using traffic simulation software.</p>
 <h3 id="sec3-2" style={{ color: '#fff', marginTop: '16px' }}>3.2 Study Area and Site Selection</h3>
 <p>The study was strictly confined to Kampala City, focusing on five specific intersections that are known for having high volumes of tricycles and terrible daily traffic jams.</p>
 <p>We chose these five locations for very specific reasons:1. Wandegeya Junction: This is a major hotspot near Makerere University. The conflict between pedestrians, boda-bodas, and tricycles here is intense.2. Kibuye Roundabout: This is a notoriously complex multi-leg roundabout where high-speed traffic coming from Entebbe Road crashes into dense, slow-moving informal transit.3. Bakuli Intersection: This acts as a vital artery linking the city center to the western suburbs. It's well known for the aggressive way matatus and tricycles park and stage right on the roadside.4. Bwaise Junction: We specifically chose this northern gateway because it frequently floods. We wanted to see how extreme environmental factors, like dodging flooded potholes, change the tricycle PCU.5. Natete Junction: This is a huge commercial hub where cargo tricycles are especially common, allowing us to compare passenger and cargo variations.</p>
-<h3 id="sec3-3" style={{ color: '#fff', marginTop: '16px' }}>3.3 Research Design and Sampling Strategy</h3>
-<h3 id="sec3-3-1" style={{ color: '#fff', marginTop: '16px' }}>3.3.1 Temporal Scope</h3>
+<h3 id="sec3-3-draft" style={{ color: '#fff', marginTop: '16px' }}>3.3 Research Design and Sampling Strategy</h3>
+<h3 id="sec3-3-1-draft" style={{ color: '#fff', marginTop: '16px' }}>3.3.1 Temporal Scope</h3>
 <p>To make sure we captured the massive day-to-day changes in Kampala traffic, we collected data continuously for seven full daytime survey days (07:00-19:00, 12 hours each), supplemented by two full overnight sessions (19:00-07:00, 12 hours each) to capture nocturnal traffic behaviour. This design allowed direct comparison between daytime and night-time flow regimes in addition to the standard peak/off-peak analysis. We focused our daytime observations across the full 12-hour span, with particular attention to the two busiest windows:- Morning Peak: 07:00 AM - 09:00 AM- Evening Peak: 05:00 PM - 07:00 PM (This allowed us to capture the severe traffic collapse that almost always happens around 6:30 PM).</p>
 <h3 id="sec3-3" style={{ color: '#fff', marginTop: '16px' }}>3.3 Data Collection Strategy (Mixed Methods Approach)</h3>
 <p>This study employs a comprehensive mixed-methods approach, rigorously combining both quantitative and qualitative testing to capture the full spectrum of tricycle operational friction. To achieve this, the research draws upon both Primary and Secondary data sources.</p>
@@ -250,7 +250,7 @@ const ThesisTab = () => {
 <p>To answer Objective 3, we stopped treating PCU as just a static number. We modeled it as a dynamic variable that changes based on the Volume-to-Capacity (V/C) ratio. We wrote Python scripts to calculate exactly how the tricycle PCU inflates as the intersection gets closer to total saturation ($V/C \geq 0.95$).</p>
 <h3 id="sec3-5" style={{ color: '#fff', marginTop: '16px' }}>3.5 VISSIM Microsimulation Validation</h3>
 <p>Finally, to prove our empirical findings were correct, we coded the new dynamic PCUs into PTV VISSIM software. By default, VISSIM uses German driving behaviors (the Wiedemann 74/99 models), which obviously don't apply to Kampala. We had to manually calibrate parameters like "Standstill Distance" and "Lateral Clearance" to mimic how closely Kampala tuk-tuks follow each other and how aggressively they weave. We then ran the simulation and compared the resulting queue lengths and delays against our actual video logs to confirm the new PCU values were accurate.</p>
-<p>CHAPTER FOUR</p>
+<p id="ch4">CHAPTER FOUR</p>
 <p>DATA PRESENTATION, ANALYSIS, AND RESULTS</p>
 <h3 id="sec4-1" style={{ color: '#fff', marginTop: '16px' }}>4.1 Introduction</h3>
 <p>This chapter breaks down the empirical data we collected over the seven daytime survey days and two overnight sessions at Kampala's major intersections. We processed all the raw counts and video footage using Python to extract dynamic Passenger Car Unit (PCU) values for tricycles, looking specifically at how they behave under different traffic conditions and across the day/night cycle.</p>
@@ -557,7 +557,7 @@ const ThesisTab = () => {
 <h3 id="sec5-4" style={{ color: '#fff', marginTop: '16px' }}>5.4 Weather Dynamics and Infrastructure Resilience</h3>
 <p>Our observation that wet weather inflates the PCU (jumping from 0.85 to 1.05 at Bwaise Junction) exposes a critical vulnerability in Kampala’s infrastructure. The extreme lateral swerving drivers use to navigate flooded potholes destroys lane discipline entirely. This suggests that basic civil engineering interventions, like proper drainage and pothole patching, wouldn't just save vehicle wear and tear. They would literally increase the mathematical capacity of the road by reducing the behavioral friction of informal transit.</p>
 <p>CHAPTER SIX</p>
-<p>CONCLUSIONS AND RECOMMENDATIONS</p>
+<p id="conclusion">CONCLUSIONS AND RECOMMENDATIONS</p>
 <h3 id="sec6-1" style={{ color: '#fff', marginTop: '16px' }}>6.1 Conclusions</h3>
 <p>Based on our empirical analysis of how tricycles operate across Kampala's major corridors, this study draws the following main conclusions:</p>
 <p>Static PCUs Don't Work for Tricycles: Using imported, static Passenger Car Unit (PCU) values for tricycles in Kampala is mathematically flawed. Our data shows the empirical static PCU for tricycles ranges between 0.82 and 1.02 depending on the intersection. This is significantly higher than motorcycles (0.45 - 0.55) and dangerously close to a full passenger car (1.0).</p>
