@@ -17,7 +17,7 @@ const C = {
   blue: '#0071e3', blue2: '#0a84ff', green: '#30d158', orange: '#ff9f0a',
   red: '#ff453a', purple: '#bf5af2', pink: '#ff375f', teal: '#40c8e0',
   yellow: '#ffd60a', indigo: '#5e5ce6',
-  ink: '#1d1d1f', sub: '#6e6e73', faint: '#86868b', canvas: '#f5f5f7', card: '#ffffff',
+  ink: '#1d1d1f', sub: '#6e6e73', faint: '#707074', canvas: '#f5f5f7', card: '#ffffff',
 };
 
 const hex2rgba = (hex, a) => {
