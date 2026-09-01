@@ -1,4 +1,10 @@
 import React, { useState, useMemo } from 'react';
+import {
+  Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend
+} from 'chart.js';
+import { Bar, Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
 const trafficData = [
   {
@@ -61,6 +67,51 @@ function downloadCsv(rows) {
   URL.revokeObjectURL(url);
 }
 
+// ---------------------------------------------------------------------------
+// Apple-style design tokens — same tokens/classes used across the Overview,
+// Summary Tables and Analytics tabs for a consistent bright, light theme.
+// ---------------------------------------------------------------------------
+const C = {
+  blue: '#0071e3', blue2: '#0a84ff', green: '#30d158', orange: '#ff9f0a',
+  red: '#ff453a', purple: '#bf5af2', pink: '#ff375f', teal: '#40c8e0',
+  yellow: '#ffd60a', indigo: '#5e5ce6',
+  ink: '#1d1d1f', sub: '#6e6e73', faint: '#86868b', canvas: '#f5f5f7', card: '#ffffff',
+};
+const hex2rgba = (hex, a) => {
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+};
+const chartSub = C.faint;
+const chartGrid = 'rgba(0,0,0,0.06)';
+const animConfig = { duration: 800, easing: 'easeOutQuart' };
+const tooltipTheme = {
+  backgroundColor: '#1d1d1f', titleColor: '#ffffff', bodyColor: '#f5f5f7',
+  padding: 10, cornerRadius: 10, titleFont: { weight: '600' }, displayColors: true, boxPadding: 4,
+};
+const legendTheme = { labels: { color: chartSub, boxWidth: 10, boxHeight: 10, padding: 14, font: { size: 11, weight: '600' }, usePointStyle: true, pointStyle: 'circle' } };
+const CLASS_COLORS = { mc: C.indigo, tc: C.green, pc: C.blue, ps: C.teal, lgv: C.orange, hgv: C.red };
+const SITE_COLORS = [C.blue, C.indigo, C.teal, C.orange, C.purple];
+
+const SectionHeader = ({ eyebrow, title, color = C.blue, sub }) => (
+  <div style={{ marginBottom: '18px' }}>
+    <p className="a-eyebrow" style={{ color }}>{eyebrow}</p>
+    <h3 className="a-title">{title}</h3>
+    {sub && <p className="a-sub">{sub}</p>}
+  </div>
+);
+
+const KpiCard = ({ icon, color, label, value, sub }) => (
+  <div className="a-card a-kpi">
+    <div className="a-kpi-icon" style={{ background: hex2rgba(color, 0.14), color }}>
+      <i className={`fa-solid ${icon}`}></i>
+    </div>
+    <div className="a-kpi-value">{value}</div>
+    <div className="a-kpi-label">{label}</div>
+    {sub && <div className="a-kpi-sub">{sub}</div>}
+  </div>
+);
+
+// ---------------------------------------------------------------------------
 const SummaryTables = () => {
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('desc');
@@ -93,100 +144,210 @@ const SummaryTables = () => {
     acc[c.key] = rows.reduce((sum, r) => sum + r[c.key], 0);
     return acc;
   }, {});
+  const totalNmt = trafficData.reduce((s, r) => s + r.nmt, 0);
+  const tricycleShare = (totals.tc / totals.total) * 100;
+  const busiest = rows.reduce((a, b) => (b.total > a.total ? b : a));
+  const busiestNmt = trafficData.reduce((a, b) => (b.nmt > a.nmt ? b : a));
 
   return (
-    <div className="workspace-grid">
-      <div className="col-span-12" style={{ textAlign: 'center', marginBottom: '8px' }}>
-        <p className="nexus-eyebrow">Field Data Aggregation</p>
-        <h2 className="text-primary" style={{ fontSize: '2.25rem' }}>Primary Traffic Volumes</h2>
-        <p className="text-muted">Peak-hour categorized vehicle counts (veh/hr) by study site</p>
-      </div>
-        
-      <div className="glass-card col-span-12">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
-          <div>
-            <h3 style={{ border: 'none', paddingBottom: 0, marginBottom: '4px' }}>Empirical Flow Classification</h3>
-            <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-              Sample size N = 6,400 fifteen-minute intervals across all primary study sites &mdash; click a column to sort
-            </p>
-          </div>
-          <button className="btn" onClick={() => downloadCsv(rows)}>
-            <i className="fa-solid fa-download" style={{marginRight: '8px'}}></i>Export CSV
-          </button>
-        </div>
-        
-        <div style={{ overflowX: 'auto' }}>
-          <table className="heatmap-table" style={{ width: '100%', textAlign: 'right' }}>
-            <thead>
-              <tr>
-                {COLUMNS.map(col => (
-                  <th
-                    key={col.key}
-                    className="sortable-th"
-                    onClick={() => handleSort(col.key)}
-                    style={col.type === 'text'
-                      ? { textAlign: 'left', color: 'var(--accent-2)' }
-                      : col.key === 'tc' ? { color: 'var(--positive)' } : undefined}
-                  >
-                    {col.label}
-                    {sortKey === col.key && (
-                      <span className="sort-arrow">{sortDir === 'asc' ? '▲' : '▼'}</span>
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedRows.map((row, idx) => (
-                <tr key={idx}>
-                  <td style={{ textAlign: 'left', fontWeight: '600', borderLeft: '3px solid var(--accent)' }}>{row.junction}</td>
-                  <td>{row.mc.toLocaleString()}</td>
-                  <td style={{ fontWeight: '600', color: 'var(--positive)', background: 'var(--positive-soft)' }}>{row.tc.toLocaleString()}</td>
-                  <td>{row.pc.toLocaleString()}</td>
-                  <td>{row.ps.toLocaleString()}</td>
-                  <td>{row.lgv.toLocaleString()}</td>
-                  <td>{row.hgv.toLocaleString()}</td>
-                  <td style={{ fontWeight: '600', color: '#fff' }}>{row.total.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr style={{ background: 'rgba(255, 255, 255, 0.03)' }}>
-                <td style={{ textAlign: 'left', fontWeight: '700' }}>Network Total</td>
-                <td style={{ fontWeight: '700', color: '#fff' }}>{totals.mc.toLocaleString()}</td>
-                <td style={{ fontWeight: '700', color: 'var(--positive)' }}>{totals.tc.toLocaleString()}</td>
-                <td style={{ fontWeight: '700', color: '#fff' }}>{totals.pc.toLocaleString()}</td>
-                <td style={{ fontWeight: '700', color: '#fff' }}>{totals.ps.toLocaleString()}</td>
-                <td style={{ fontWeight: '700', color: '#fff' }}>{totals.lgv.toLocaleString()}</td>
-                <td style={{ fontWeight: '700', color: '#fff' }}>{totals.hgv.toLocaleString()}</td>
-                <td style={{ fontWeight: '700', color: 'var(--accent-2)', fontSize: '1.1rem' }}>{totals.total.toLocaleString()}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
+    <div className="apple-summary">
+      <style>{`
+        .apple-summary { position: relative; width: 100vw; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; background: ${C.canvas}; padding: 44px 0 90px; }
+        .apple-summary-inner { max-width: 1440px; margin: 0 auto; padding: 0 32px; font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif; color: ${C.ink}; }
+        .a-hero { text-align: center; max-width: 760px; margin: 0 auto 40px; }
+        .a-hero-eyebrow { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: ${C.blue}; margin: 0 0 10px; }
+        .a-hero-title { font-size: clamp(2.1rem, 4vw, 3.4rem); font-weight: 800; letter-spacing: -0.03em; margin: 0 0 12px; line-height: 1.05;
+          background: linear-gradient(90deg, ${C.indigo}, ${C.blue} 50%, ${C.teal}); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .a-hero-sub { font-size: 1.05rem; color: ${C.sub}; margin: 0; line-height: 1.5; }
 
-      <div className="glass-card col-span-12" style={{ marginTop: '4px' }}>
-        <p className="nexus-eyebrow">Non-Motorized Transport</p>
-        <h3 style={{ border: 'none', paddingBottom: 0 }}>Vulnerable Road User Intersections</h3>
-        <p className="text-muted" style={{ margin: '4px 0 16px' }}>
-          Pedestrian and cyclist flows significantly influence tricycle weaving behavior, particularly at Bwaise and Wandegeya.
-          The figures below are absolute hourly counts for non-motorized transport (NMT).
-        </p>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px' }}>
-          {trafficData.map((row, idx) => (
-            <div key={idx} className="stat-box" style={{ borderTop: '2px solid var(--accent)' }}>
-              <div className="stat-label" style={{ minHeight: '32px' }}>{row.junction}</div>
-              <div className="stat-value" style={{ fontSize: '1.7rem', marginTop: '6px' }}>
-                {row.nmt.toLocaleString()}
-              </div>
-              <div className="stat-label" style={{ fontSize: '0.63rem' }}>Non-Motorized Transport (NMT) / Hour</div>
+        .a-card { background: ${C.card}; border-radius: 22px; padding: 26px; box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 12px 28px -12px rgba(0,0,0,0.10); border: 1px solid rgba(0,0,0,0.045); display: flex; flex-direction: column; transition: transform .25s ease, box-shadow .25s ease; }
+        .a-card:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0,0,0,0.05), 0 20px 36px -14px rgba(0,0,0,0.14); }
+
+        .a-eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin: 0 0 4px; }
+        .a-title { font-size: 1.32rem; font-weight: 700; letter-spacing: -0.01em; margin: 0; color: ${C.ink}; }
+        .a-sub { font-size: 0.85rem; color: ${C.sub}; margin: 6px 0 0; line-height: 1.5; }
+        .a-footnote { font-size: 0.75rem; color: ${C.faint}; margin: 10px 0 0; line-height: 1.5; }
+
+        .a-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 22px; }
+        .a-kpi { padding: 22px; gap: 10px; }
+        .a-kpi-icon { width: 42px; height: 42px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 17px; margin-bottom: 4px; }
+        .a-kpi-value { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; color: ${C.ink}; font-feature-settings: "tnum" 1; }
+        .a-kpi-label { font-size: 0.72rem; font-weight: 700; color: ${C.sub}; text-transform: uppercase; letter-spacing: 0.03em; }
+        .a-kpi-sub { font-size: 0.76rem; color: ${C.faint}; margin-top: -2px; }
+
+        .a-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; margin-bottom: 20px; }
+        .s-4 { grid-column: span 4; } .s-5 { grid-column: span 5; } .s-6 { grid-column: span 6; }
+        .s-7 { grid-column: span 7; } .s-8 { grid-column: span 8; } .s-12 { grid-column: span 12; }
+        @media (max-width: 1080px) { .a-grid .s-4, .a-grid .s-5, .a-grid .s-6, .a-grid .s-7, .a-grid .s-8 { grid-column: span 12; } }
+
+        .a-chart-box { flex: 1; min-height: 300px; position: relative; width: 100%; margin-top: 10px; }
+
+        .a-btn { border: none; background: ${C.ink}; color: #fff; font-weight: 700; font-size: 0.82rem; padding: 10px 16px; border-radius: 12px; cursor: pointer; transition: transform .15s ease, opacity .15s ease; }
+        .a-btn:hover { transform: translateY(-1px); opacity: 0.88; }
+
+        .a-table-wrap { overflow-x: auto; margin-top: 6px; }
+        .a-table { width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 0 6px; text-align: right; font-size: 0.82rem; }
+        .a-table thead th { color: ${C.faint}; font-weight: 700; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.02em; padding: 0 8px 8px; cursor: pointer; user-select: none; white-space: nowrap; }
+        .a-table thead th:hover { color: ${C.ink}; }
+        .a-table tbody tr { background: ${C.canvas}; }
+        .a-table tbody td { padding: 14px 8px; font-weight: 600; font-feature-settings: "tnum" 1; color: ${C.ink}; white-space: nowrap; }
+        .a-table tbody td:first-child { border-radius: 12px 0 0 12px; text-align: left; font-weight: 800; }
+        .a-table tbody td:last-child { border-radius: 0 12px 12px 0; }
+        .a-table tfoot td { padding: 14px 8px; font-weight: 800; color: ${C.ink}; border-top: 2px solid rgba(0,0,0,0.08); white-space: nowrap; }
+        .a-table tfoot td:first-child { text-align: left; }
+        .a-sort-arrow { margin-left: 4px; font-size: 0.6rem; }
+        .a-tc-cell { color: ${C.green} !important; }
+
+        .a-nmt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 6px; }
+        .a-nmt-card { background: ${C.canvas}; border-radius: 14px; padding: 16px; border-top: 3px solid ${C.pink}; }
+        .a-nmt-name { font-size: 0.72rem; font-weight: 700; color: ${C.faint}; text-transform: uppercase; min-height: 28px; }
+        .a-nmt-value { font-size: 1.5rem; font-weight: 800; color: ${C.ink}; margin-top: 6px; }
+        .a-nmt-unit { font-size: 0.66rem; color: ${C.faint}; font-weight: 600; }
+      `}</style>
+
+      <div className="apple-summary-inner">
+
+        {/* HERO */}
+        <div className="a-hero">
+          <p className="a-hero-eyebrow">Field Data Aggregation</p>
+          <h1 className="a-hero-title">Primary Traffic Volumes</h1>
+          <p className="a-hero-sub">Peak-hour categorized vehicle counts (veh/hr) across five Kampala study sites — 6,400 fifteen-minute intervals sampled in total.</p>
+        </div>
+
+        {/* KPI STRIP */}
+        <div className="a-kpi-grid">
+          <KpiCard icon="fa-database" color={C.blue} label="Sample Size" value="6,400" sub="15-min intervals, all sites" />
+          <KpiCard icon="fa-car-side" color={C.indigo} label="Network Total Motorized" value={totals.total.toLocaleString()} sub="veh/hr, sum of all sites" />
+          <KpiCard icon="fa-route" color={C.green} label="Tricycle Share" value={`${tricycleShare.toFixed(1)}%`} sub={`${totals.tc.toLocaleString()} veh/hr network-wide`} />
+          <KpiCard icon="fa-fire" color={C.orange} label="Busiest Junction" value={busiest.junction.replace(' Junction', '').replace(' Roundabout', '').replace(' Intersection', '')} sub={`${busiest.total.toLocaleString()} veh/hr total motorized`} />
+          <KpiCard icon="fa-person-walking" color={C.pink} label="Total NMT Flow" value={totalNmt.toLocaleString()} sub="Pedestrians + cyclists, veh/hr" />
+          <KpiCard icon="fa-triangle-exclamation" color={C.red} label="Highest NMT Site" value={busiestNmt.junction.replace(' Junction', '').replace(' Roundabout', '').replace(' Intersection', '')} sub={`${busiestNmt.nmt.toLocaleString()}/hr non-motorized`} />
+        </div>
+
+        {/* STACKED BAR: composition by junction */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Empirical Flow Classification" title="Vehicle-Class Volumes by Junction" color={C.indigo} sub="Peak-hour categorized counts (veh/hr) — click a legend item to isolate a class" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: trafficData.map(r => r.junction),
+                  datasets: [
+                    { label: 'Motorcycles (MC)', data: trafficData.map(r => r.mc), backgroundColor: CLASS_COLORS.mc },
+                    { label: 'Tricycles (TC)', data: trafficData.map(r => r.tc), backgroundColor: CLASS_COLORS.tc },
+                    { label: 'Passenger Cars (PC)', data: trafficData.map(r => r.pc), backgroundColor: CLASS_COLORS.pc },
+                    { label: 'Minibuses (PSV)', data: trafficData.map(r => r.ps), backgroundColor: CLASS_COLORS.ps },
+                    { label: 'Light Goods Vehicles (LGV)', data: trafficData.map(r => r.lgv), backgroundColor: CLASS_COLORS.lgv },
+                    { label: 'Heavy Goods Vehicles (HGV)', data: trafficData.map(r => r.hgv), backgroundColor: CLASS_COLORS.hgv },
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { stacked: true, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
+                }}
+              />
             </div>
-          ))}
+          </div>
         </div>
-      </div>
 
+        {/* DOUGHNUT + NMT BAR */}
+        <div className="a-grid">
+          <div className="a-card s-5">
+            <SectionHeader eyebrow="Network-Wide Mix" title="Vehicle-Class Composition" color={C.blue} />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Doughnut
+                data={{
+                  labels: ['Motorcycles (MC)', 'Tricycles (TC)', 'Passenger Cars (PC)', 'Minibuses (PSV)', 'Light Goods Vehicles (LGV)', 'Heavy Goods Vehicles (HGV)'],
+                  datasets: [{
+                    data: [totals.mc, totals.tc, totals.pc, totals.ps, totals.lgv, totals.hgv],
+                    backgroundColor: [CLASS_COLORS.mc, CLASS_COLORS.tc, CLASS_COLORS.pc, CLASS_COLORS.ps, CLASS_COLORS.lgv, CLASS_COLORS.hgv],
+                    borderColor: '#ffffff', borderWidth: 3, hoverOffset: 8,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false, cutout: '64%',
+                  plugins: {
+                    legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } },
+                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed.toLocaleString()} veh/hr (${(ctx.parsed / totals.total * 100).toFixed(1)}%)` } }
+                  }
+                }}
+              />
+            </div>
+            <p className="a-footnote">Tricycles account for {tricycleShare.toFixed(1)}% of all motorized flow across the five study sites.</p>
+          </div>
+
+          <div className="a-card s-7">
+            <SectionHeader eyebrow="Vulnerable Road Users" title="Non-Motorized Transport by Site" color={C.pink} sub="Pedestrian + cyclist flows significantly influence tricycle weaving behavior, particularly at Wandegeya and Bwaise." />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: trafficData.map(r => r.junction),
+                  datasets: [{ label: 'NMT / hour', data: trafficData.map(r => r.nmt), backgroundColor: SITE_COLORS, borderRadius: 8 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { y: { grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 9.5 } } } },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* DATA TABLE */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '6px' }}>
+              <SectionHeader eyebrow="Field Data" title="Full Traffic Volume Table" color={C.teal} sub="Click a column header to sort" />
+              <button className="a-btn" onClick={() => downloadCsv(rows)}>
+                <i className="fa-solid fa-download" style={{ marginRight: '8px' }}></i>Export CSV
+              </button>
+            </div>
+            <div className="a-table-wrap">
+              <table className="a-table">
+                <thead>
+                  <tr>
+                    {COLUMNS.map(col => (
+                      <th key={col.key} onClick={() => handleSort(col.key)} style={col.type === 'text' ? { textAlign: 'left' } : undefined}>
+                        {col.label}
+                        {sortKey === col.key && <span className="a-sort-arrow">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedRows.map((row, idx) => (
+                    <tr key={idx}>
+                      <td>{row.junction}</td>
+                      <td>{row.mc.toLocaleString()}</td>
+                      <td className="a-tc-cell">{row.tc.toLocaleString()}</td>
+                      <td>{row.pc.toLocaleString()}</td>
+                      <td>{row.ps.toLocaleString()}</td>
+                      <td>{row.lgv.toLocaleString()}</td>
+                      <td>{row.hgv.toLocaleString()}</td>
+                      <td style={{ color: C.blue }}>{row.total.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td>Network Total</td>
+                    <td>{totals.mc.toLocaleString()}</td>
+                    <td className="a-tc-cell">{totals.tc.toLocaleString()}</td>
+                    <td>{totals.pc.toLocaleString()}</td>
+                    <td>{totals.ps.toLocaleString()}</td>
+                    <td>{totals.lgv.toLocaleString()}</td>
+                    <td>{totals.hgv.toLocaleString()}</td>
+                    <td style={{ color: C.blue }}>{totals.total.toLocaleString()}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 };
