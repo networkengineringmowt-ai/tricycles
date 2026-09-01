@@ -44,12 +44,12 @@ const ThesisTab = () => {
               Chapter 2: Literature Review
             </button>
             <ul style={{ listStyle: 'none', paddingLeft: '16px', margin: '4px 0' }}>
-              <li><button style={{...navItemStyle, fontSize: '0.8rem'}} onClick={() => scrollTo('sec2-1')}>2.1 Concept of PCU</button></li>
-              <li><button style={{...navItemStyle, fontSize: '0.8rem'}} onClick={() => scrollTo('sec2-2')}>2.2 Influencing Factors</button></li>
-              <li><button style={{...navItemStyle, fontSize: '0.8rem'}} onClick={() => scrollTo('sec2-3')}>2.3 PCU Estimation</button></li>
-              <li><button style={{...navItemStyle, fontSize: '0.8rem'}} onClick={() => scrollTo('sec2-4')}>2.4 Local Studies</button></li>
-              <li><button style={{...navItemStyle, fontSize: '0.8rem'}} onClick={() => scrollTo('sec2-5')}>2.5 Traffic Flow Theory</button></li>
-              <li><button style={{...navItemStyle, fontSize: '0.8rem'}} onClick={() => scrollTo('sec2-6')}>2.6 Stochastic Modeling</button></li>
+              <li><button style={{...navItemStyle, fontSize: '0.8rem'}} onClick={() => scrollTo('sec2-1')}>2.1 Introduction</button></li>
+              <li><button style={{...navItemStyle, fontSize: '0.8rem'}} onClick={() => scrollTo('sec2-2')}>2.2 Conceptual Review</button></li>
+              <li><button style={{...navItemStyle, fontSize: '0.8rem'}} onClick={() => scrollTo('sec2-3')}>2.3 PCU Estimation Methods</button></li>
+              <li><button style={{...navItemStyle, fontSize: '0.8rem'}} onClick={() => scrollTo('sec2-4')}>2.4 African Urban Context</button></li>
+              <li><button style={{...navItemStyle, fontSize: '0.8rem'}} onClick={() => scrollTo('sec2-5')}>2.5 Literature Gaps</button></li>
+              <li><button style={{...navItemStyle, fontSize: '0.8rem'}} onClick={() => scrollTo('sec2-6')}>2.6 Recent Empirical Evidence</button></li>
             </ul>
           </li>
           <li>
