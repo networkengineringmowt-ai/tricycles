@@ -4,6 +4,7 @@ import {
   BarElement, ArcElement, Filler, Tooltip, Legend
 } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import PageControls, { downloadTextFile } from './PageControls';
 
 ChartJS.register(
   CategoryScale, LinearScale, PointElement, LineElement,
@@ -195,10 +196,19 @@ const PhotoCarousel = ({ photos }) => {
 };
 
 // ---------------------------------------------------------------------------
-const InfographicDashboard = () => {
+const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
   const [vcRatio, setVcRatio] = useState(0.85);
   const [modalShare, setModalShare] = useState(15);
   const [roadWidth, setRoadWidth] = useState(7.0);
+
+  const exportVolumeTable = () => {
+    const labels = ['Bwaise', 'Bakuli', 'Wandegeya', 'Natete', 'Kibuye'];
+    const means = [14.50, 15.90, 16.67, 17.73, 17.92];
+    const sds = [8.89, 9.59, 10.32, 11.17, 11.01];
+    const header = 'Study Site,Mean Tricycle Volume (veh / 15-min interval),Standard Deviation';
+    const lines = labels.map((l, i) => `"${l}",${means[i]},${sds[i]}`);
+    downloadTextFile('tricycle_volume_by_intersection.csv', [header, ...lines].join('\n'));
+  };
 
   // Site is served from the /tricycles/ subpath on GitHub Pages, so plain
   // "/assets/..." src strings 404 in production even though they work under
@@ -322,6 +332,8 @@ const InfographicDashboard = () => {
         .a-bignum { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em; font-feature-settings: "tnum" 1; }
         .a-bignum-unit { font-size: 0.95rem; font-weight: 700; color: ${C.sub}; }
       `}</style>
+
+      <PageControls onBack={goBack} canGoBack={canGoBack} exportLabel="Export Volume Data (CSV)" onExport={exportVolumeTable} />
 
       <div className="apple-dash-inner">
 

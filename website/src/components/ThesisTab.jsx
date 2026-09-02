@@ -1,11 +1,22 @@
 import React from 'react';
+import PageControls from './PageControls';
 
-const ThesisTab = () => {
+const ThesisTab = ({ goBack, canGoBack } = {}) => {
   const scrollTo = (id) => {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  };
+
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  const downloadFile = (filename) => {
+    const a = document.createElement('a');
+    a.href = `${baseUrl}downloads/${filename}`;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const navItemStyle = {
@@ -22,6 +33,13 @@ const ThesisTab = () => {
 
   return (
     <div style={{ display: 'flex', gap: '24px', padding: '0 12px', alignItems: 'flex-start', maxWidth: '1400px', margin: '0 auto' }}>
+      <PageControls
+        onBack={goBack}
+        canGoBack={canGoBack}
+        dark
+        exportLabel="Download Thesis (DOCX)"
+        onExport={() => downloadFile('Final_Thesis.docx')}
+      />
       
       {/* NAVIGATION PANE */}
       <div className="glass-card" style={{ flex: '0 0 300px', position: 'sticky', top: '24px', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }}>
@@ -20731,14 +20749,18 @@ const ThesisTab = () => {
                   <i className="fa-solid fa-file-word" style={{ fontSize: '1.5rem', color: '#2b579a' }}></i>
                   <span>Final_Thesis.docx</span>
                 </div>
-                <button className="btn btn-small"><i className="fa-solid fa-download"></i></button>
+                <button type="button" className="btn btn-small" onClick={() => downloadFile('Final_Thesis.docx')} aria-label="Download Final_Thesis.docx">
+                  <i className="fa-solid fa-download"></i>
+                </button>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <i className="fa-solid fa-file-powerpoint" style={{ fontSize: '1.5rem', color: '#d24726' }}></i>
-                  <span>Defense_Presentation.pptx</span>
+                  <span>Modern_Thesis_Presentation_40_Slides.pptx</span>
                 </div>
-                <button className="btn btn-small"><i className="fa-solid fa-download"></i></button>
+                <button type="button" className="btn btn-small" onClick={() => downloadFile('Modern_Thesis_Presentation_40_Slides.pptx')} aria-label="Download Modern_Thesis_Presentation_40_Slides.pptx">
+                  <i className="fa-solid fa-download"></i>
+                </button>
               </div>
             </div>
           </div>

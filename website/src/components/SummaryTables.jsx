@@ -3,6 +3,7 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
+import PageControls from './PageControls';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
@@ -112,7 +113,7 @@ const KpiCard = ({ icon, color, label, value, sub }) => (
 );
 
 // ---------------------------------------------------------------------------
-const SummaryTables = () => {
+const SummaryTables = ({ goBack, canGoBack } = {}) => {
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('desc');
 
@@ -182,8 +183,6 @@ const SummaryTables = () => {
 
         .a-chart-box { flex: 1; min-height: 300px; position: relative; width: 100%; margin-top: 10px; }
 
-        .a-btn { border: none; background: ${C.ink}; color: #fff; font-weight: 700; font-size: 0.82rem; padding: 10px 16px; border-radius: 12px; cursor: pointer; transition: transform .15s ease, opacity .15s ease; }
-        .a-btn:hover { transform: translateY(-1px); opacity: 0.88; }
 
         .a-table-wrap { overflow-x: auto; margin-top: 6px; }
         .a-table { width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 0 6px; text-align: right; font-size: 0.82rem; }
@@ -207,6 +206,8 @@ const SummaryTables = () => {
         .a-nmt-value { font-size: 1.5rem; font-weight: 800; color: ${C.ink}; margin-top: 6px; }
         .a-nmt-unit { font-size: 0.66rem; color: ${C.faint}; font-weight: 600; }
       `}</style>
+
+      <PageControls onBack={goBack} canGoBack={canGoBack} exportLabel="Export Table (CSV)" onExport={() => downloadCsv(rows)} />
 
       <div className="apple-summary-inner">
 
@@ -301,12 +302,7 @@ const SummaryTables = () => {
         {/* DATA TABLE */}
         <div className="a-grid">
           <div className="a-card s-12">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '6px' }}>
-              <SectionHeader eyebrow="Field Data" title="Full Traffic Volume Table" color={C.teal} sub="Click a column header to sort" />
-              <button className="a-btn" onClick={() => downloadCsv(rows)}>
-                <i className="fa-solid fa-download" style={{ marginRight: '8px' }}></i>Export CSV
-              </button>
-            </div>
+            <SectionHeader eyebrow="Field Data" title="Full Traffic Volume Table" color={C.teal} sub="Click a column header to sort — export the table from the corner control, top right" />
             <div className="a-table-wrap">
               <table className="a-table">
                 <thead>

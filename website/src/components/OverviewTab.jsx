@@ -6,6 +6,7 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import PageControls, { downloadTextFile } from './PageControls';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -70,9 +71,17 @@ const KpiCard = ({ icon, color, label, value, sub }) => (
 );
 
 // ---------------------------------------------------------------------------
-const OverviewTab = () => {
+const OverviewTab = ({ goBack, canGoBack } = {}) => {
   const [selectedSite, setSelectedSite] = useState(null);
   const [geoData, setGeoData] = useState(null);
+
+  const exportSites = () => {
+    const header = 'Study Site,Latitude,Longitude,Base PCU,Annual Average Daily Traffic (AADT),Dominant Interaction';
+    const lines = studySites.map(s =>
+      `"${s.name}",${s.coords[0]},${s.coords[1]},${s.pcu},${s.adt},"${s.interaction}"`
+    );
+    downloadTextFile('tricycle_pcu_study_sites.csv', [header, ...lines].join('\n'));
+  };
 
   useEffect(() => {
     const baseUrl = import.meta.env.BASE_URL || '/';
@@ -147,6 +156,8 @@ const OverviewTab = () => {
         .a-directory-meta-val { font-size: 0.95rem; color: ${C.ink}; font-weight: 800; display: block; margin-top: 2px; text-transform: none; }
         .a-directory-interaction { font-size: 0.76rem; color: ${C.sub}; line-height: 1.5; }
       `}</style>
+
+      <PageControls onBack={goBack} canGoBack={canGoBack} exportLabel="Export Site Data (CSV)" onExport={exportSites} />
 
       <div className="apple-overview-inner">
 
