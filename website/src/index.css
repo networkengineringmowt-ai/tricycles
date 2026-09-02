@@ -493,7 +493,14 @@ body::after {
 }
 
 .tab-panel {
-  animation: tab-in 0.28s var(--ease) both;
+  /* `backwards` (not `both`) is deliberate: `both` would leave `transform:
+     translateY(0)` permanently applied after the animation ends — a real
+     transform value, not `none` — which silently makes .tab-panel a
+     containing block for every `position: fixed` descendant (their "fixed"
+     position becomes relative to this scrolling box instead of the
+     viewport). `backwards` still prevents the pre-animation flash but lets
+     the element's styles fully revert once the 0.28s entrance finishes. */
+  animation: tab-in 0.28s var(--ease) backwards;
 }
 
 /* Mobile hamburger navigation */
