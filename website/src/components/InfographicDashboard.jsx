@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,
   BarElement, ArcElement, Filler, Tooltip, Legend
@@ -87,16 +87,112 @@ const CompareStat = ({ color, leftLabel, leftValue, rightLabel, rightValue, foot
   );
 };
 
-const PhotoCard = ({ src, eyebrow, title, color, text, span }) => (
-  <div className={`a-card a-photo ${span}`}>
-    <img src={src} alt={title} />
-    <div className="a-photo-overlay">
-      <p className="a-eyebrow" style={{ color }}>{eyebrow}</p>
-      <h3 className="a-photo-title">{title}</h3>
-      <p className="a-photo-text">{text}</p>
+const PhotoCarousel = ({ photos }) => {
+  const [index, setIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    return true;
+  });
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const touchStartX = useRef(null);
+
+  const count = photos.length;
+  const goTo = (i) => setIndex(((i % count) + count) % count);
+  const goNext = () => goTo(index + 1);
+  const goPrev = () => goTo(index - 1);
+
+  useEffect(() => {
+    if (!isPlaying || hovered || focused) return undefined;
+    const id = setInterval(() => setIndex((i) => (i + 1) % count), 5500);
+    return () => clearInterval(id);
+  }, [isPlaying, hovered, focused, count]);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+  };
+
+  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const delta = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(delta) > 40) { delta < 0 ? goNext() : goPrev(); }
+    touchStartX.current = null;
+  };
+
+  return (
+    <div
+      className="a-carousel"
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Traffic and site data collection photographs"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onKeyDown={handleKeyDown}
+    >
+      <div
+        className="a-carousel-viewport"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="a-carousel-track" style={{ transform: `translateX(-${index * 100}%)` }}>
+          {photos.map((p, i) => (
+            <div
+              className="a-carousel-slide"
+              key={p.title}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${i + 1} of ${count}: ${p.title}`}
+              aria-hidden={i !== index}
+            >
+              <img src={p.src} alt={p.title} />
+              <div className="a-photo-overlay">
+                <p className="a-eyebrow" style={{ color: p.color }}>{p.eyebrow}</p>
+                <h3 className="a-photo-title">{p.title}</h3>
+                <p className="a-photo-text">{p.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="a-carousel-controls">
+          <button type="button" className="a-carousel-arrow a-carousel-prev" aria-label="Previous photo" onClick={goPrev}>
+            <i className="fa-solid fa-chevron-left" aria-hidden="true"></i>
+          </button>
+          <button type="button" className="a-carousel-arrow a-carousel-next" aria-label="Next photo" onClick={goNext}>
+            <i className="fa-solid fa-chevron-right" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            className="a-carousel-playpause"
+            aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
+            aria-pressed={isPlaying}
+            onClick={() => setIsPlaying((p) => !p)}
+          >
+            <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`} aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      <div className="a-carousel-dots" role="tablist" aria-label="Choose photo">
+        {photos.map((p, i) => (
+          <button
+            key={p.title}
+            type="button"
+            role="tab"
+            aria-selected={i === index}
+            aria-label={`Slide ${i + 1}: ${p.title}`}
+            className={`a-carousel-dot${i === index ? ' active' : ''}`}
+            onClick={() => goTo(i)}
+          />
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ---------------------------------------------------------------------------
 const InfographicDashboard = () => {
@@ -191,6 +287,35 @@ const InfographicDashboard = () => {
         .a-photo-overlay { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 26px; background: linear-gradient(to top, rgba(10,10,12,0.94) 0%, rgba(10,10,12,0.6) 65%, transparent 100%); }
         .a-photo-title { margin: 2px 0 8px; font-size: 1.2rem; font-weight: 800; color: #ffffff; letter-spacing: -0.01em; }
         .a-photo-text { margin: 0; font-size: 0.86rem; color: rgba(255,255,255,0.88); line-height: 1.55; }
+
+        .a-carousel-card { padding: 26px; }
+        .a-carousel { position: relative; }
+        .a-carousel-viewport { position: relative; width: 100%; height: 460px; border-radius: 18px; overflow: hidden; background: #0b0b0c; }
+        @media (max-width: 720px) {
+          .a-carousel-viewport { height: 360px; }
+          .a-carousel-slide .a-photo-overlay { padding: 20px 20px 24px; }
+        }
+        .a-carousel-track { display: flex; height: 100%; width: 100%; transition: transform .55s cubic-bezier(.4,0,.2,1); }
+        @media (prefers-reduced-motion: reduce) { .a-carousel-track { transition: none; } }
+        .a-carousel-slide { position: relative; flex: 0 0 100%; height: 100%; }
+        .a-carousel-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .a-carousel-slide .a-photo-overlay { padding: 30px 34px; }
+
+        /* Controls cluster in the top-right corner — kept clear of the bottom-anchored
+           caption overlay regardless of how long any individual slide's caption is. */
+        .a-carousel-controls { position: absolute; top: 14px; right: 14px; display: flex; gap: 8px; z-index: 3; }
+        .a-carousel-arrow, .a-carousel-playpause { width: 36px; height: 36px; border-radius: 50%; border: none;
+          background: rgba(0,0,0,0.45); color: #ffffff; font-size: 13px; display: flex; align-items: center; justify-content: center;
+          cursor: pointer; backdrop-filter: blur(6px); box-shadow: 0 4px 14px rgba(0,0,0,0.22); transition: background .2s ease, transform .2s ease; }
+        .a-carousel-arrow:hover, .a-carousel-playpause:hover { background: rgba(0,0,0,0.68); transform: scale(1.06); }
+        .a-carousel-arrow:focus-visible, .a-carousel-playpause:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+
+        .a-carousel-dots { display: flex; justify-content: center; gap: 2px; margin-top: 14px; }
+        .a-carousel-dot { width: 26px; height: 26px; border-radius: 50%; border: none; background: transparent; cursor: pointer; padding: 0;
+          display: flex; align-items: center; justify-content: center; }
+        .a-carousel-dot::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #d2d2d7; transition: background .2s ease, transform .2s ease; }
+        .a-carousel-dot.active::after { background: ${C.blue}; transform: scale(1.35); }
+        .a-carousel-dot:focus-visible { outline: 2px solid ${C.blue}; outline-offset: 2px; }
 
         .a-section-gap { height: 6px; }
         .a-bignum-row { display: flex; align-items: baseline; gap: 10px; margin-top: 4px; }
@@ -478,18 +603,22 @@ const InfographicDashboard = () => {
           </div>
         </div>
 
-        {/* PHOTO GRID */}
-        <div className="a-grid">
-          <PhotoCard span="s-8" src={`${baseUrl}assets/weaving.jpg`} eyebrow="The Weaving Effect" title="Space Thieves" color={C.blue2}
-            text="Tricycles rarely wait in line, wedging into the tight gaps between cars and taking up the safety buffer (headway) that following vehicles depend on — forcing abrupt braking and disrupting the whole road." />
-          <PhotoCard span="s-4" src={`${baseUrl}assets/shockwave.jpg`} eyebrow="The Ripple Effect" title="Stop-and-Go Chaos" color={C.green}
-            text="A single tricycle stopping to drop off a passenger can block a lane for roughly 10 seconds — enough to trigger a backward shockwave that piles up traffic for a kilometer." />
-          <PhotoCard span="s-4" src={`${baseUrl}assets/accident.jpg`} eyebrow="Safety Reality" title="The Friction Tax" color={C.orange}
-            text="Tricycles often operate in the blind spots of sedans on narrow lanes. Minor side-swipes are common and can trigger sudden gridlock with little warning." />
-          <PhotoCard span="s-4" src={`${baseUrl}assets/commute.jpg`} eyebrow="Origin-Destination Flow" title="The Commuter Arteries" color={C.blue2}
-            text="Analysis of 1,446 origin-destination zones shows where traffic pulses concentrate. Tricycles act as last-mile suburban feeders but add real friction to primary arteries at peak hours." />
-          <PhotoCard span="s-4" src={`${baseUrl}assets/chokepoint.jpg`} eyebrow="Structural Geometry" title="Physical Constraints" color={C.red}
-            text="Geospatial road-network mapping shows many Kampala routes are physically too narrow for safe mixed flow, making safe overtaking geometrically impossible in several corridors." />
+        {/* PHOTO CAROUSEL */}
+        <div className="a-card a-carousel-card s-12">
+          <SectionHeader eyebrow="Field Evidence" title="Traffic & Site Data Collection" color={C.teal}
+            sub="Photographic reference material from the study corridors, illustrating the behaviors and conditions discussed above." />
+          <PhotoCarousel photos={[
+            { src: `${baseUrl}assets/weaving.jpg`, eyebrow: 'The Weaving Effect', title: 'Space Thieves', color: C.blue2,
+              text: 'Tricycles rarely wait in line, wedging into the tight gaps between cars and taking up the safety buffer (headway) that following vehicles depend on — forcing abrupt braking and disrupting the whole road.' },
+            { src: `${baseUrl}assets/shockwave.jpg`, eyebrow: 'The Ripple Effect', title: 'Stop-and-Go Chaos', color: C.green,
+              text: 'A single tricycle stopping to drop off a passenger can block a lane for roughly 10 seconds — enough to trigger a backward shockwave that piles up traffic for a kilometer.' },
+            { src: `${baseUrl}assets/accident.jpg`, eyebrow: 'Safety Reality', title: 'The Friction Tax', color: C.orange,
+              text: 'Tricycles often operate in the blind spots of sedans on narrow lanes. Minor side-swipes are common and can trigger sudden gridlock with little warning.' },
+            { src: `${baseUrl}assets/commute.jpg`, eyebrow: 'Origin-Destination Flow', title: 'The Commuter Arteries', color: C.blue2,
+              text: 'Analysis of 1,446 origin-destination zones shows where traffic pulses concentrate. Tricycles act as last-mile suburban feeders but add real friction to primary arteries at peak hours.' },
+            { src: `${baseUrl}assets/chokepoint.jpg`, eyebrow: 'Structural Geometry', title: 'Physical Constraints', color: C.red,
+              text: 'Geospatial road-network mapping shows many Kampala routes are physically too narrow for safe mixed flow, making safe overtaking geometrically impossible in several corridors.' },
+          ]} />
         </div>
 
       </div>
