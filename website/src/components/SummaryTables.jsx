@@ -187,8 +187,11 @@ const SummaryTables = () => {
 
         .a-table-wrap { overflow-x: auto; margin-top: 6px; }
         .a-table { width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 0 6px; text-align: right; font-size: 0.82rem; }
-        .a-table thead th { color: ${C.faint}; font-weight: 700; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.02em; padding: 0 8px 8px; cursor: pointer; user-select: none; white-space: nowrap; }
-        .a-table thead th:hover { color: ${C.ink}; }
+        .a-table thead th { padding: 0 0 8px; white-space: nowrap; }
+        .a-th-btn { display: inline-flex; align-items: center; background: none; border: none; margin: 0; padding: 4px 8px; font: inherit; color: ${C.faint}; font-weight: 700; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer; user-select: none; border-radius: 6px; }
+        .a-table thead th[style*="text-align: left"] .a-th-btn { padding-left: 0; }
+        .a-th-btn:hover { color: ${C.ink}; }
+        .a-th-btn:focus-visible { outline: 2px solid ${C.blue}; outline-offset: 2px; color: ${C.ink}; }
         .a-table tbody tr { background: ${C.canvas}; }
         .a-table tbody td { padding: 14px 8px; font-weight: 600; font-feature-settings: "tnum" 1; color: ${C.ink}; white-space: nowrap; }
         .a-table tbody td:first-child { border-radius: 12px 0 0 12px; text-align: left; font-weight: 800; }
@@ -309,9 +312,16 @@ const SummaryTables = () => {
                 <thead>
                   <tr>
                     {COLUMNS.map(col => (
-                      <th key={col.key} onClick={() => handleSort(col.key)} style={col.type === 'text' ? { textAlign: 'left' } : undefined}>
-                        {col.label}
-                        {sortKey === col.key && <span className="a-sort-arrow">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                      <th
+                        key={col.key}
+                        scope="col"
+                        aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                        style={col.type === 'text' ? { textAlign: 'left' } : undefined}
+                      >
+                        <button type="button" className="a-th-btn" onClick={() => handleSort(col.key)}>
+                          {col.label}
+                          {sortKey === col.key && <span className="a-sort-arrow" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                        </button>
                       </th>
                     ))}
                   </tr>

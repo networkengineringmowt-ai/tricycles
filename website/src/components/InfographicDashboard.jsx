@@ -157,9 +157,11 @@ const InfographicDashboard = () => {
         .a-slider-head { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; }
         .a-slider-head span:first-child { color: ${C.sub}; font-weight: 500; }
         .a-slider-head span:last-child { color: ${C.ink}; font-weight: 700; font-feature-settings: "tnum" 1; }
-        .a-slider { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 4px; background: #e5e5ea; outline: none; }
+        .a-slider { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 4px; background: #e5e5ea; }
         .a-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.06); cursor: pointer; border: 6px solid ${C.blue}; }
         .a-slider::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #ffffff; border: 6px solid ${C.blue}; cursor: pointer; }
+        .a-slider:focus-visible { outline: 2px solid ${C.blue}; outline-offset: 3px; }
+        .a-slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 1px 4px rgba(0,0,0,0.25), 0 0 0 4px ${hex2rgba(C.blue, 0.25)}; }
 
         .a-dial-wrap { flex: 1; display: flex; align-items: center; justify-content: center; margin-top: 18px; }
         .a-dial { width: 178px; height: 178px; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center;
