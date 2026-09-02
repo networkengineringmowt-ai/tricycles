@@ -246,15 +246,15 @@ const InfographicDashboard = () => {
             <SectionHeader eyebrow="Interactive Simulator" title="Dynamic PCU Calculator" color={C.purple} />
             <div className="a-slider-row">
               <div className="a-slider-head"><span>Volume/Capacity (V/C)</span><span>{vcRatio.toFixed(2)}</span></div>
-              <input type="range" min="0.2" max="1.5" step="0.05" value={vcRatio} onChange={(e) => setVcRatio(parseFloat(e.target.value))} className="a-slider" />
+              <input type="range" min="0.2" max="1.5" step="0.05" value={vcRatio} onChange={(e) => setVcRatio(parseFloat(e.target.value))} className="a-slider" aria-label="Volume/Capacity (V/C)" />
             </div>
             <div className="a-slider-row">
               <div className="a-slider-head"><span>Tricycle Modal Share (%)</span><span>{modalShare}%</span></div>
-              <input type="range" min="2" max="30" step="1" value={modalShare} onChange={(e) => setModalShare(parseInt(e.target.value))} className="a-slider" />
+              <input type="range" min="2" max="30" step="1" value={modalShare} onChange={(e) => setModalShare(parseInt(e.target.value))} className="a-slider" aria-label="Tricycle Modal Share (%)" />
             </div>
             <div className="a-slider-row">
               <div className="a-slider-head"><span>Effective Road Width (m)</span><span>{roadWidth.toFixed(1)}m</span></div>
-              <input type="range" min="6.0" max="9.0" step="0.1" value={roadWidth} onChange={(e) => setRoadWidth(parseFloat(e.target.value))} className="a-slider" />
+              <input type="range" min="6.0" max="9.0" step="0.1" value={roadWidth} onChange={(e) => setRoadWidth(parseFloat(e.target.value))} className="a-slider" aria-label="Effective Road Width (m)" />
             </div>
             <div className="a-dial-wrap">
               <div className="a-dial">
