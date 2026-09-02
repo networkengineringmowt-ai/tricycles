@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, LayersControl, LayerGroup, ScaleControl, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import {
@@ -17,6 +17,41 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
+
+// Custom Leaflet control (no extra dependency) that toggles the browser's
+// native fullscreen mode on the map container -- mirrors Leaflet's own
+// L.Control.Zoom construction so it inherits the same leaflet-bar styling.
+const MapFullscreenControl = () => {
+  const map = useMap();
+  useEffect(() => {
+    const mapEl = map.getContainer();
+    const FullscreenControl = L.Control.extend({
+      onAdd: function () {
+        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+        const link = L.DomUtil.create('a', 'a-map-fullscreen-btn', container);
+        link.href = '#';
+        link.title = 'Toggle fullscreen map';
+        link.setAttribute('role', 'button');
+        link.setAttribute('aria-label', 'Toggle fullscreen map');
+        link.innerHTML = '<i class="fa-solid fa-expand" aria-hidden="true"></i>';
+        L.DomEvent.disableClickPropagation(container);
+        L.DomEvent.on(link, 'click', (e) => {
+          L.DomEvent.preventDefault(e);
+          if (!document.fullscreenElement) {
+            mapEl.requestFullscreen?.();
+          } else {
+            document.exitFullscreen?.();
+          }
+        });
+        return container;
+      },
+    });
+    const control = new FullscreenControl({ position: 'topleft' });
+    control.addTo(map);
+    return () => control.remove();
+  }, [map]);
+  return null;
+};
 
 const studySites = [
   { name: "Wandegeya Junction", coords: [0.3308, 32.5744], pcu: 1.35, adt: 103899, interaction: "Tricycle-Boda-boda (Motorcycle Taxi)-Non-Motorized Transport (NMT)" },
@@ -135,6 +170,8 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         .a-toggle-btn:hover:not(.active) { background: #f5f5f7; }
 
         .a-map-wrap { height: 400px; border-radius: 16px; overflow: hidden; margin-top: 16px; border: 1px solid rgba(0,0,0,0.06); }
+        .a-map-fullscreen-btn { display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .leaflet-container:fullscreen { width: 100%; height: 100%; }
 
         .a-site-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
         .a-site-chip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: ${C.canvas}; cursor: pointer; transition: background .15s ease; border: 1px solid transparent; }
@@ -191,22 +228,33 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
             <div className="a-map-wrap">
               <MapContainer bounds={[[0.2981, 32.5469], [0.3458, 32.5761]]} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
                 <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                  url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  maxZoom={19}
                 />
-                {geoData && <GeoJSON data={geoData} style={{ color: C.indigo, weight: 2, opacity: 0.55 }} />}
-                {studySites.map((site, idx) => (
-                  <Marker
-                    key={idx}
-                    position={site.coords}
-                    eventHandlers={{ click: () => setSelectedSite(site) }}
-                  >
-                    <Popup>
-                      <strong style={{ color: '#000' }}>{site.name}</strong><br />
-                      <span style={{ color: '#333' }}>PCU: {site.pcu}</span>
-                    </Popup>
-                  </Marker>
-                ))}
+                <ScaleControl position="bottomleft" metric imperial />
+                <MapFullscreenControl />
+                <LayersControl position="topright" collapsed={true}>
+                  <LayersControl.Overlay checked name="Road Network">
+                    {geoData ? <GeoJSON data={geoData} style={{ color: C.indigo, weight: 2, opacity: 0.55 }} /> : <LayerGroup />}
+                  </LayersControl.Overlay>
+                  <LayersControl.Overlay checked name="Study Site Markers">
+                    <LayerGroup>
+                      {studySites.map((site, idx) => (
+                        <Marker
+                          key={idx}
+                          position={site.coords}
+                          eventHandlers={{ click: () => setSelectedSite(site) }}
+                        >
+                          <Popup>
+                            <strong style={{ color: '#000' }}>{site.name}</strong><br />
+                            <span style={{ color: '#333' }}>PCU: {site.pcu}</span>
+                          </Popup>
+                        </Marker>
+                      ))}
+                    </LayerGroup>
+                  </LayersControl.Overlay>
+                </LayersControl>
               </MapContainer>
             </div>
           </div>
