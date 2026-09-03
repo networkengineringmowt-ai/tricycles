@@ -123,6 +123,26 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
   const busiest = rows.length ? rows.reduce((a, b) => (b.Total > a.Total ? b : a)) : null;
   const tricycleShare = stats ? stats.overallCompositionPct.Tricycles : 0;
 
+  // Column min/max (numeric columns only) for the table's conditional
+  // formatting -- each cell's background intensity reflects where its value
+  // falls in that column's observed range, so magnitude is visible at a
+  // glance without reading every number.
+  const colRange = useMemo(() => {
+    const ranges = {};
+    COLUMNS.forEach((c) => {
+      if (c.type === 'text') return;
+      const vals = rows.map((r) => r[c.key]);
+      ranges[c.key] = { min: Math.min(...vals), max: Math.max(...vals) };
+    });
+    return ranges;
+  }, [rows]);
+  const cellShade = (col, val) => {
+    const r = colRange[col];
+    if (!r || r.max === r.min) return 'transparent';
+    const frac = (val - r.min) / (r.max - r.min);
+    return hex2rgba(C.blue, 0.06 + frac * 0.22);
+  };
+
   return (
     <div className="apple-summary">
       <style>{`
@@ -169,8 +189,11 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
         .a-table tbody td:last-child { border-radius: 0 12px 12px 0; }
         .a-table tfoot td { padding: 14px 8px; font-weight: 800; color: ${C.ink}; border-top: 2px solid rgba(0,0,0,0.08); white-space: nowrap; }
         .a-table tfoot td:first-child { text-align: left; }
-        .a-sort-arrow { margin-left: 4px; font-size: 0.6rem; }
+        .a-sort-arrows { display: inline-flex; flex-direction: column; margin-left: 6px; line-height: 0.6; }
+        .a-sort-arrows span { font-size: 0.5rem; color: rgba(0,0,0,0.18); }
+        .a-sort-arrows span.active { color: ${C.blue}; }
         .a-tc-cell { color: ${C.green} !important; }
+        .a-table tbody td.a-shaded { border-radius: 8px; }
 
         .a-loading { padding: 40px; text-align: center; color: ${C.faint}; font-size: 0.9rem; }
 
@@ -205,11 +228,11 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
         <>
         {/* KPI STRIP */}
         <div className="a-kpi-grid">
-          <KpiCard icon="fa-database" color={C.blue} label="Sample Size" value={stats.sampleSizeIntervals.toLocaleString()} sub="15-min intervals, all sites" />
-          <KpiCard icon="fa-car-side" color={C.indigo} label="Network Peak-Hour Total" value={Math.round(totals.Total).toLocaleString()} sub="veh/hr, sum of all sites" />
-          <KpiCard icon="fa-route" color={C.green} label="Tricycle Share" value={`${tricycleShare.toFixed(1)}%`} sub={`${Math.round(totals.Tricycles).toLocaleString()} veh/hr network-wide`} />
+          <KpiCard icon="fa-database" color={C.blue} label="Sample Size" value={stats.sampleSizeIntervals.toLocaleString()} sub="15-min intervals, all 5 sites" />
+          <KpiCard icon="fa-car-side" color={C.indigo} label="Network Peak-Hour Total" value={Math.round(totals.Total).toLocaleString()} sub="Veh/hr, sum of all sites · n = 2,000 peak intervals" />
+          <KpiCard icon="fa-route" color={C.green} label="Tricycle Share" value={`${tricycleShare.toFixed(1)}%`} sub={`${Math.round(totals.Tricycles).toLocaleString()} veh/hr network-wide · n = 6,400`} />
           <KpiCard icon="fa-fire" color={C.orange} label="Busiest Junction" value={stats.shortName(busiest.junction)} sub={`${Math.round(busiest.Total).toLocaleString()} veh/hr total motorized`} />
-          <KpiCard icon="fa-gauge-high" color={C.pink} label="Network PCU (headway-ratio)" value={stats.pcuHeadwayOverall.toFixed(2)} sub="Mean across all 5 sites" />
+          <KpiCard icon="fa-gauge-high" color={C.pink} label="Network PCU (headway-ratio)" value={stats.pcuHeadwayOverall.toFixed(2)} sub="Mean across all 5 sites · n = 2,160 intervals" />
         </div>
 
         {/* STACKED BAR: composition by junction */}
@@ -219,7 +242,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
             <div className="a-chart-box">
               <Bar
                 data={{
-                  labels: rows.map(r => r.junction),
+                  labels: rows.map(r => stats.shortName(r.junction)),
                   datasets: [
                     { label: 'Passenger Cars', data: rows.map(r => Math.round(r.Cars)), backgroundColor: CLASS_COLORS.Cars },
                     { label: 'Boda Bodas', data: rows.map(r => Math.round(r.Boda_bodas)), backgroundColor: CLASS_COLORS.Boda_bodas },
@@ -230,8 +253,11 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
-                  scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { stacked: true, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
-                  plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
+                  scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 0 } }, y: { stacked: true, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: {
+                    legend: { labels: legendTheme.labels },
+                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => rows[items[0].dataIndex].junction } }
+                  }
                 }}
               />
             </div>
@@ -269,13 +295,16 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
             <div className="a-chart-box">
               <Bar
                 data={{
-                  labels: rows.map(r => r.junction),
+                  labels: rows.map(r => stats.shortName(r.junction)),
                   datasets: [{ label: 'Tricycle share (%)', data: rows.map(r => Number((r.Tricycles / r.Total * 100).toFixed(1))), backgroundColor: SITE_COLORS, borderRadius: 8 }]
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
-                  scales: { y: { grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 9.5 } } } },
-                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                  scales: { y: { ticks: { stepSize: 5, color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 0 } } },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => rows[items[0].dataIndex].junction } }
+                  }
                 }}
               />
             </div>
@@ -299,7 +328,10 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                       >
                         <button type="button" className="a-th-btn" onClick={() => handleSort(col.key)}>
                           {col.label}
-                          {sortKey === col.key && <span className="a-sort-arrow" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                          <span className="a-sort-arrows" aria-hidden="true">
+                            <span className={sortKey === col.key && sortDir === 'asc' ? 'active' : ''}>▲</span>
+                            <span className={sortKey === col.key && sortDir === 'desc' ? 'active' : ''}>▼</span>
+                          </span>
                         </button>
                       </th>
                     ))}
@@ -309,12 +341,12 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                   {sortedRows.map((row) => (
                     <tr key={row.junction}>
                       <td>{row.junction}</td>
-                      <td>{Math.round(row.Cars).toLocaleString()}</td>
-                      <td>{Math.round(row.Boda_bodas).toLocaleString()}</td>
-                      <td className="a-tc-cell">{Math.round(row.Tricycles).toLocaleString()}</td>
-                      <td>{Math.round(row.Minibuses).toLocaleString()}</td>
-                      <td>{Math.round(row.Heavy_Trucks).toLocaleString()}</td>
-                      <td style={{ color: C.blue }}>{Math.round(row.Total).toLocaleString()}</td>
+                      <td className="a-shaded" style={{ background: cellShade('Cars', row.Cars) }}>{Math.round(row.Cars).toLocaleString()}</td>
+                      <td className="a-shaded" style={{ background: cellShade('Boda_bodas', row.Boda_bodas) }}>{Math.round(row.Boda_bodas).toLocaleString()}</td>
+                      <td className="a-shaded a-tc-cell" style={{ background: cellShade('Tricycles', row.Tricycles) }}>{Math.round(row.Tricycles).toLocaleString()}</td>
+                      <td className="a-shaded" style={{ background: cellShade('Minibuses', row.Minibuses) }}>{Math.round(row.Minibuses).toLocaleString()}</td>
+                      <td className="a-shaded" style={{ background: cellShade('Heavy_Trucks', row.Heavy_Trucks) }}>{Math.round(row.Heavy_Trucks).toLocaleString()}</td>
+                      <td className="a-shaded" style={{ background: cellShade('Total', row.Total), color: C.blue }}>{Math.round(row.Total).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>

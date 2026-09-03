@@ -3,14 +3,15 @@ import { MapContainer, TileLayer, Marker, Popup, GeoJSON, LayersControl, LayerGr
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import {
-  Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend
+  Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Filler, Tooltip, Legend
 } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { Bar, Line } from 'react-chartjs-2';
 import PageControls, { downloadTextFile } from './PageControls';
 import MethodologyPanel from './MethodologyPanel';
+import SearchableSelect, { searchableSelectCss } from './SearchableSelect';
 import useTrafficStats from '../lib/useTrafficStats';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Filler, Tooltip, Legend);
 
 // Fix Leaflet default marker icon issue in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -159,6 +160,10 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
 
   const chipVolume = (site) => (weatherView === 'Dry' ? site.meanIntervalVolumeDry : site.meanIntervalVolumeWet);
 
+  // Hours are recorded 06:00-21:45 only (field20's sampling window) --
+  // sorted numerically so the line reads left-to-right across the day.
+  const hourlyLabels = stats ? Object.keys(stats.hourlyProfile).map(Number).sort((a, b) => a - b) : [];
+
   return (
     <div className="apple-overview">
       <style>{`
@@ -236,6 +241,7 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         .a-methodology-table td:first-child { border-radius: 10px 0 0 10px; font-weight: 700; }
         .a-methodology-table td:last-child { border-radius: 0 10px 10px 0; white-space: nowrap; }
         .a-methodology-key { font-family: ui-monospace, monospace; font-size: 0.72rem; }
+        ${searchableSelectCss}
       `}</style>
 
       <PageControls onBack={goBack} canGoBack={canGoBack} exportLabel="Export Site Data (CSV)" onExport={exportSites} />
@@ -256,11 +262,11 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         {/* KPI STRIP */}
         <div className="a-kpi-grid">
           <KpiCard icon="fa-location-dot" color={C.blue} label="Study Intersections" value="5" sub="Kampala City road network" />
-          <KpiCard icon="fa-car-side" color={C.indigo} label="Combined Daily Volume" value={Math.round(totalVolume).toLocaleString()} sub="veh/day, 20-day field sample, 2026" />
-          <KpiCard icon="fa-gauge-high" color={C.teal} label="Mean PCU (headway-ratio)" value={stats.pcuHeadwayOverall.toFixed(2)} sub={`Range ${Math.min(...studySites.map(s=>s.pcuHeadway)).toFixed(2)} – ${Math.max(...studySites.map(s=>s.pcuHeadway)).toFixed(2)}`} />
-          <KpiCard icon="fa-fire" color={C.orange} label="Busiest Site" value={stats.shortName(busiest.name)} sub={`${Math.round(busiest.meanDailyVolume).toLocaleString()} veh/day mean`} />
-          <KpiCard icon="fa-route" color={C.pink} label="Highest Tricycle Share" value={stats.shortName(highestTricycle.name)} sub={`${highestTricycle.tricycleSharePct.toFixed(1)}% of site volume`} />
-          <KpiCard icon="fa-cloud-showers-heavy" color={C.red} label="Wet-Weather Volume Impact" value={`${weatherDelta.toFixed(1)}%`} sub="vs Dry-weather intervals" />
+          <KpiCard icon="fa-car-side" color={C.indigo} label="Combined Daily Volume" value={Math.round(totalVolume).toLocaleString()} sub={`Veh/day · 20-day sample, n = ${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
+          <KpiCard icon="fa-gauge-high" color={C.teal} label="Mean PCU (headway-ratio)" value={stats.pcuHeadwayOverall.toFixed(2)} sub={`Range ${Math.min(...studySites.map(s=>s.pcuHeadway)).toFixed(2)}–${Math.max(...studySites.map(s=>s.pcuHeadway)).toFixed(2)} · n = 2,160 intervals`} />
+          <KpiCard icon="fa-fire" color={C.orange} label="Busiest Site" value={stats.shortName(busiest.name)} sub={`${Math.round(busiest.meanDailyVolume).toLocaleString()} veh/day mean · 20-day sample`} />
+          <KpiCard icon="fa-route" color={C.pink} label="Highest Tricycle Share" value={stats.shortName(highestTricycle.name)} sub={`${highestTricycle.tricycleSharePct.toFixed(1)}% of site volume · 20-day sample`} />
+          <KpiCard icon="fa-cloud-showers-heavy" color={C.red} label="Wet-Weather Volume Impact" value={`${weatherDelta.toFixed(1)}%`} sub={`vs Dry intervals · n = ${stats.weatherTest.nA.toLocaleString()} wet / ${stats.weatherTest.nB.toLocaleString()} dry`} />
         </div>
 
         {/* MAP + SITE DETAIL */}
@@ -306,7 +312,9 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                         >
                           <Popup>
                             <strong style={{ color: '#000' }}>{site.name}</strong><br />
-                            <span style={{ color: '#333' }}>{weatherView} mean volume: {Math.round(chipVolume(site)).toLocaleString()} veh/15-min</span>
+                            <span style={{ color: '#333' }}>
+                              {weatherView} mean volume: {chipVolume(site) != null ? `${Math.round(chipVolume(site)).toLocaleString()} veh/15-min` : 'No recorded intervals for this condition'}
+                            </span>
                           </Popup>
                         </Marker>
                       ))}
@@ -319,7 +327,15 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
 
           <div className="a-card s-4">
             <SectionHeader eyebrow="Site Detail" title={selectedSite ? selectedSite.name : 'Select a study site'} color={C.indigo} />
-            <div className="a-site-list">
+            <SearchableSelect
+              label="Jump to Study Site"
+              color={C.indigo}
+              placeholder="Search all 5 sites…"
+              value={selectedSite?.name || null}
+              onChange={(name) => setSelectedSite(studySites.find((s) => s.name === name) || null)}
+              options={studySites.map((s) => ({ value: s.name, label: s.name, meta: `PCU ${s.pcuHeadway.toFixed(2)}` }))}
+            />
+            <div className="a-site-list" style={{ marginTop: '12px' }}>
               {studySites.map((site, idx) => (
                 <button
                   type="button"
@@ -338,15 +354,15 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
             {selectedSite && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' }}>
                 <div className="a-stat-box">
-                  <div className="a-stat-label">Mean Daily Volume — 20-day field sample, 2026</div>
+                  <div className="a-stat-label">Mean Daily Volume — 20-day field sample, 2026 (n = 20 days)</div>
                   <div className="a-stat-value" style={{ color: C.blue }}>{Math.round(selectedSite.meanDailyVolume).toLocaleString()}</div>
                 </div>
                 <div className="a-stat-box">
-                  <div className="a-stat-label">PCU (headway-ratio method)</div>
+                  <div className="a-stat-label">PCU (headway-ratio method, n = 432 intervals)</div>
                   <div className="a-stat-value" style={{ color: C.indigo }}>{selectedSite.pcuHeadway.toFixed(3)}</div>
                 </div>
                 <div className="a-stat-box">
-                  <div className="a-stat-label">Tricycle Share of Volume</div>
+                  <div className="a-stat-label">Tricycle Share of Volume (n = 1,280 intervals)</div>
                   <div className="a-stat-value" style={{ color: C.green }}>{selectedSite.tricycleSharePct.toFixed(1)}%</div>
                 </div>
                 <div className="a-stat-box">
@@ -377,20 +393,55 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
             </div>
           </div>
           <div className="a-card s-6">
-            <SectionHeader eyebrow="Field Results" title="PCU by Study Site (headway-ratio)" color={C.indigo} sub="PCU = mean tricycle headway ÷ mean car headway, 7-day baseline dataset" />
+            <SectionHeader eyebrow="Field Results" title="PCU by Study Site (headway-ratio)" color={C.indigo} sub="PCU = mean tricycle headway ÷ mean car headway · 7-day baseline, n = 432 intervals/site" />
             <div className="a-chart-box">
               <Bar
                 data={{
-                  labels: studySites.map(s => s.name),
+                  labels: studySites.map(s => stats.shortName(s.name)),
                   datasets: [{ label: 'PCU (headway-ratio)', data: studySites.map(s => Number(s.pcuHeadway.toFixed(3))), backgroundColor: SITE_COLORS, borderRadius: 8 }]
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
-                  scales: { y: { min: 1.2, max: 1.4, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 9.5 } } } },
+                  scales: {
+                    y: { min: 1.2, max: 1.4, ticks: { stepSize: 0.05, color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid } },
+                    x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10 }, autoSkip: false, maxRotation: 0 } }
+                  },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => studySites[items[0].dataIndex].name } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* HOURLY PROFILE — new time-of-day view, computed live but not shown anywhere else on the site */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Temporal Pattern" title="Mean Volume by Hour of Day" color={C.teal} sub={`All 5 sites combined, 06:00–21:45 sampling window · 20-day sample, n = ${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
+            <div className="a-chart-box">
+              <Line
+                data={{
+                  labels: hourlyLabels.map((h) => `${String(h).padStart(2, '0')}:00`),
+                  datasets: [{
+                    label: 'Mean vehicles / 15-min interval',
+                    data: hourlyLabels.map((h) => Math.round(stats.hourlyProfile[h])),
+                    borderColor: C.teal, backgroundColor: hex2rgba(C.teal, 0.16), borderWidth: 3, fill: true, tension: 0.35,
+                    pointRadius: 3, pointBackgroundColor: C.teal, pointBorderColor: '#fff', pointBorderWidth: 1.5,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    y: { title: { display: true, text: 'Veh / 15-min interval (mean, all sites)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
+                    x: { title: { display: true, text: 'Hour of day', color: chartSub, font: { size: 10.5 } }, grid: { display: false }, ticks: { color: chartSub, font: { size: 10 }, maxRotation: 0 } }
+                  },
                   plugins: { legend: { display: false }, tooltip: tooltipTheme }
                 }}
               />
             </div>
+            <p className="a-footnote">Peaks align with the 07-09h and 16-19h peak-period definition used throughout this study.</p>
           </div>
         </div>
 

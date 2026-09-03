@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,
+  Chart as ChartJS, CategoryScale, LinearScale, RadialLinearScale, PointElement, LineElement,
   BarElement, ArcElement, Filler, Tooltip, Legend
 } from 'chart.js';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import { Line, Bar, Doughnut, Scatter, Radar } from 'react-chartjs-2';
 import PageControls, { downloadTextFile } from './PageControls';
 import MethodologyPanel from './MethodologyPanel';
+import SearchableSelect, { searchableSelectCss } from './SearchableSelect';
 import useTrafficStats from '../lib/useTrafficStats';
 
 ChartJS.register(
-  CategoryScale, LinearScale, PointElement, LineElement,
+  CategoryScale, LinearScale, RadialLinearScale, PointElement, LineElement,
   BarElement, ArcElement, Filler, Tooltip, Legend
 );
 
@@ -252,6 +253,11 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
     return Object.entries(stats.incidentTotalsByType).sort((a, b) => b[1] - a[1]).map(([type]) => type);
   }, [stats]);
 
+  // Incident-type filter for the Safety chart -- default shows every type
+  // (no selective reporting); the searchable dropdown narrows to one.
+  const [incidentFocus, setIncidentFocus] = useState(null);
+  const visibleIncidentTypes = incidentFocus ? incidentTypes.filter((t) => t === incidentFocus) : incidentTypes;
+
   return (
     <div className="apple-dash">
       <style>{`
@@ -374,6 +380,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         .a-methodology-table td:first-child { border-radius: 10px 0 0 10px; font-weight: 700; }
         .a-methodology-table td:last-child { border-radius: 0 10px 10px 0; white-space: nowrap; }
         .a-methodology-key { font-family: ui-monospace, monospace; font-size: 0.72rem; }
+        ${searchableSelectCss}
       `}</style>
 
       <PageControls onBack={goBack} canGoBack={canGoBack} exportLabel="Export Volume Data (CSV)" onExport={exportVolumeTable} />
@@ -393,13 +400,13 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         <>
         {/* KPI STRIP */}
         <div className="a-kpi-grid">
-          <KpiCard icon="fa-car-side" color={C.blue} label="Total Vehicles Recorded" value={stats.totalVehiclesRecorded.toLocaleString()} sub="Sum of all vehicle classes, 20-day sample" />
+          <KpiCard icon="fa-car-side" color={C.blue} label="Total Vehicles Recorded" value={stats.totalVehiclesRecorded.toLocaleString()} sub={`All 5 classes · n = ${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
           <KpiCard icon="fa-database" color={C.indigo} label="Sample Size" value={stats.sampleSizeIntervals.toLocaleString()} sub="15-min intervals, 20-day field study" />
-          <KpiCard icon="fa-gauge-high" color={C.orange} label="Peak vs Off-Peak Ratio" value={`${stats.peakOffpeakTest.ratio.toFixed(2)}×`} sub={`${Math.round(stats.peakOffpeakTest.meanA)} vs ${Math.round(stats.peakOffpeakTest.meanB)} veh/15-min`} />
-          <KpiCard icon="fa-cloud-showers-heavy" color={C.red} label="Wet-Weather Volume Impact" value={`${stats.weatherTest.pctChange.toFixed(1)}%`} sub={pFmt(stats.weatherTest.p)} />
-          <KpiCard icon="fa-route" color={C.teal} label="Network Tricycle Share" value={`${stats.overallCompositionPct.Tricycles.toFixed(1)}%`} sub="Of all recorded volume" />
-          <KpiCard icon="fa-sack-dollar" color={C.purple} label="Economic Delay Cost" value="$1.5M" sub="External estimate (cited), Greater Kampala" />
-          <KpiCard icon="fa-chart-line" color={C.green} label="Tricycles ↔ V/C Correlation" value={`r = ${stats.volumeVcCorrelation.r.toFixed(2)}`} sub={`${stats.volumeVcCorrelation.r2Pct.toFixed(0)}% of variance · 7-day baseline`} />
+          <KpiCard icon="fa-gauge-high" color={C.orange} label="Peak vs Off-Peak Ratio" value={`${stats.peakOffpeakTest.ratio.toFixed(2)}×`} sub={`${Math.round(stats.peakOffpeakTest.meanA)} vs ${Math.round(stats.peakOffpeakTest.meanB)} veh/15-min · n = ${stats.peakOffpeakTest.nA.toLocaleString()}/${stats.peakOffpeakTest.nB.toLocaleString()}`} />
+          <KpiCard icon="fa-cloud-showers-heavy" color={C.red} label="Wet-Weather Volume Impact" value={`${stats.weatherTest.pctChange.toFixed(1)}%`} sub={`${pFmt(stats.weatherTest.p)} · n = ${stats.weatherTest.nA.toLocaleString()}/${stats.weatherTest.nB.toLocaleString()}`} />
+          <KpiCard icon="fa-route" color={C.teal} label="Network Tricycle Share" value={`${stats.overallCompositionPct.Tricycles.toFixed(1)}%`} sub={`Of all recorded volume · n = ${stats.sampleSizeIntervals.toLocaleString()}`} />
+          <KpiCard icon="fa-sack-dollar" color={C.purple} label="Economic Delay Cost" value="$1.5M" sub="External estimate (cited), Greater Kampala — not derived from this study's sample" />
+          <KpiCard icon="fa-chart-line" color={C.green} label="Tricycles ↔ V/C Correlation" value={`r = ${stats.volumeVcCorrelation.r.toFixed(2)}`} sub={`${stats.volumeVcCorrelation.r2Pct.toFixed(0)}% of variance · n = ${stats.volumeVcCorrelation.n.toLocaleString()}`} />
         </div>
 
         {/* ROW: Fleet composition + Interactive simulator + Delay by profile */}
@@ -479,8 +486,8 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
 
         {/* ROW: Static PCU by intersection + Behavioral themes */}
         <div className="a-grid">
-          <div className="a-card s-7">
-            <SectionHeader eyebrow="Field Results · headway-ratio method" title="PCU by Intersection" color={C.indigo} sub="PCU = mean tricycle headway ÷ mean car headway, per intersection." />
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Field Results · headway-ratio method" title="PCU by Intersection" color={C.indigo} sub="PCU = mean tricycle headway ÷ mean car headway, per intersection · n = 432 intervals/site" />
             <div className="a-chart-box">
               <Bar
                 data={{
@@ -491,30 +498,76 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
-                  scales: { y: { min: 1.2, max: 1.4, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } } },
-                  plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
+                  scales: { y: { min: 1.2, max: 1.4, ticks: { stepSize: 0.05, color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 0 } } },
+                  plugins: {
+                    legend: { labels: legendTheme.labels },
+                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => Object.keys(stats.pcuByIntersection)[items[0].dataIndex] } }
+                  }
                 }}
               />
             </div>
             <p className="a-footnote">All five sites cluster tightly around PCU {stats.pcuHeadwayOverall.toFixed(2)} — a tricycle consistently occupies about 1.3× the road time-space of a passenger car, with little site-to-site variation in this dataset.</p>
           </div>
 
-          <div className="a-card s-5">
-            <SectionHeader eyebrow="Section 4.7 · Thematic Interviews (n = 50)" title="Driver-Reported Behavior" color={C.pink} />
-            <div className="a-theme-row">
-              <div>
-                <div className="a-theme-head"><span className="a-theme-name">Pothole Swerving</span><span className="a-theme-pct" style={{ color: C.red }}>92%</span></div>
-                <div className="a-cmp-track"><div className="a-cmp-fill" style={{ width: '92%', background: C.red }}></div></div>
-                <p className="a-theme-quote">"If I hit the trench at Bwaise, the cargo flips. I must swerve into the fast lane, even if a car is there."</p>
-              </div>
-              <div>
-                <div className="a-theme-head"><span className="a-theme-name">Police Harassment & Junction Avoidance</span><span className="a-theme-pct" style={{ color: C.orange }}>78%</span></div>
-                <div className="a-cmp-track"><div className="a-cmp-fill" style={{ width: '78%', background: C.orange }}></div></div>
-              </div>
-              <div>
-                <div className="a-theme-head"><span className="a-theme-name">Fatigue-Induced Lane Straddling</span><span className="a-theme-pct" style={{ color: C.yellow }}>65%</span></div>
-                <div className="a-cmp-track"><div className="a-cmp-fill" style={{ width: '65%', background: '#d9a800' }}></div></div>
-              </div>
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Section 4.7 · Thematic Interviews (n = 50 drivers)" title="Driver-Reported Behavior" color={C.pink} />
+            <div className="a-chart-box" style={{ minHeight: '260px' }}>
+              <Radar
+                data={{
+                  labels: [['Pothole', 'Swerving'], ['Police Harassment &', 'Junction Avoidance'], ['Fatigue-Induced', 'Lane Straddling']],
+                  datasets: [{
+                    label: '% of drivers reporting behavior (n = 50)',
+                    data: [92, 78, 65],
+                    backgroundColor: hex2rgba(C.pink, 0.18), borderColor: C.pink, borderWidth: 2,
+                    pointBackgroundColor: C.pink, pointBorderColor: '#fff', pointRadius: 4,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  layout: { padding: 18 },
+                  scales: {
+                    r: {
+                      min: 0, max: 100, ticks: { stepSize: 20, showLabelBackdrop: false, color: chartSub, font: { size: 9 } },
+                      grid: { color: chartGrid }, angleLines: { color: chartGrid },
+                      pointLabels: { color: chartText, font: { size: 10, weight: '600' }, padding: 10 },
+                    }
+                  },
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.parsed.r}% of drivers` } } }
+                }}
+              />
+            </div>
+            <div className="a-theme-row" style={{ marginTop: '4px' }}>
+              <p className="a-theme-quote">"If I hit the trench at Bwaise, the cargo flips. I must swerve into the fast lane, even if a car is there."</p>
+            </div>
+          </div>
+        </div>
+
+        {/* SCATTER: full per-interval correlation, not just the summary r */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Pearson Correlation · 7-day baseline dataset" title="Tricycle Volume vs. V/C Ratio" color={C.green}
+              sub={`Every recorded interval plotted individually · r = ${stats.volumeVcCorrelation.r.toFixed(2)}, ${pFmt(stats.volumeVcCorrelation.p)}, n = ${stats.volumeVcCorrelation.n.toLocaleString()}`} />
+            <div className="a-chart-box" style={{ minHeight: '320px' }}>
+              <Scatter
+                data={{
+                  datasets: [{
+                    label: 'Interval (Tricycles vs V/C)',
+                    data: stats.volumeVcPairs,
+                    backgroundColor: hex2rgba(C.green, 0.45), pointRadius: 3, pointHoverRadius: 5,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'Tricycles / 15-min interval', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } },
+                    y: { title: { display: true, text: 'V/C Ratio', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { stepSize: 0.2, color: chartSub, font: { size: 10 } } }
+                  },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.parsed.x} tricycles · V/C ${ctx.parsed.y.toFixed(2)}` } }
+                  }
+                }}
+              />
             </div>
           </div>
         </div>
@@ -537,7 +590,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
               leftValue={stats.byIntersection[stats.highestTricycleShareIntersection].tricycleSharePct.toFixed(1)}
               rightLabel={stats.shortName(Object.entries(stats.byIntersection).sort((a,b)=>a[1].tricycleSharePct-b[1].tricycleSharePct)[0][0])}
               rightValue={Object.entries(stats.byIntersection).sort((a,b)=>a[1].tricycleSharePct-b[1].tricycleSharePct)[0][1].tricycleSharePct.toFixed(1)}
-              footnote="% of site volume that is tricycles"
+              footnote="% of site volume that is tricycles · n = 1,280 intervals/site"
             />
           </div>
         </div>
@@ -564,24 +617,37 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         {/* ROW: Safety + Descriptive stats by intersection */}
         <div className="a-grid">
           <div className="a-card s-6">
-            <SectionHeader eyebrow={`Safety Analysis (N = ${stats.incidentN} incidents)`} title="Incident Severity by Type" color={C.red} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+              <SectionHeader eyebrow={`Safety Analysis (N = ${stats.incidentN.toLocaleString()} incidents)`} title="Incident Severity by Type" color={C.red} />
+              <div style={{ width: '220px', flexShrink: 0 }}>
+                <SearchableSelect
+                  label="Filter Incident Type"
+                  color={C.red}
+                  placeholder="All 10 types shown"
+                  value={incidentFocus}
+                  onChange={setIncidentFocus}
+                  options={[{ value: null, label: `All ${incidentTypes.length} types`, meta: `n = ${stats.incidentN}` }, ...incidentTypes.map((t) => ({ value: t, label: t, meta: `n = ${stats.incidentTotalsByType[t]}` }))]}
+                />
+              </div>
+            </div>
             <div className="a-chart-box">
               <Bar
                 data={{
-                  labels: incidentTypes,
+                  labels: visibleIncidentTypes,
                   datasets: [
-                    { label: 'Fatal', data: incidentTypes.map(t => stats.incidentSeverityByType[t]?.Fatal || 0), backgroundColor: C.red },
-                    { label: 'Serious', data: incidentTypes.map(t => stats.incidentSeverityByType[t]?.Serious || 0), backgroundColor: C.orange },
-                    { label: 'Minor', data: incidentTypes.map(t => stats.incidentSeverityByType[t]?.Minor || 0), backgroundColor: C.green }
+                    { label: 'Fatal', data: visibleIncidentTypes.map(t => stats.incidentSeverityByType[t]?.Fatal || 0), backgroundColor: C.red },
+                    { label: 'Serious', data: visibleIncidentTypes.map(t => stats.incidentSeverityByType[t]?.Serious || 0), backgroundColor: C.orange },
+                    { label: 'Minor', data: visibleIncidentTypes.map(t => stats.incidentSeverityByType[t]?.Minor || 0), backgroundColor: C.green }
                   ]
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
-                  scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 9 } } }, y: { stacked: true, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 9 }, autoSkip: false, maxRotation: 28, minRotation: incidentFocus ? 0 : 28 } }, y: { stacked: true, ticks: { stepSize: 1, color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid } } },
                   plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
                 }}
               />
             </div>
+            <p className="a-footnote">{incidentFocus ? `Showing ${incidentFocus} only (n = ${stats.incidentTotalsByType[incidentFocus]}).` : `All ${incidentTypes.length} recorded incident types shown — no types excluded.`}</p>
           </div>
 
           <div className="a-card s-6">
@@ -594,10 +660,16 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
-                  scales: { y: { grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  scales: { y: { beginAtZero: true, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 0 } } },
                   plugins: {
                     legend: { display: false },
-                    tooltip: { ...tooltipTheme, callbacks: { afterLabel: (ctx) => `σ = ${Object.values(stats.tricycleByIntersection)[ctx.dataIndex].std.toFixed(2)}` } }
+                    tooltip: {
+                      ...tooltipTheme,
+                      callbacks: {
+                        title: (items) => Object.keys(stats.tricycleByIntersection)[items[0].dataIndex],
+                        afterLabel: (ctx) => `σ = ${Object.values(stats.tricycleByIntersection)[ctx.dataIndex].std.toFixed(2)} · n = ${Object.values(stats.tricycleByIntersection)[ctx.dataIndex].n}`
+                      }
+                    }
                   }
                 }}
               />
