@@ -233,6 +233,9 @@ export function computeTrafficStats(field20, baseline7, incidents) {
 
   // --- V/C <-> tricycle-volume correlation (baseline7) ---
   const volumeVcCorrelation = pearson(baseline7.map((r) => r.Tricycles), baseline7.map((r) => r.VC));
+  // raw paired points backing the correlation above, for a scatter chart --
+  // every one of the 2,160 recorded intervals, not a summarized subset.
+  const volumeVcPairs = baseline7.map((r) => ({ x: r.Tricycles, y: r.VC }));
 
   // --- day vs night tricycle volume (baseline7) ---
   const dayRows = baseline7.filter((r) => r.Session_Type === 'Day').map((r) => r.Tricycles);
@@ -262,7 +265,7 @@ export function computeTrafficStats(field20, baseline7, incidents) {
     byIntersection, peakHourlyByIntersection, busiestIntersection, highestTricycleShareIntersection,
     overallCompositionPct, totalVehiclesRecorded, sampleSizeIntervals, hourlyProfile,
     weatherTest, peakOffpeakTest, tricycleAnova, tricycleByIntersection,
-    pcuByIntersection, pcuHeadwayOverall, vcStats, volumeVcCorrelation, dayNightTest,
+    pcuByIntersection, pcuHeadwayOverall, vcStats, volumeVcCorrelation, volumeVcPairs, dayNightTest,
     headwayTest, poissonNetwork, poissonByIntersection,
     incidentSeverityByType, incidentTotalsByType, incidentN: incidents.length,
     shortName,
