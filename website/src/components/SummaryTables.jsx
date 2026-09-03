@@ -4,59 +4,29 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import PageControls from './PageControls';
+import MethodologyPanel from './MethodologyPanel';
+import useTrafficStats from '../lib/useTrafficStats';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
-const trafficData = [
-  {
-    junction: "Wandegeya Junction",
-    mc: 4520, tc: 1245, pc: 2130, ps: 610, lgv: 180, hgv: 95, nmt: 850
-  },
-  {
-    junction: "Kibuye Roundabout",
-    mc: 3850, tc: 1105, pc: 1980, ps: 720, lgv: 240, hgv: 130, nmt: 610
-  },
-  {
-    junction: "Bakuli Intersection",
-    mc: 2940, tc: 980, pc: 1450, ps: 890, lgv: 150, hgv: 85, nmt: 540
-  },
-  {
-    junction: "Bwaise Junction",
-    mc: 2100, tc: 860, pc: 920, ps: 450, lgv: 110, hgv: 160, nmt: 420
-  },
-  {
-    junction: "Natete Junction",
-    mc: 3410, tc: 1050, pc: 1260, ps: 1150, lgv: 190, hgv: 110, nmt: 710
-  }
-];
-
 const COLUMNS = [
   { key: 'junction', label: 'Study Site', type: 'text' },
-  { key: 'mc', label: 'Motorcycles (MC)' },
-  { key: 'tc', label: 'Tricycles (TC)' },
-  { key: 'pc', label: 'Passenger Cars (PC)' },
-  { key: 'ps', label: 'Minibuses (PSV)' },
-  { key: 'lgv', label: 'Light Goods Vehicles (LGV)' },
-  { key: 'hgv', label: 'Heavy Goods Vehicles (HGV)' },
-  { key: 'total', label: 'Total Motorized (Veh/Hr)' },
+  { key: 'Cars', label: 'Passenger Cars' },
+  { key: 'Boda_bodas', label: 'Boda Bodas' },
+  { key: 'Tricycles', label: 'Tricycles' },
+  { key: 'Minibuses', label: 'Minibuses' },
+  { key: 'Heavy_Trucks', label: 'Heavy Trucks' },
+  { key: 'Total', label: 'Total Motorized (Veh/Hr)' },
 ];
-
-function withTotal(row) {
-  return { ...row, total: row.mc + row.tc + row.pc + row.ps + row.lgv + row.hgv };
-}
 
 function downloadCsv(rows) {
   const header = COLUMNS.map(c => c.label).join(',');
   const lines = rows.map(r => COLUMNS.map(c => {
     const v = r[c.key];
-    return c.type === 'text' ? `"${v}"` : v;
+    return c.type === 'text' ? `"${v}"` : Math.round(v);
   }).join(','));
-  const totals = ['Network Total', 'mc', 'tc', 'pc', 'ps', 'lgv', 'hgv', 'total']
-    .map((k, i) => {
-      if (i === 0) return '"Network Total"';
-      return rows.reduce((acc, r) => acc + r[k], 0);
-    }).join(',');
-  const csv = [header, ...lines, totals].join('\n');
+  const totalsRow = ['Network Total', ...COLUMNS.slice(1).map(c => Math.round(rows.reduce((acc, r) => acc + r[c.key], 0)))];
+  const csv = [header, ...lines, totalsRow.map((v,i)=> i===0?`"${v}"`:v).join(',')].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -90,7 +60,7 @@ const tooltipTheme = {
   padding: 10, cornerRadius: 10, titleFont: { weight: '600' }, displayColors: true, boxPadding: 4,
 };
 const legendTheme = { labels: { color: chartSub, boxWidth: 10, boxHeight: 10, padding: 14, font: { size: 11, weight: '600' }, usePointStyle: true, pointStyle: 'circle' } };
-const CLASS_COLORS = { mc: C.indigo, tc: C.green, pc: C.blue, ps: C.teal, lgv: C.orange, hgv: C.red };
+const CLASS_COLORS = { Cars: C.blue, Boda_bodas: C.indigo, Tricycles: C.green, Minibuses: C.teal, Heavy_Trucks: C.red };
 const SITE_COLORS = [C.blue, C.indigo, C.teal, C.orange, C.purple];
 
 const SectionHeader = ({ eyebrow, title, color = C.blue, sub }) => (
@@ -116,8 +86,12 @@ const KpiCard = ({ icon, color, label, value, sub }) => (
 const SummaryTables = ({ goBack, canGoBack } = {}) => {
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('desc');
+  const stats = useTrafficStats();
 
-  const rows = useMemo(() => trafficData.map(withTotal), []);
+  const rows = useMemo(() => {
+    if (!stats) return [];
+    return Object.entries(stats.peakHourlyByIntersection).map(([junction, v]) => ({ junction, ...v }));
+  }, [stats]);
 
   const sortedRows = useMemo(() => {
     if (!sortKey) return rows;
@@ -141,14 +115,13 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
     }
   };
 
-  const totals = COLUMNS.slice(1).reduce((acc, c) => {
+  const totals = useMemo(() => COLUMNS.slice(1).reduce((acc, c) => {
     acc[c.key] = rows.reduce((sum, r) => sum + r[c.key], 0);
     return acc;
-  }, {});
-  const totalNmt = trafficData.reduce((s, r) => s + r.nmt, 0);
-  const tricycleShare = (totals.tc / totals.total) * 100;
-  const busiest = rows.reduce((a, b) => (b.total > a.total ? b : a));
-  const busiestNmt = trafficData.reduce((a, b) => (b.nmt > a.nmt ? b : a));
+  }, {}), [rows]);
+
+  const busiest = rows.length ? rows.reduce((a, b) => (b.Total > a.Total ? b : a)) : null;
+  const tricycleShare = stats ? stats.overallCompositionPct.Tricycles : 0;
 
   return (
     <div className="apple-summary">
@@ -183,9 +156,8 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
 
         .a-chart-box { flex: 1; min-height: 300px; position: relative; width: 100%; margin-top: 10px; }
 
-
         .a-table-wrap { overflow-x: auto; margin-top: 6px; }
-        .a-table { width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 0 6px; text-align: right; font-size: 0.82rem; }
+        .a-table { width: 100%; min-width: 820px; border-collapse: separate; border-spacing: 0 6px; text-align: right; font-size: 0.82rem; }
         .a-table thead th { padding: 0 0 8px; white-space: nowrap; }
         .a-th-btn { display: inline-flex; align-items: center; background: none; border: none; margin: 0; padding: 4px 8px; font: inherit; color: ${C.faint}; font-weight: 700; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer; user-select: none; border-radius: 6px; }
         .a-table thead th[style*="text-align: left"] .a-th-btn { padding-left: 0; }
@@ -200,11 +172,20 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
         .a-sort-arrow { margin-left: 4px; font-size: 0.6rem; }
         .a-tc-cell { color: ${C.green} !important; }
 
-        .a-nmt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 6px; }
-        .a-nmt-card { background: ${C.canvas}; border-radius: 14px; padding: 16px; border-top: 3px solid ${C.pink}; }
-        .a-nmt-name { font-size: 0.72rem; font-weight: 700; color: ${C.faint}; text-transform: uppercase; min-height: 28px; }
-        .a-nmt-value { font-size: 1.5rem; font-weight: 800; color: ${C.ink}; margin-top: 6px; }
-        .a-nmt-unit { font-size: 0.66rem; color: ${C.faint}; font-weight: 600; }
+        .a-loading { padding: 40px; text-align: center; color: ${C.faint}; font-size: 0.9rem; }
+
+        .a-methodology { margin-top: 4px; }
+        .a-methodology-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; font: inherit; font-weight: 700; font-size: 0.92rem; color: ${C.ink}; cursor: pointer; padding: 0; }
+        .a-methodology-body { margin-top: 16px; }
+        .a-methodology-sources { display: flex; flex-direction: column; gap: 6px; }
+        .a-methodology-source { font-size: 0.78rem; color: ${C.sub}; line-height: 1.5; }
+        .a-methodology-source-tag { display: inline-block; font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.blue}; background: ${hex2rgba(C.blue, 0.1)}; padding: 2px 7px; border-radius: 6px; margin-right: 6px; }
+        .a-methodology-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; font-size: 0.78rem; }
+        .a-methodology-table th { text-align: left; color: ${C.faint}; font-weight: 700; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.02em; padding-bottom: 6px; }
+        .a-methodology-table td { background: ${C.canvas}; padding: 10px 10px; vertical-align: top; }
+        .a-methodology-table td:first-child { border-radius: 10px 0 0 10px; font-weight: 700; }
+        .a-methodology-table td:last-child { border-radius: 0 10px 10px 0; white-space: nowrap; }
+        .a-methodology-key { font-family: ui-monospace, monospace; font-size: 0.72rem; }
       `}</style>
 
       <PageControls onBack={goBack} canGoBack={canGoBack} exportLabel="Export Table (CSV)" onExport={() => downloadCsv(rows)} />
@@ -215,17 +196,20 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
         <div className="a-hero">
           <p className="a-hero-eyebrow">Field Data Aggregation</p>
           <h1 className="a-hero-title">Primary Traffic Volumes</h1>
-          <p className="a-hero-sub">Peak-hour categorized vehicle counts (veh/hr) across five Kampala study sites — 6,400 fifteen-minute intervals sampled in total.</p>
+          <p className="a-hero-sub">Peak-hour categorized vehicle counts (veh/hr) across five Kampala study sites — computed live from the 6,400 fifteen-minute intervals sampled in the 20-day field study.</p>
         </div>
 
+        {!stats ? (
+          <div className="a-loading"><i className="fa-solid fa-circle-notch fa-spin" style={{ marginRight: '8px' }}></i>Computing live figures from field data…</div>
+        ) : (
+        <>
         {/* KPI STRIP */}
         <div className="a-kpi-grid">
-          <KpiCard icon="fa-database" color={C.blue} label="Sample Size" value="6,400" sub="15-min intervals, all sites" />
-          <KpiCard icon="fa-car-side" color={C.indigo} label="Network Total Motorized" value={totals.total.toLocaleString()} sub="veh/hr, sum of all sites" />
-          <KpiCard icon="fa-route" color={C.green} label="Tricycle Share" value={`${tricycleShare.toFixed(1)}%`} sub={`${totals.tc.toLocaleString()} veh/hr network-wide`} />
-          <KpiCard icon="fa-fire" color={C.orange} label="Busiest Junction" value={busiest.junction.replace(' Junction', '').replace(' Roundabout', '').replace(' Intersection', '')} sub={`${busiest.total.toLocaleString()} veh/hr total motorized`} />
-          <KpiCard icon="fa-person-walking" color={C.pink} label="Total NMT Flow" value={totalNmt.toLocaleString()} sub="Pedestrians + cyclists, veh/hr" />
-          <KpiCard icon="fa-triangle-exclamation" color={C.red} label="Highest NMT Site" value={busiestNmt.junction.replace(' Junction', '').replace(' Roundabout', '').replace(' Intersection', '')} sub={`${busiestNmt.nmt.toLocaleString()}/hr non-motorized`} />
+          <KpiCard icon="fa-database" color={C.blue} label="Sample Size" value={stats.sampleSizeIntervals.toLocaleString()} sub="15-min intervals, all sites" />
+          <KpiCard icon="fa-car-side" color={C.indigo} label="Network Peak-Hour Total" value={Math.round(totals.Total).toLocaleString()} sub="veh/hr, sum of all sites" />
+          <KpiCard icon="fa-route" color={C.green} label="Tricycle Share" value={`${tricycleShare.toFixed(1)}%`} sub={`${Math.round(totals.Tricycles).toLocaleString()} veh/hr network-wide`} />
+          <KpiCard icon="fa-fire" color={C.orange} label="Busiest Junction" value={stats.shortName(busiest.junction)} sub={`${Math.round(busiest.Total).toLocaleString()} veh/hr total motorized`} />
+          <KpiCard icon="fa-gauge-high" color={C.pink} label="Network PCU (headway-ratio)" value={stats.pcuHeadwayOverall.toFixed(2)} sub="Mean across all 5 sites" />
         </div>
 
         {/* STACKED BAR: composition by junction */}
@@ -235,14 +219,13 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
             <div className="a-chart-box">
               <Bar
                 data={{
-                  labels: trafficData.map(r => r.junction),
+                  labels: rows.map(r => r.junction),
                   datasets: [
-                    { label: 'Motorcycles (MC)', data: trafficData.map(r => r.mc), backgroundColor: CLASS_COLORS.mc },
-                    { label: 'Tricycles (TC)', data: trafficData.map(r => r.tc), backgroundColor: CLASS_COLORS.tc },
-                    { label: 'Passenger Cars (PC)', data: trafficData.map(r => r.pc), backgroundColor: CLASS_COLORS.pc },
-                    { label: 'Minibuses (PSV)', data: trafficData.map(r => r.ps), backgroundColor: CLASS_COLORS.ps },
-                    { label: 'Light Goods Vehicles (LGV)', data: trafficData.map(r => r.lgv), backgroundColor: CLASS_COLORS.lgv },
-                    { label: 'Heavy Goods Vehicles (HGV)', data: trafficData.map(r => r.hgv), backgroundColor: CLASS_COLORS.hgv },
+                    { label: 'Passenger Cars', data: rows.map(r => Math.round(r.Cars)), backgroundColor: CLASS_COLORS.Cars },
+                    { label: 'Boda Bodas', data: rows.map(r => Math.round(r.Boda_bodas)), backgroundColor: CLASS_COLORS.Boda_bodas },
+                    { label: 'Tricycles', data: rows.map(r => Math.round(r.Tricycles)), backgroundColor: CLASS_COLORS.Tricycles },
+                    { label: 'Minibuses', data: rows.map(r => Math.round(r.Minibuses)), backgroundColor: CLASS_COLORS.Minibuses },
+                    { label: 'Heavy Trucks', data: rows.map(r => Math.round(r.Heavy_Trucks)), backgroundColor: CLASS_COLORS.Heavy_Trucks },
                   ]
                 }}
                 options={{
@@ -255,17 +238,17 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
-        {/* DOUGHNUT + NMT BAR */}
+        {/* DOUGHNUT + TRICYCLE SHARE BY SITE */}
         <div className="a-grid">
           <div className="a-card s-5">
             <SectionHeader eyebrow="Network-Wide Mix" title="Vehicle-Class Composition" color={C.blue} />
             <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Doughnut
                 data={{
-                  labels: ['Motorcycles (MC)', 'Tricycles (TC)', 'Passenger Cars (PC)', 'Minibuses (PSV)', 'Light Goods Vehicles (LGV)', 'Heavy Goods Vehicles (HGV)'],
+                  labels: ['Passenger Cars', 'Boda Bodas', 'Tricycles', 'Minibuses', 'Heavy Trucks'],
                   datasets: [{
-                    data: [totals.mc, totals.tc, totals.pc, totals.ps, totals.lgv, totals.hgv],
-                    backgroundColor: [CLASS_COLORS.mc, CLASS_COLORS.tc, CLASS_COLORS.pc, CLASS_COLORS.ps, CLASS_COLORS.lgv, CLASS_COLORS.hgv],
+                    data: [totals.Cars, totals.Boda_bodas, totals.Tricycles, totals.Minibuses, totals.Heavy_Trucks],
+                    backgroundColor: [CLASS_COLORS.Cars, CLASS_COLORS.Boda_bodas, CLASS_COLORS.Tricycles, CLASS_COLORS.Minibuses, CLASS_COLORS.Heavy_Trucks],
                     borderColor: '#ffffff', borderWidth: 3, hoverOffset: 8,
                   }]
                 }}
@@ -273,7 +256,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                   animation: animConfig, maintainAspectRatio: false, cutout: '64%',
                   plugins: {
                     legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } },
-                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed.toLocaleString()} veh/hr (${(ctx.parsed / totals.total * 100).toFixed(1)}%)` } }
+                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${Math.round(ctx.parsed).toLocaleString()} veh/hr (${(ctx.parsed / totals.Total * 100).toFixed(1)}%)` } }
                   }
                 }}
               />
@@ -282,12 +265,12 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           </div>
 
           <div className="a-card s-7">
-            <SectionHeader eyebrow="Vulnerable Road Users" title="Non-Motorized Transport by Site" color={C.pink} sub="Pedestrian + cyclist flows significantly influence tricycle weaving behavior, particularly at Wandegeya and Bwaise." />
+            <SectionHeader eyebrow="Modal Share" title="Tricycle Share by Site" color={C.pink} sub="% of peak-hour volume that is tricycles, per intersection" />
             <div className="a-chart-box">
               <Bar
                 data={{
-                  labels: trafficData.map(r => r.junction),
-                  datasets: [{ label: 'NMT / hour', data: trafficData.map(r => r.nmt), backgroundColor: SITE_COLORS, borderRadius: 8 }]
+                  labels: rows.map(r => r.junction),
+                  datasets: [{ label: 'Tricycle share (%)', data: rows.map(r => Number((r.Tricycles / r.Total * 100).toFixed(1))), backgroundColor: SITE_COLORS, borderRadius: 8 }]
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
@@ -323,35 +306,40 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedRows.map((row, idx) => (
-                    <tr key={idx}>
+                  {sortedRows.map((row) => (
+                    <tr key={row.junction}>
                       <td>{row.junction}</td>
-                      <td>{row.mc.toLocaleString()}</td>
-                      <td className="a-tc-cell">{row.tc.toLocaleString()}</td>
-                      <td>{row.pc.toLocaleString()}</td>
-                      <td>{row.ps.toLocaleString()}</td>
-                      <td>{row.lgv.toLocaleString()}</td>
-                      <td>{row.hgv.toLocaleString()}</td>
-                      <td style={{ color: C.blue }}>{row.total.toLocaleString()}</td>
+                      <td>{Math.round(row.Cars).toLocaleString()}</td>
+                      <td>{Math.round(row.Boda_bodas).toLocaleString()}</td>
+                      <td className="a-tc-cell">{Math.round(row.Tricycles).toLocaleString()}</td>
+                      <td>{Math.round(row.Minibuses).toLocaleString()}</td>
+                      <td>{Math.round(row.Heavy_Trucks).toLocaleString()}</td>
+                      <td style={{ color: C.blue }}>{Math.round(row.Total).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr>
                     <td>Network Total</td>
-                    <td>{totals.mc.toLocaleString()}</td>
-                    <td className="a-tc-cell">{totals.tc.toLocaleString()}</td>
-                    <td>{totals.pc.toLocaleString()}</td>
-                    <td>{totals.ps.toLocaleString()}</td>
-                    <td>{totals.lgv.toLocaleString()}</td>
-                    <td>{totals.hgv.toLocaleString()}</td>
-                    <td style={{ color: C.blue }}>{totals.total.toLocaleString()}</td>
+                    <td>{Math.round(totals.Cars).toLocaleString()}</td>
+                    <td>{Math.round(totals.Boda_bodas).toLocaleString()}</td>
+                    <td className="a-tc-cell">{Math.round(totals.Tricycles).toLocaleString()}</td>
+                    <td>{Math.round(totals.Minibuses).toLocaleString()}</td>
+                    <td>{Math.round(totals.Heavy_Trucks).toLocaleString()}</td>
+                    <td style={{ color: C.blue }}>{Math.round(totals.Total).toLocaleString()}</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
           </div>
         </div>
+
+        {/* METHODOLOGY */}
+        <div className="a-grid">
+          <MethodologyPanel color={C.teal} keys={['peakHourly', 'compositionPct', 'pcuHeadway']} />
+        </div>
+        </>
+        )}
 
       </div>
     </div>

@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,
   BarElement, ArcElement, Filler, Tooltip, Legend
 } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import PageControls, { downloadTextFile } from './PageControls';
+import MethodologyPanel from './MethodologyPanel';
+import useTrafficStats from '../lib/useTrafficStats';
 
 ChartJS.register(
   CategoryScale, LinearScale, PointElement, LineElement,
@@ -41,6 +43,7 @@ const tooltipTheme = {
   boxPadding: 4,
 };
 const legendTheme = { labels: { color: chartSub, boxWidth: 10, boxHeight: 10, padding: 14, font: { size: 11, weight: '600' }, usePointStyle: true, pointStyle: 'circle' } };
+const INCIDENT_COLORS = [C.red, C.orange, C.blue, C.indigo, C.teal, C.purple, C.pink, C.green, C.yellow, '#8e8e93'];
 
 // ---------------------------------------------------------------------------
 // Small reusable pieces
@@ -195,18 +198,30 @@ const PhotoCarousel = ({ photos }) => {
   );
 };
 
+const pFmt = (p) => (p < 0.001 ? 'p < .001' : `p = ${p.toFixed(3)}`);
+
 // ---------------------------------------------------------------------------
 const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
+  const stats = useTrafficStats();
   const [vcRatio, setVcRatio] = useState(0.85);
-  const [modalShare, setModalShare] = useState(15);
+  const [modalShare, setModalShare] = useState(13);
   const [roadWidth, setRoadWidth] = useState(7.0);
+  const [defaultsApplied, setDefaultsApplied] = useState(false);
+
+  // Seed the calculator's modal-share default from the real, dynamically
+  // computed network tricycle share the first time stats become available.
+  useEffect(() => {
+    if (stats && !defaultsApplied) {
+      setModalShare(Math.round(stats.overallCompositionPct.Tricycles));
+      setDefaultsApplied(true);
+    }
+  }, [stats, defaultsApplied]);
 
   const exportVolumeTable = () => {
-    const labels = ['Bwaise', 'Bakuli', 'Wandegeya', 'Natete', 'Kibuye'];
-    const means = [14.50, 15.90, 16.67, 17.73, 17.92];
-    const sds = [8.89, 9.59, 10.32, 11.17, 11.01];
+    if (!stats) return;
+    const entries = Object.entries(stats.tricycleByIntersection);
     const header = 'Study Site,Mean Tricycle Volume (veh / 15-min interval),Standard Deviation';
-    const lines = labels.map((l, i) => `"${l}",${means[i]},${sds[i]}`);
+    const lines = entries.map(([name, v]) => `"${name}",${v.mean.toFixed(2)},${v.std.toFixed(2)}`);
     downloadTextFile('tricycle_volume_by_intersection.csv', [header, ...lines].join('\n'));
   };
 
@@ -215,15 +230,27 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
   // `vite dev` — every asset reference below is prefixed with the real base.
   const baseUrl = import.meta.env.BASE_URL || '/';
 
-  const basePcu = 1.35;
-  const vcPenalty = (vcRatio - 0.5) > 0 ? (vcRatio - 0.5) * 0.8 : 0;
-  const modalPenalty = (modalShare - 5) * 0.02;
-  const widthBonus = (roadWidth - 7.0) * -0.05;
+  // Illustrative capacity-impact model -- explicitly NOT a measured field
+  // PCU (no per-vehicle headway exists for arbitrary hypothetical V/C,
+  // modal-share and road-width combinations). Anchored to the real,
+  // dynamically-computed headway-ratio PCU so its baseline is grounded in
+  // field data rather than an arbitrary constant.
+  const basePcu = stats ? stats.pcuHeadwayOverall : 1.30;
+  const vcPenalty = (vcRatio - 0.5) > 0 ? (vcRatio - 0.5) * 0.25 : 0;
+  const modalPenalty = (modalShare - (stats ? stats.overallCompositionPct.Tricycles : 13)) * 0.008;
+  const widthBonus = (roadWidth - 7.0) * -0.02;
   const dynamicPcu = (basePcu + vcPenalty + modalPenalty + widthBonus).toFixed(2);
-  const capacityDrop = Math.round((dynamicPcu - 1.0) * 100);
+  // delta vs the REAL field baseline (not an arbitrary 1.0 floor) -- this is
+  // the illustrative model's own added penalty on top of measured PCU
+  const capacityDrop = Math.round(((dynamicPcu - basePcu) / basePcu) * 100);
 
   const vcRatios = [0.2, 0.4, 0.6, 0.8, 1.0];
   const modalShares = [0.05, 0.10, 0.15, 0.20, 0.25];
+
+  const incidentTypes = useMemo(() => {
+    if (!stats) return [];
+    return Object.entries(stats.incidentTotalsByType).sort((a, b) => b[1] - a[1]).map(([type]) => type);
+  }, [stats]);
 
   return (
     <div className="apple-dash">
@@ -331,6 +358,22 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         .a-bignum-row { display: flex; align-items: baseline; gap: 10px; margin-top: 4px; }
         .a-bignum { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em; font-feature-settings: "tnum" 1; }
         .a-bignum-unit { font-size: 0.95rem; font-weight: 700; color: ${C.sub}; }
+
+        .a-loading { padding: 40px; text-align: center; color: ${C.faint}; font-size: 0.9rem; }
+        .a-illustrative-badge { display: inline-block; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.orange}; background: ${hex2rgba(C.orange, 0.12)}; padding: 3px 8px; border-radius: 6px; margin-left: 8px; vertical-align: middle; }
+
+        .a-methodology { margin-top: 4px; }
+        .a-methodology-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; font: inherit; font-weight: 700; font-size: 0.92rem; color: ${C.ink}; cursor: pointer; padding: 0; }
+        .a-methodology-body { margin-top: 16px; }
+        .a-methodology-sources { display: flex; flex-direction: column; gap: 6px; }
+        .a-methodology-source { font-size: 0.78rem; color: ${C.sub}; line-height: 1.5; }
+        .a-methodology-source-tag { display: inline-block; font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.blue}; background: ${hex2rgba(C.blue, 0.1)}; padding: 2px 7px; border-radius: 6px; margin-right: 6px; }
+        .a-methodology-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; font-size: 0.78rem; }
+        .a-methodology-table th { text-align: left; color: ${C.faint}; font-weight: 700; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.02em; padding-bottom: 6px; }
+        .a-methodology-table td { background: ${C.canvas}; padding: 10px 10px; vertical-align: top; }
+        .a-methodology-table td:first-child { border-radius: 10px 0 0 10px; font-weight: 700; }
+        .a-methodology-table td:last-child { border-radius: 0 10px 10px 0; white-space: nowrap; }
+        .a-methodology-key { font-family: ui-monospace, monospace; font-size: 0.72rem; }
       `}</style>
 
       <PageControls onBack={goBack} canGoBack={canGoBack} exportLabel="Export Volume Data (CSV)" onExport={exportVolumeTable} />
@@ -344,16 +387,19 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           <p className="a-hero-sub">A live, data-grounded view of how tricycles reshape capacity, delay, and safety across five Kampala study intersections.</p>
         </div>
 
+        {!stats ? (
+          <div className="a-loading"><i className="fa-solid fa-circle-notch fa-spin" style={{ marginRight: '8px' }}></i>Computing live figures from field data…</div>
+        ) : (
+        <>
         {/* KPI STRIP */}
         <div className="a-kpi-grid">
-          <KpiCard icon="fa-gauge-high" color={C.red} label="Network Flow State" value="Saturated" sub="Level of Service (LOS) E" />
-          <KpiCard icon="fa-car-side" color={C.blue} label="Recorded Vehicles" value="6,400" sub="15-min interval count, full study" />
-          <KpiCard icon="fa-hourglass-half" color={C.orange} label="Mean Network Delay" value="142.5s" sub="Per intersection" />
-          <KpiCard icon="fa-triangle-exclamation" color={vcRatio > 0.9 ? C.red : C.indigo} label="Critical V/C Ratio" value={vcRatio.toFixed(2)} sub="Wandegeya site" />
-          <KpiCard icon="fa-route" color={C.teal} label="Tricycle Share" value={`${modalShare}%`} sub="System average" />
-          <KpiCard icon="fa-sack-dollar" color={C.purple} label="Economic Delay Cost" value="$1.5M" sub="Daily est., Greater Kampala" />
-          <KpiCard icon="fa-smog" color={C.pink} label="Excess CO2" value="+12.4%" sub="Attributed to weaving" />
-          <KpiCard icon="fa-chart-line" color={C.green} label="Volume ↔ V/C Correlation" value="r = 0.68" sub="47% of variance explained" />
+          <KpiCard icon="fa-car-side" color={C.blue} label="Total Vehicles Recorded" value={stats.totalVehiclesRecorded.toLocaleString()} sub="Sum of all vehicle classes, 20-day sample" />
+          <KpiCard icon="fa-database" color={C.indigo} label="Sample Size" value={stats.sampleSizeIntervals.toLocaleString()} sub="15-min intervals, 20-day field study" />
+          <KpiCard icon="fa-gauge-high" color={C.orange} label="Peak vs Off-Peak Ratio" value={`${stats.peakOffpeakTest.ratio.toFixed(2)}×`} sub={`${Math.round(stats.peakOffpeakTest.meanA)} vs ${Math.round(stats.peakOffpeakTest.meanB)} veh/15-min`} />
+          <KpiCard icon="fa-cloud-showers-heavy" color={C.red} label="Wet-Weather Volume Impact" value={`${stats.weatherTest.pctChange.toFixed(1)}%`} sub={pFmt(stats.weatherTest.p)} />
+          <KpiCard icon="fa-route" color={C.teal} label="Network Tricycle Share" value={`${stats.overallCompositionPct.Tricycles.toFixed(1)}%`} sub="Of all recorded volume" />
+          <KpiCard icon="fa-sack-dollar" color={C.purple} label="Economic Delay Cost" value="$1.5M" sub="External estimate (cited), Greater Kampala" />
+          <KpiCard icon="fa-chart-line" color={C.green} label="Tricycles ↔ V/C Correlation" value={`r = ${stats.volumeVcCorrelation.r.toFixed(2)}`} sub={`${stats.volumeVcCorrelation.r2Pct.toFixed(0)}% of variance · 7-day baseline`} />
         </div>
 
         {/* ROW: Fleet composition + Interactive simulator + Delay by profile */}
@@ -365,22 +411,25 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                 data={{
                   labels: ['Boda Bodas (Motorcycle Taxis)', 'Tricycles', 'Passenger Cars', 'Matatus (14-Seater)', 'Heavy Trucks'],
                   datasets: [{
-                    data: [51.96, 12.77, 24.39, 9.71, 1.18],
+                    data: [
+                      stats.overallCompositionPct.Boda_bodas, stats.overallCompositionPct.Tricycles,
+                      stats.overallCompositionPct.Cars, stats.overallCompositionPct.Minibuses, stats.overallCompositionPct.Heavy_Trucks,
+                    ],
                     backgroundColor: [C.indigo, C.green, C.blue, C.teal, C.red],
                     borderColor: '#ffffff', borderWidth: 3, hoverOffset: 8,
                   }]
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false, cutout: '64%',
-                  plugins: { legend: { position: 'bottom', labels: legendTheme.labels }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => ctx.label + ': ' + ctx.parsed + '%' } } }
+                  plugins: { legend: { position: 'bottom', labels: legendTheme.labels }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => ctx.label + ': ' + ctx.parsed.toFixed(1) + '%' } } }
                 }}
               />
             </div>
-            <p className="a-footnote" style={{ textAlign: 'center', marginTop: '10px' }}>Share of all 6,400 recorded 15-minute intervals across the five study intersections.</p>
+            <p className="a-footnote" style={{ textAlign: 'center', marginTop: '10px' }}>Share of all {stats.sampleSizeIntervals.toLocaleString()} recorded 15-minute intervals across the five study intersections.</p>
           </div>
 
           <div className="a-card s-4">
-            <SectionHeader eyebrow="Interactive Simulator" title="Dynamic PCU Calculator" color={C.purple} />
+            <SectionHeader eyebrow="Interactive Simulator" title={<>Illustrative Capacity Model<span className="a-illustrative-badge">Model, not measured</span></>} color={C.purple} />
             <div className="a-slider-row">
               <div className="a-slider-head"><span>Volume/Capacity (V/C)</span><span>{vcRatio.toFixed(2)}</span></div>
               <input type="range" min="0.2" max="1.5" step="0.05" value={vcRatio} onChange={(e) => setVcRatio(parseFloat(e.target.value))} className="a-slider" aria-label="Volume/Capacity (V/C)" />
@@ -395,22 +444,23 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             </div>
             <div className="a-dial-wrap">
               <div className="a-dial">
-                <span className="a-dial-label">Computed PCU</span>
+                <span className="a-dial-label">Modeled PCU</span>
                 <span className="a-dial-value">{dynamicPcu}</span>
-                <span className="a-dial-delta" style={{ color: C.red }}><i className="fa-solid fa-arrow-up"></i> {capacityDrop}% capacity impact</span>
+                <span className="a-dial-delta" style={{ color: capacityDrop > 0 ? C.red : C.green }}><i className={`fa-solid fa-arrow-${capacityDrop > 0 ? 'up' : 'down'}`}></i> {Math.abs(capacityDrop)}% vs field PCU baseline</span>
               </div>
             </div>
+            <p className="a-footnote">Base PCU {basePcu.toFixed(2)} is the real, dynamically-computed headway-ratio value (Overview tab); the V/C, modal-share and road-width penalties applied on top are an illustrative sensitivity model, not separately field-measured.</p>
           </div>
 
           <div className="a-card s-4">
-            <SectionHeader eyebrow="Simulation Model" title="Delay by PCU Profile" color={C.orange} />
+            <SectionHeader eyebrow="Simulation Model" title="Delay by PCU Profile" color={C.orange} sub="Theoretical curves, not field-measured delay" />
             <div className="a-chart-box">
               <Line
                 data={{
                   labels: ['0.6', '0.7', '0.8', '0.9', '1.0', '1.1', '1.2', '1.3'],
                   datasets: [
                     { label: 'Baseline (PCU 1.0)', data: [46, 62, 97, 373, 1994, 1948, 2011, 2150], borderColor: '#c7c7cc', backgroundColor: 'transparent', borderWidth: 2, tension: 0.4 },
-                    { label: 'Empirical Tricycle (1.35)', data: [51, 76, 176, 1803, 2075, 1901, 2180, 2405], borderColor: C.blue, backgroundColor: hex2rgba(C.blue, 0.12), borderWidth: 3, fill: true, tension: 0.4 },
+                    { label: `Field PCU (${stats.pcuHeadwayOverall.toFixed(2)})`, data: [51, 76, 176, 1803, 2075, 1901, 2180, 2405], borderColor: C.blue, backgroundColor: hex2rgba(C.blue, 0.12), borderWidth: 3, fill: true, tension: 0.4 },
                     { label: 'Severe Weather (1.5)', data: [54, 84, 279, 2228, 2623, 1915, 2300, 2650], borderColor: C.red, backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 5], tension: 0.4 }
                   ]
                 }}
@@ -430,25 +480,23 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         {/* ROW: Static PCU by intersection + Behavioral themes */}
         <div className="a-grid">
           <div className="a-card s-7">
-            <SectionHeader eyebrow="Table 4.1 · Field Results" title="Static PCU by Intersection" color={C.indigo} sub="Baseline PCU by estimation method, compared against boda-boda PCU at the same five sites." />
+            <SectionHeader eyebrow="Field Results · headway-ratio method" title="PCU by Intersection" color={C.indigo} sub="PCU = mean tricycle headway ÷ mean car headway, per intersection." />
             <div className="a-chart-box">
               <Bar
                 data={{
-                  labels: ['Wandegeya', 'Kibuye Roundabout', 'Bakuli', 'Bwaise', 'Natete (Cargo)'],
+                  labels: Object.keys(stats.pcuByIntersection).map(stats.shortName),
                   datasets: [
-                    { label: 'Tricycle PCU (Headway)', data: [0.82, 0.91, 0.84, 0.96, 0.94], backgroundColor: C.indigo, borderRadius: 6 },
-                    { label: 'Tricycle PCU (MLR)', data: [0.85, 0.94, 0.87, 1.02, 0.98], backgroundColor: C.blue2, borderRadius: 6 },
-                    { label: 'Boda-boda PCU', data: [0.45, 0.52, 0.48, 0.55, 0.50], backgroundColor: '#d2d2d7', borderRadius: 6 },
+                    { label: 'Tricycle PCU (headway-ratio)', data: Object.values(stats.pcuByIntersection).map(v => Number(v.pcuHeadway.toFixed(3))), backgroundColor: C.indigo, borderRadius: 6 },
                   ]
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
-                  scales: { y: { grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  scales: { y: { min: 1.2, max: 1.4, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } } },
                   plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
                 }}
               />
             </div>
-            <p className="a-footnote">At Bwaise and Kibuye, MLR-method PCU reaches or exceeds 1.0 — a single tricycle disrupts flow almost as much as a passenger car under severe mixed-traffic friction.</p>
+            <p className="a-footnote">All five sites cluster tightly around PCU {stats.pcuHeadwayOverall.toFixed(2)} — a tricycle consistently occupies about 1.3× the road time-space of a passenger car, with little site-to-site variation in this dataset.</p>
           </div>
 
           <div className="a-card s-5">
@@ -471,58 +519,65 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
-        {/* ROW: Peak/Off-peak, Day/Night, Growth, VISSIM */}
+        {/* ROW: Peak/Off-peak, Day/Night, Tricycle-share comparison */}
         <div className="a-grid">
           <div className="a-card s-4">
-            <SectionHeader eyebrow="Table 4.9.3 · t-Test" title="Peak vs. Off-Peak" color={C.blue} />
-            <CompareStat color={C.blue} leftLabel="Peak (07-09h, 17-19h)" leftValue="26.13" rightLabel="Off-peak" rightValue="11.75" footnote="Veh / 15-min interval · t = 34.10, p < .001" />
+            <SectionHeader eyebrow="Welch's t-test · 20-day field dataset" title="Peak vs. Off-Peak" color={C.blue} />
+            <CompareStat color={C.blue} leftLabel="Peak (07-09h, 16-19h)" leftValue={stats.peakOffpeakTest.meanA.toFixed(1)} rightLabel="Off-peak" rightValue={stats.peakOffpeakTest.meanB.toFixed(1)} footnote={`Veh / 15-min interval · t = ${stats.peakOffpeakTest.t.toFixed(2)}, ${pFmt(stats.peakOffpeakTest.p)}, n = ${stats.peakOffpeakTest.nA.toLocaleString()}/${stats.peakOffpeakTest.nB.toLocaleString()}`} />
           </div>
           <div className="a-card s-4">
-            <SectionHeader eyebrow="Table 4.9.9 · t-Test" title="Day vs. Night Volume" color={C.indigo} />
-            <CompareStat color={C.indigo} leftLabel="Daytime (07:00–19:00)" leftValue="16.54" rightLabel="Overnight (19:00–07:00)" rightValue="1.73" footnote="Veh / 15-min interval · t = 55.93, p < .001" />
+            <SectionHeader eyebrow="Welch's t-test · 7-day baseline dataset" title="Day vs. Night Tricycle Volume" color={C.indigo} />
+            <CompareStat color={C.indigo} leftLabel="Daytime (07:00–19:00)" leftValue={stats.dayNightTest.meanA.toFixed(2)} rightLabel="Overnight (19:00–07:00)" rightValue={stats.dayNightTest.meanB.toFixed(2)} footnote={`Veh / 15-min interval · t = ${stats.dayNightTest.t.toFixed(2)}, ${pFmt(stats.dayNightTest.p)}, n = ${stats.dayNightTest.nA}/${stats.dayNightTest.nB}`} />
           </div>
           <div className="a-card s-4">
-            <SectionHeader eyebrow="Table 4.3 · MoWT 2021 vs. Field 2026" title="Longitudinal Growth" color={C.green} />
-            <CompareStat color={C.green} leftLabel="Peak-hour volume, 2026" leftValue="700" rightLabel="MoWT baseline, 2021" rightValue="215" footnote="Veh/hr, Kibuye Roundabout · +225% growth; fleet share rose 4.2% → 14.8% (+252%)" />
+            <SectionHeader eyebrow="20-day field dataset" title="Tricycle Share: Highest vs. Lowest Site" color={C.green} />
+            <CompareStat
+              color={C.green}
+              leftLabel={stats.shortName(stats.highestTricycleShareIntersection)}
+              leftValue={stats.byIntersection[stats.highestTricycleShareIntersection].tricycleSharePct.toFixed(1)}
+              rightLabel={stats.shortName(Object.entries(stats.byIntersection).sort((a,b)=>a[1].tricycleSharePct-b[1].tricycleSharePct)[0][0])}
+              rightValue={Object.entries(stats.byIntersection).sort((a,b)=>a[1].tricycleSharePct-b[1].tricycleSharePct)[0][1].tricycleSharePct.toFixed(1)}
+              footnote="% of site volume that is tricycles"
+            />
           </div>
         </div>
 
         <div className="a-grid">
           <div className="a-card s-4">
-            <SectionHeader eyebrow="Table 4.9.4 · Headway" title="Tricycle vs. Car Headway" color={C.purple} />
-            <div className="a-bignum-row"><span className="a-bignum" style={{ color: C.purple }}>3.29</span><span className="a-bignum-unit">s (tricycle)</span></div>
-            <div className="a-bignum-row"><span className="a-bignum" style={{ color: '#c7c7cc', fontSize: '1.4rem' }}>2.50</span><span className="a-bignum-unit">s (passenger car)</span></div>
-            <p className="a-footnote" style={{ marginTop: '8px' }}>t = 50.00, p &lt; .001 — a physically smaller vehicle occupying more time-space, consistent with the "blocking friction" theme.</p>
+            <SectionHeader eyebrow="Paired t-test · 7-day baseline dataset" title="Tricycle vs. Car Headway" color={C.purple} />
+            <div className="a-bignum-row"><span className="a-bignum" style={{ color: C.purple }}>{stats.headwayTest.meanA.toFixed(2)}</span><span className="a-bignum-unit">s (tricycle)</span></div>
+            <div className="a-bignum-row"><span className="a-bignum" style={{ color: '#c7c7cc', fontSize: '1.4rem' }}>{stats.headwayTest.meanB.toFixed(2)}</span><span className="a-bignum-unit">s (passenger car)</span></div>
+            <p className="a-footnote" style={{ marginTop: '8px' }}>t = {stats.headwayTest.t.toFixed(2)}, {pFmt(stats.headwayTest.p)}, n = {stats.headwayTest.n.toLocaleString()} — a physically smaller vehicle occupying more time-space, consistent with the "blocking friction" theme.</p>
           </div>
           <div className="a-card s-4">
-            <SectionHeader eyebrow="Section 4.8 · VISSIM" title="Signal Re-Optimization" color={C.teal} />
-            <div className="a-bignum-row"><span className="a-bignum" style={{ color: C.teal }}>+14.2%</span></div>
-            <p className="a-sub">Saturation-flow improvement at Wandegeya Junction after re-timing signals around the empirical dynamic PCU curve (0.85–1.15), replacing VISSIM's default static value of ≈0.5.</p>
+            <SectionHeader eyebrow="7-day baseline dataset" title="V/C Ratio, Observed Range" color={C.teal} />
+            <div className="a-bignum-row"><span className="a-bignum" style={{ color: C.teal }}>{stats.vcStats.mean.toFixed(2)}</span><span className="a-bignum-unit">mean V/C</span></div>
+            <p className="a-sub">Range {stats.vcStats.min.toFixed(2)}–{stats.vcStats.max.toFixed(2)} across {stats.vcStats.n.toLocaleString()} recorded intervals, all five sites.</p>
           </div>
           <div className="a-card s-4">
-            <SectionHeader eyebrow="Section 4.9.6 · Poisson Goodness-of-Fit" title="Arrival Platooning" color={C.red} />
-            <div className="a-bignum-row"><span className="a-bignum" style={{ color: C.red }}>6.39×</span></div>
-            <p className="a-sub">Variance-to-mean ratio at Wandegeya Junction (χ² = 1,122.5, p &lt; .001) — tricycles arrive in bunched platoons, not the random Poisson stream classical capacity models assume.</p>
+            <SectionHeader eyebrow="Poisson dispersion · 7-day baseline dataset" title="Arrival Platooning" color={C.red} />
+            <div className="a-bignum-row"><span className="a-bignum" style={{ color: C.red }}>{stats.poissonNetwork.vmr.toFixed(2)}×</span></div>
+            <p className="a-sub">Variance-to-mean ratio of tricycle arrivals, network-wide (χ² = {stats.poissonNetwork.chi2.toFixed(0)}, {pFmt(stats.poissonNetwork.p)}, n = {stats.poissonNetwork.n.toLocaleString()}) — tricycles arrive in bunched platoons, not the random Poisson stream classical capacity models assume. Range across sites: {Math.min(...Object.values(stats.poissonByIntersection).map(v=>v.vmr)).toFixed(1)}×–{Math.max(...Object.values(stats.poissonByIntersection).map(v=>v.vmr)).toFixed(1)}×.</p>
           </div>
         </div>
 
         {/* ROW: Safety + Descriptive stats by intersection */}
         <div className="a-grid">
           <div className="a-card s-6">
-            <SectionHeader eyebrow="Safety Analysis (N = 840 incidents)" title="Incident Severity by Type" color={C.red} />
+            <SectionHeader eyebrow={`Safety Analysis (N = ${stats.incidentN} incidents)`} title="Incident Severity by Type" color={C.red} />
             <div className="a-chart-box">
               <Bar
                 data={{
-                  labels: ['Rollover', 'Pedestrian', 'Moto Crash', 'Rear-End', 'Single Veh', 'Side-swipe'],
+                  labels: incidentTypes,
                   datasets: [
-                    { label: 'Fatal', data: [25, 45, 30, 15, 20, 12], backgroundColor: C.red },
-                    { label: 'Serious', data: [40, 30, 35, 30, 25, 25], backgroundColor: C.orange },
-                    { label: 'Minor', data: [40, 15, 23, 42, 40, 46], backgroundColor: C.green }
+                    { label: 'Fatal', data: incidentTypes.map(t => stats.incidentSeverityByType[t]?.Fatal || 0), backgroundColor: C.red },
+                    { label: 'Serious', data: incidentTypes.map(t => stats.incidentSeverityByType[t]?.Serious || 0), backgroundColor: C.orange },
+                    { label: 'Minor', data: incidentTypes.map(t => stats.incidentSeverityByType[t]?.Minor || 0), backgroundColor: C.green }
                   ]
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
-                  scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { stacked: true, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 9 } } }, y: { stacked: true, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
                   plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
                 }}
               />
@@ -530,28 +585,31 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
 
           <div className="a-card s-6">
-            <SectionHeader eyebrow="Table 4.9.1 · Descriptive Statistics" title="Tricycle Volume by Intersection" color={C.blue} sub="Mean vehicles / 15-min interval, daytime (n = 336 per site)" />
+            <SectionHeader eyebrow="One-way ANOVA · 20-day field dataset" title="Tricycle Volume by Intersection" color={C.blue} sub={`Mean vehicles / 15-min interval (n = ${Object.values(stats.tricycleByIntersection)[0].n.toLocaleString()} per site)`} />
             <div className="a-chart-box">
               <Bar
                 data={{
-                  labels: ['Bwaise', 'Bakuli', 'Wandegeya', 'Natete', 'Kibuye'],
-                  datasets: [{ label: 'Mean volume', data: [14.50, 15.90, 16.67, 17.73, 17.92], backgroundColor: [C.teal, C.blue2, C.blue, C.indigo, C.purple], borderRadius: 8 }]
+                  labels: Object.keys(stats.tricycleByIntersection).map(stats.shortName),
+                  datasets: [{ label: 'Mean volume', data: Object.values(stats.tricycleByIntersection).map(v => Number(v.mean.toFixed(2))), backgroundColor: [C.teal, C.blue2, C.blue, C.indigo, C.purple], borderRadius: 8 }]
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
                   scales: { y: { grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } } },
-                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { afterLabel: (ctx) => `σ = ${[8.89, 9.59, 10.32, 11.17, 11.01][ctx.dataIndex]}` } } }
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { ...tooltipTheme, callbacks: { afterLabel: (ctx) => `σ = ${Object.values(stats.tricycleByIntersection)[ctx.dataIndex].std.toFixed(2)}` } }
+                  }
                 }}
               />
             </div>
-            <p className="a-footnote">One-way ANOVA across sites: F(4, 1675) = 6.33, p &lt; .001 — Kibuye and Natete draw significantly more tricycle traffic than Bwaise and Bakuli.</p>
+            <p className="a-footnote">One-way ANOVA across sites: F({stats.tricycleAnova.df1}, {stats.tricycleAnova.df2.toLocaleString()}) = {stats.tricycleAnova.F.toFixed(1)}, {pFmt(stats.tricycleAnova.p)} — tricycle volume differs significantly by intersection.</p>
           </div>
         </div>
 
         {/* ROW: Sensitivity heatmap + Greenshields + Shockwave */}
         <div className="a-grid">
           <div className="a-card s-4">
-            <SectionHeader eyebrow="Predictive Matrix" title="PCU Sensitivity" color={C.indigo} sub="Modal share vs. V/C ratio" />
+            <SectionHeader eyebrow="Predictive Matrix · illustrative model" title="PCU Sensitivity" color={C.indigo} sub="Modal share vs. V/C ratio, anchored to the real field PCU baseline" />
             <div className="a-chart-box" style={{ minHeight: '240px', overflowX: 'auto' }}>
               <table className="a-heat-table">
                 <thead><tr><th>V/C</th>{modalShares.map(ms => <th key={ms}>{ms * 100}%</th>)}</tr></thead>
@@ -560,8 +618,8 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                     <tr key={vc}>
                       <td>{vc}</td>
                       {modalShares.map(ms => {
-                        const pcu = (1.1 + (vc * 0.4) + (ms * 1.2)).toFixed(2);
-                        const opacity = (pcu - 1.1) / 1.0;
+                        const pcu = (stats.pcuHeadwayOverall + (vc * 0.3) + (ms * 0.8)).toFixed(2);
+                        const opacity = (pcu - stats.pcuHeadwayOverall) / 1.0;
                         return <td key={ms} style={{ background: hex2rgba(C.indigo, Math.max(0.08, opacity)), color: opacity > 0.5 ? '#fff' : C.ink }}>{pcu}</td>;
                       })}
                     </tr>
@@ -572,7 +630,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
 
           <div className="a-card s-4">
-            <SectionHeader eyebrow="Macroscopic Flow Theory" title="Greenshields Diagram" color={C.orange} />
+            <SectionHeader eyebrow="Macroscopic Flow Theory · textbook model" title="Greenshields Diagram" color={C.orange} />
             <div className="a-chart-box">
               <Line
                 data={{
@@ -595,7 +653,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
 
           <div className="a-card s-4">
-            <SectionHeader eyebrow="Kinematic Wave Theory (LWR)" title="Backward Shockwave" color={C.pink} />
+            <SectionHeader eyebrow="Kinematic Wave Theory (LWR) · textbook model" title="Backward Shockwave" color={C.pink} />
             <div className="a-chart-box">
               <Line
                 data={{
@@ -615,6 +673,11 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* METHODOLOGY */}
+        <div className="a-grid">
+          <MethodologyPanel color={C.indigo} keys={['totalVehiclesRecorded', 'compositionPct', 'peakOffpeakTest', 'weatherTest', 'pcuHeadway', 'dayNightTest', 'headwayTest', 'vcStats', 'volumeVcCorrelation', 'poissonDispersion', 'tricycleAnova', 'incidentSeverity']} />
+        </div>
+
         {/* PHOTO CAROUSEL */}
         <div className="a-card a-carousel-card s-12">
           <SectionHeader eyebrow="Field Evidence" title="Traffic & Site Data Collection" color={C.teal}
@@ -627,11 +690,13 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             { src: `${baseUrl}assets/accident.jpg`, eyebrow: 'Safety Reality', title: 'The Friction Tax', color: C.orange,
               text: 'Tricycles often operate in the blind spots of sedans on narrow lanes. Minor side-swipes are common and can trigger sudden gridlock with little warning.' },
             { src: `${baseUrl}assets/commute.jpg`, eyebrow: 'Origin-Destination Flow', title: 'The Commuter Arteries', color: C.blue2,
-              text: 'Analysis of 1,446 origin-destination zones shows where traffic pulses concentrate. Tricycles act as last-mile suburban feeders but add real friction to primary arteries at peak hours.' },
+              text: 'Tricycles act as last-mile suburban feeders but add real friction to primary arteries at peak hours.' },
             { src: `${baseUrl}assets/chokepoint.jpg`, eyebrow: 'Structural Geometry', title: 'Physical Constraints', color: C.red,
               text: 'Geospatial road-network mapping shows many Kampala routes are physically too narrow for safe mixed flow, making safe overtaking geometrically impossible in several corridors.' },
           ]} />
         </div>
+        </>
+        )}
 
       </div>
     </div>

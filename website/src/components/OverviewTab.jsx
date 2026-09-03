@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, LayersControl, LayerGroup, ScaleControl, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -7,6 +7,8 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import PageControls, { downloadTextFile } from './PageControls';
+import MethodologyPanel from './MethodologyPanel';
+import useTrafficStats from '../lib/useTrafficStats';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -53,12 +55,15 @@ const MapFullscreenControl = () => {
   return null;
 };
 
-const studySites = [
-  { name: "Wandegeya Junction", coords: [0.3308, 32.5744], pcu: 1.35, adt: 103899, interaction: "Tricycle-Boda-boda (Motorcycle Taxi)-Non-Motorized Transport (NMT)" },
-  { name: "Kibuye Roundabout", coords: [0.2981, 32.5761], pcu: 1.41, adt: 85000, interaction: "Tricycle-Car (Expressway Exit)" },
-  { name: "Bakuli Intersection", coords: [0.3114, 32.5669], pcu: 1.32, adt: 65000, interaction: "Tricycle-Bus (Hub)" },
-  { name: "Bwaise Junction", coords: [0.3458, 32.5611], pcu: 1.45, adt: 45000, interaction: "Tricycle-Non-Motorized Transport (NMT) (Flood Zone)" },
-  { name: "Natete Junction", coords: [0.3014, 32.5469], pcu: 1.36, adt: 72000, interaction: "Tricycle-Public Service Vehicle (PSV/Minibus) Hub" }
+// Geographic position + qualitative interaction description only -- every
+// numeric figure (volume, tricycle share, PCU) is computed live from real
+// field data by useTrafficStats() below, never hand-typed here.
+const SITE_GEO = [
+  { name: "Wandegeya Junction", coords: [0.3308, 32.5744], interaction: "Tricycle-Boda-boda (Motorcycle Taxi)-Non-Motorized Transport (NMT)" },
+  { name: "Kibuye Roundabout", coords: [0.2981, 32.5761], interaction: "Tricycle-Car (Expressway Exit)" },
+  { name: "Bakuli Intersection", coords: [0.3114, 32.5669], interaction: "Tricycle-Bus (Hub)" },
+  { name: "Bwaise Junction", coords: [0.3458, 32.5611], interaction: "Tricycle-Non-Motorized Transport (NMT) (Flood Zone)" },
+  { name: "Natete Junction", coords: [0.3014, 32.5469], interaction: "Tricycle-Public Service Vehicle (PSV/Minibus) Hub" }
 ];
 
 // ---------------------------------------------------------------------------
@@ -109,11 +114,32 @@ const KpiCard = ({ icon, color, label, value, sub }) => (
 const OverviewTab = ({ goBack, canGoBack } = {}) => {
   const [selectedSite, setSelectedSite] = useState(null);
   const [geoData, setGeoData] = useState(null);
+  const [weatherView, setWeatherView] = useState('Dry');
+  const stats = useTrafficStats();
+
+  // Merge static geo/interaction info with the live-computed per-site
+  // figures from useTrafficStats() -- this is the single place the two are
+  // joined, so every chart/card below reads from one consistent source.
+  const studySites = useMemo(() => {
+    if (!stats) return null;
+    return SITE_GEO.map((geo) => {
+      const s = stats.byIntersection[geo.name] || {};
+      return {
+        ...geo,
+        meanDailyVolume: s.meanDailyVolume,
+        tricycleSharePct: s.tricycleSharePct,
+        pcuHeadway: stats.pcuByIntersection[geo.name]?.pcuHeadway,
+        meanIntervalVolumeDry: s.meanIntervalVolumeDry,
+        meanIntervalVolumeWet: s.meanIntervalVolumeWet,
+      };
+    });
+  }, [stats]);
 
   const exportSites = () => {
-    const header = 'Study Site,Latitude,Longitude,Base PCU,Annual Average Daily Traffic (AADT),Dominant Interaction';
+    if (!studySites) return;
+    const header = 'Study Site,Latitude,Longitude,Mean Daily Volume (2026 field sample),Tricycle Share (%),PCU (headway-ratio method),Dominant Interaction';
     const lines = studySites.map(s =>
-      `"${s.name}",${s.coords[0]},${s.coords[1]},${s.pcu},${s.adt},"${s.interaction}"`
+      `"${s.name}",${s.coords[0]},${s.coords[1]},${Math.round(s.meanDailyVolume)},${s.tricycleSharePct.toFixed(2)},${s.pcuHeadway.toFixed(3)},"${s.interaction}"`
     );
     downloadTextFile('tricycle_pcu_study_sites.csv', [header, ...lines].join('\n'));
   };
@@ -126,10 +152,12 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
       .catch(err => console.error('Error loading geojson:', err));
   }, []);
 
-  const totalAdt = studySites.reduce((s, x) => s + x.adt, 0);
-  const meanPcu = studySites.reduce((s, x) => s + x.pcu, 0) / studySites.length;
-  const busiest = studySites.reduce((a, b) => (b.adt > a.adt ? b : a));
-  const highestPcu = studySites.reduce((a, b) => (b.pcu > a.pcu ? b : a));
+  const totalVolume = studySites ? studySites.reduce((s, x) => s + x.meanDailyVolume, 0) : 0;
+  const busiest = studySites && stats ? studySites.find(s => s.name === stats.busiestIntersection) : null;
+  const highestTricycle = studySites && stats ? studySites.find(s => s.name === stats.highestTricycleShareIntersection) : null;
+  const weatherDelta = stats ? stats.weatherTest.pctChange : null;
+
+  const chipVolume = (site) => (weatherView === 'Dry' ? site.meanIntervalVolumeDry : site.meanIntervalVolumeWet);
 
   return (
     <div className="apple-overview">
@@ -174,9 +202,10 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         .leaflet-container:fullscreen { width: 100%; height: 100%; }
 
         .a-site-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
-        .a-site-chip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: ${C.canvas}; cursor: pointer; transition: background .15s ease; border: 1px solid transparent; }
+        .a-site-chip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: ${C.canvas}; cursor: pointer; transition: background .15s ease; border: 1px solid transparent; width: 100%; text-align: left; font: inherit; }
         .a-site-chip:hover { background: #ececee; }
         .a-site-chip.active { background: ${hex2rgba(C.blue, 0.1)}; border-color: ${hex2rgba(C.blue, 0.35)}; }
+        .a-site-chip:focus-visible { outline: 2px solid ${C.blue}; outline-offset: 2px; }
         .a-site-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
         .a-site-chip-name { font-size: 0.82rem; font-weight: 600; color: ${C.ink}; }
         .a-site-chip-sub { font-size: 0.7rem; color: ${C.faint}; }
@@ -192,6 +221,21 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         .a-directory-meta-item { font-size: 0.68rem; color: ${C.faint}; font-weight: 700; text-transform: uppercase; }
         .a-directory-meta-val { font-size: 0.95rem; color: ${C.ink}; font-weight: 800; display: block; margin-top: 2px; text-transform: none; }
         .a-directory-interaction { font-size: 0.76rem; color: ${C.sub}; line-height: 1.5; }
+
+        .a-loading { padding: 40px; text-align: center; color: ${C.faint}; font-size: 0.9rem; }
+
+        .a-methodology { margin-top: 4px; }
+        .a-methodology-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; font: inherit; font-weight: 700; font-size: 0.92rem; color: ${C.ink}; cursor: pointer; padding: 0; }
+        .a-methodology-body { margin-top: 16px; }
+        .a-methodology-sources { display: flex; flex-direction: column; gap: 6px; }
+        .a-methodology-source { font-size: 0.78rem; color: ${C.sub}; line-height: 1.5; }
+        .a-methodology-source-tag { display: inline-block; font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.blue}; background: ${hex2rgba(C.blue, 0.1)}; padding: 2px 7px; border-radius: 6px; margin-right: 6px; }
+        .a-methodology-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; font-size: 0.78rem; }
+        .a-methodology-table th { text-align: left; color: ${C.faint}; font-weight: 700; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.02em; padding-bottom: 6px; }
+        .a-methodology-table td { background: ${C.canvas}; padding: 10px 10px; vertical-align: top; }
+        .a-methodology-table td:first-child { border-radius: 10px 0 0 10px; font-weight: 700; }
+        .a-methodology-table td:last-child { border-radius: 0 10px 10px 0; white-space: nowrap; }
+        .a-methodology-key { font-family: ui-monospace, monospace; font-size: 0.72rem; }
       `}</style>
 
       <PageControls onBack={goBack} canGoBack={canGoBack} exportLabel="Export Site Data (CSV)" onExport={exportSites} />
@@ -205,14 +249,18 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
           <p className="a-hero-sub">Five case-study intersections across the Kampala City road network, mapped and instrumented for the Tricycle Passenger Car Unit (PCU) survey.</p>
         </div>
 
+        {!stats || !studySites ? (
+          <div className="a-loading"><i className="fa-solid fa-circle-notch fa-spin" style={{ marginRight: '8px' }}></i>Computing live figures from field data…</div>
+        ) : (
+        <>
         {/* KPI STRIP */}
         <div className="a-kpi-grid">
           <KpiCard icon="fa-location-dot" color={C.blue} label="Study Intersections" value="5" sub="Kampala City road network" />
-          <KpiCard icon="fa-car-side" color={C.indigo} label="Combined AADT (2021)" value={totalAdt.toLocaleString()} sub="veh/day, all sites" />
-          <KpiCard icon="fa-gauge-high" color={C.teal} label="Mean Base PCU (Eq. 2)" value={meanPcu.toFixed(2)} sub="Range 1.32 – 1.45" />
-          <KpiCard icon="fa-fire" color={C.orange} label="Busiest Site" value={busiest.name.replace(' Junction', '').replace(' Roundabout', '').replace(' Intersection', '')} sub={`${busiest.adt.toLocaleString()} veh/day AADT`} />
-          <KpiCard icon="fa-triangle-exclamation" color={C.red} label="Highest-Friction Site" value={highestPcu.name.replace(' Junction', '').replace(' Roundabout', '').replace(' Intersection', '')} sub={`PCU ${highestPcu.pcu} · flood-zone NMT conflict`} />
-          <KpiCard icon="fa-ruler-horizontal" color={C.purple} label="VISSIM Standstill Distance" value="0.65 m" sub="Parameter aₓ, all sites" />
+          <KpiCard icon="fa-car-side" color={C.indigo} label="Combined Daily Volume" value={Math.round(totalVolume).toLocaleString()} sub="veh/day, 20-day field sample, 2026" />
+          <KpiCard icon="fa-gauge-high" color={C.teal} label="Mean PCU (headway-ratio)" value={stats.pcuHeadwayOverall.toFixed(2)} sub={`Range ${Math.min(...studySites.map(s=>s.pcuHeadway)).toFixed(2)} – ${Math.max(...studySites.map(s=>s.pcuHeadway)).toFixed(2)}`} />
+          <KpiCard icon="fa-fire" color={C.orange} label="Busiest Site" value={stats.shortName(busiest.name)} sub={`${Math.round(busiest.meanDailyVolume).toLocaleString()} veh/day mean`} />
+          <KpiCard icon="fa-route" color={C.pink} label="Highest Tricycle Share" value={stats.shortName(highestTricycle.name)} sub={`${highestTricycle.tricycleSharePct.toFixed(1)}% of site volume`} />
+          <KpiCard icon="fa-cloud-showers-heavy" color={C.red} label="Wet-Weather Volume Impact" value={`${weatherDelta.toFixed(1)}%`} sub="vs Dry-weather intervals" />
         </div>
 
         {/* MAP + SITE DETAIL */}
@@ -220,9 +268,19 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
           <div className="a-card s-8">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
               <SectionHeader eyebrow="Study Area" title="Interactive Case Study Map" color={C.blue} />
-              <div className="a-toggle-row">
-                <button className="a-toggle-btn active"><i className="fa-solid fa-sun" style={{ marginRight: '6px' }}></i>Dry</button>
-                <button className="a-toggle-btn"><i className="fa-solid fa-cloud-showers-heavy" style={{ marginRight: '6px' }}></i>Wet</button>
+              <div className="a-toggle-row" role="group" aria-label="Weather condition for site volume figures">
+                <button
+                  type="button"
+                  className={`a-toggle-btn ${weatherView === 'Dry' ? 'active' : ''}`}
+                  aria-pressed={weatherView === 'Dry'}
+                  onClick={() => setWeatherView('Dry')}
+                ><i className="fa-solid fa-sun" style={{ marginRight: '6px' }}></i>Dry</button>
+                <button
+                  type="button"
+                  className={`a-toggle-btn ${weatherView === 'Wet' ? 'active' : ''}`}
+                  aria-pressed={weatherView === 'Wet'}
+                  onClick={() => setWeatherView('Wet')}
+                ><i className="fa-solid fa-cloud-showers-heavy" style={{ marginRight: '6px' }}></i>Wet</button>
               </div>
             </div>
             <div className="a-map-wrap">
@@ -248,7 +306,7 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                         >
                           <Popup>
                             <strong style={{ color: '#000' }}>{site.name}</strong><br />
-                            <span style={{ color: '#333' }}>PCU: {site.pcu}</span>
+                            <span style={{ color: '#333' }}>{weatherView} mean volume: {Math.round(chipVolume(site)).toLocaleString()} veh/15-min</span>
                           </Popup>
                         </Marker>
                       ))}
@@ -263,7 +321,8 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
             <SectionHeader eyebrow="Site Detail" title={selectedSite ? selectedSite.name : 'Select a study site'} color={C.indigo} />
             <div className="a-site-list">
               {studySites.map((site, idx) => (
-                <div
+                <button
+                  type="button"
                   key={idx}
                   className={`a-site-chip ${selectedSite?.name === site.name ? 'active' : ''}`}
                   onClick={() => setSelectedSite(site)}
@@ -271,20 +330,24 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                   <span className="a-site-dot" style={{ background: SITE_COLORS[idx] }}></span>
                   <div>
                     <div className="a-site-chip-name">{site.name}</div>
-                    <div className="a-site-chip-sub">PCU {site.pcu} · {site.adt.toLocaleString()} veh/day</div>
+                    <div className="a-site-chip-sub">PCU {site.pcuHeadway.toFixed(2)} · {Math.round(site.meanDailyVolume).toLocaleString()} veh/day</div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
             {selectedSite && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' }}>
                 <div className="a-stat-box">
-                  <div className="a-stat-label">Annual Average Daily Traffic (AADT) — 2021</div>
-                  <div className="a-stat-value" style={{ color: C.blue }}>{selectedSite.adt.toLocaleString()}</div>
+                  <div className="a-stat-label">Mean Daily Volume — 20-day field sample, 2026</div>
+                  <div className="a-stat-value" style={{ color: C.blue }}>{Math.round(selectedSite.meanDailyVolume).toLocaleString()}</div>
                 </div>
                 <div className="a-stat-box">
-                  <div className="a-stat-label">Base PCU (Eq. 2)</div>
-                  <div className="a-stat-value" style={{ color: C.indigo }}>{selectedSite.pcu}</div>
+                  <div className="a-stat-label">PCU (headway-ratio method)</div>
+                  <div className="a-stat-value" style={{ color: C.indigo }}>{selectedSite.pcuHeadway.toFixed(3)}</div>
+                </div>
+                <div className="a-stat-box">
+                  <div className="a-stat-label">Tricycle Share of Volume</div>
+                  <div className="a-stat-value" style={{ color: C.green }}>{selectedSite.tricycleSharePct.toFixed(1)}%</div>
                 </div>
                 <div className="a-stat-box">
                   <div className="a-stat-label">Primary Vehicle Interaction</div>
@@ -295,15 +358,15 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
-        {/* CHARTS: AADT + PCU by site */}
+        {/* CHARTS: Daily volume + PCU by site */}
         <div className="a-grid">
           <div className="a-card s-6">
-            <SectionHeader eyebrow="Baseline Volume" title="AADT by Study Site" color={C.blue} sub="Annual Average Daily Traffic, 2021 baseline (veh/day)" />
+            <SectionHeader eyebrow="Baseline Volume" title="Mean Daily Volume by Study Site" color={C.blue} sub="20-day field sample, 2026 (veh/day)" />
             <div className="a-chart-box">
               <Bar
                 data={{
                   labels: studySites.map(s => s.name),
-                  datasets: [{ label: 'AADT (veh/day)', data: studySites.map(s => s.adt), backgroundColor: SITE_COLORS, borderRadius: 8 }]
+                  datasets: [{ label: 'Mean daily volume (veh/day)', data: studySites.map(s => Math.round(s.meanDailyVolume)), backgroundColor: SITE_COLORS, borderRadius: 8 }]
                 }}
                 options={{
                   indexAxis: 'y', animation: animConfig, maintainAspectRatio: false,
@@ -314,16 +377,16 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
             </div>
           </div>
           <div className="a-card s-6">
-            <SectionHeader eyebrow="Field Results" title="Base PCU by Study Site" color={C.indigo} sub="Equation 2 baseline Passenger Car Unit value" />
+            <SectionHeader eyebrow="Field Results" title="PCU by Study Site (headway-ratio)" color={C.indigo} sub="PCU = mean tricycle headway ÷ mean car headway, 7-day baseline dataset" />
             <div className="a-chart-box">
               <Bar
                 data={{
                   labels: studySites.map(s => s.name),
-                  datasets: [{ label: 'Base PCU', data: studySites.map(s => s.pcu), backgroundColor: SITE_COLORS, borderRadius: 8 }]
+                  datasets: [{ label: 'PCU (headway-ratio)', data: studySites.map(s => Number(s.pcuHeadway.toFixed(3))), backgroundColor: SITE_COLORS, borderRadius: 8 }]
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
-                  scales: { y: { min: 1.2, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 9.5 } } } },
+                  scales: { y: { min: 1.2, max: 1.4, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 9.5 } } } },
                   plugins: { legend: { display: false }, tooltip: tooltipTheme }
                 }}
               />
@@ -340,8 +403,9 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                 <div className="a-directory-card" key={idx} style={{ borderTopColor: SITE_COLORS[idx] }}>
                   <p className="a-directory-name">{site.name}</p>
                   <div className="a-directory-meta">
-                    <div className="a-directory-meta-item">AADT<span className="a-directory-meta-val">{site.adt.toLocaleString()}</span></div>
-                    <div className="a-directory-meta-item">PCU<span className="a-directory-meta-val">{site.pcu}</span></div>
+                    <div className="a-directory-meta-item">Veh/Day<span className="a-directory-meta-val">{Math.round(site.meanDailyVolume).toLocaleString()}</span></div>
+                    <div className="a-directory-meta-item">PCU<span className="a-directory-meta-val">{site.pcuHeadway.toFixed(2)}</span></div>
+                    <div className="a-directory-meta-item">Tricycle %<span className="a-directory-meta-val">{site.tricycleSharePct.toFixed(1)}</span></div>
                   </div>
                   <p className="a-directory-interaction">{site.interaction}</p>
                 </div>
@@ -349,6 +413,13 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
             </div>
           </div>
         </div>
+
+        {/* METHODOLOGY */}
+        <div className="a-grid">
+          <MethodologyPanel color={C.blue} keys={['meanDailyVolume', 'compositionPct', 'pcuHeadway', 'weatherTest']} />
+        </div>
+        </>
+        )}
 
       </div>
     </div>
