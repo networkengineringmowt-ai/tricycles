@@ -22,7 +22,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
   const navItemStyle = {
     background: 'none',
     border: 'none',
-    color: '#9aa1af',
+    color: '#6e6e73',
     cursor: 'pointer',
     textAlign: 'left',
     padding: '8px 0',
@@ -32,23 +32,85 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '24px', padding: '0 12px', alignItems: 'flex-start', maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="thesis-light">
+      <style>{`
+        .thesis-light {
+          position: relative;
+          width: 100vw;
+          left: 50%;
+          right: 50%;
+          margin-left: -50vw;
+          margin-right: -50vw;
+          background: #ffffff;
+          padding: 40px 12px 90px;
+        }
+        .thesis-light-inner {
+          display: flex;
+          gap: 24px;
+          align-items: flex-start;
+          max-width: 1400px;
+          margin: 0 auto;
+          font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+          color: #1d1d1f;
+        }
+        .thesis-card {
+          background: #ffffff;
+          border: 1px solid rgba(0,0,0,0.08);
+          border-radius: 16px;
+          padding: 24px;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 12px 28px -12px rgba(0,0,0,0.10);
+          display: flex;
+          flex-direction: column;
+        }
+        .thesis-card h3 {
+          font-size: 1.05rem;
+          margin-bottom: 18px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid rgba(0,0,0,0.08);
+          color: #1d1d1f;
+        }
+        .thesis-eyebrow {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #0071e3;
+          text-transform: uppercase;
+          letter-spacing: 0.09em;
+          margin: 0 0 6px 0;
+        }
+        .thesis-title { color: #1d1d1f; font-weight: 800; }
+        .thesis-chapter { color: #0071e3; font-weight: 800; }
+        .thesis-content a { color: #0071e3; }
+        .thesis-content table { color: #1d1d1f; }
+        .thesis-content strong, .thesis-content b { color: #1d1d1f; }
+        .thesis-card .btn {
+          background: #ffffff;
+          border: 1px solid rgba(0,0,0,0.12);
+          box-shadow: none;
+          color: #0071e3;
+        }
+        .thesis-card .btn:hover {
+          background: #f5f5f7;
+          border-color: rgba(0,0,0,0.2);
+          box-shadow: none;
+          transform: translateY(-1px);
+        }
+      `}</style>
+      <div className="thesis-light-inner">
       <PageControls
         onBack={goBack}
         canGoBack={canGoBack}
-        dark
         exportLabel="Download Thesis (DOCX)"
         onExport={() => downloadFile('Final_Thesis.docx')}
       />
-      
+
       {/* NAVIGATION PANE */}
-      <div className="glass-card" style={{ flex: '0 0 300px', position: 'sticky', top: '24px', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }}>
-        <h3 className="text-primary" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
+      <div className="thesis-card" style={{ flex: '0 0 300px', position: 'sticky', top: '24px', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }}>
+        <h3 className="thesis-title" style={{ borderBottom: '1px solid rgba(0,0,0,0.08)', paddingBottom: '12px', marginBottom: '16px' }}>
           Table of Contents
         </h3>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           <li>
-            <button style={navItemStyle} onClick={() => scrollTo('ch1')} onMouseOver={e => e.target.style.color = '#8b93ff'} onMouseOut={e => e.target.style.color = '#9aa1af'}>
+            <button style={navItemStyle} onClick={() => scrollTo('ch1')} onMouseOver={e => e.target.style.color = '#0071e3'} onMouseOut={e => e.target.style.color = '#6e6e73'}>
               Chapter 1: Introduction
             </button>
             <ul style={{ listStyle: 'none', paddingLeft: '16px', margin: '4px 0' }}>
@@ -58,7 +120,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
             </ul>
           </li>
           <li>
-            <button style={navItemStyle} onClick={() => scrollTo('ch2')} onMouseOver={e => e.target.style.color = '#8b93ff'} onMouseOut={e => e.target.style.color = '#9aa1af'}>
+            <button style={navItemStyle} onClick={() => scrollTo('ch2')} onMouseOver={e => e.target.style.color = '#0071e3'} onMouseOut={e => e.target.style.color = '#6e6e73'}>
               Chapter 2: Literature Review
             </button>
             <ul style={{ listStyle: 'none', paddingLeft: '16px', margin: '4px 0' }}>
@@ -71,7 +133,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
             </ul>
           </li>
           <li>
-            <button style={navItemStyle} onClick={() => scrollTo('ch3')} onMouseOver={e => e.target.style.color = '#8b93ff'} onMouseOut={e => e.target.style.color = '#9aa1af'}>
+            <button style={navItemStyle} onClick={() => scrollTo('ch3')} onMouseOver={e => e.target.style.color = '#0071e3'} onMouseOut={e => e.target.style.color = '#6e6e73'}>
               Chapter 3: Methodology
             </button>
             <ul style={{ listStyle: 'none', paddingLeft: '16px', margin: '4px 0' }}>
@@ -80,17 +142,17 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
             </ul>
           </li>
           <li>
-            <button style={navItemStyle} onClick={() => scrollTo('ch4')} onMouseOver={e => e.target.style.color = '#8b93ff'} onMouseOut={e => e.target.style.color = '#9aa1af'}>
+            <button style={navItemStyle} onClick={() => scrollTo('ch4')} onMouseOver={e => e.target.style.color = '#0071e3'} onMouseOut={e => e.target.style.color = '#6e6e73'}>
               Chapter 4: Results & Discussion
             </button>
           </li>
           <li>
-            <button style={navItemStyle} onClick={() => scrollTo('conclusion')} onMouseOver={e => e.target.style.color = '#8b93ff'} onMouseOut={e => e.target.style.color = '#9aa1af'}>
+            <button style={navItemStyle} onClick={() => scrollTo('conclusion')} onMouseOver={e => e.target.style.color = '#0071e3'} onMouseOut={e => e.target.style.color = '#6e6e73'}>
               Conclusion
             </button>
           </li>
           <li>
-            <button style={navItemStyle} onClick={() => scrollTo('downloads')} onMouseOver={e => e.target.style.color = '#8b93ff'} onMouseOut={e => e.target.style.color = '#9aa1af'}>
+            <button style={navItemStyle} onClick={() => scrollTo('downloads')} onMouseOver={e => e.target.style.color = '#0071e3'} onMouseOut={e => e.target.style.color = '#6e6e73'}>
               Download Deliverables
             </button>
           </li>
@@ -98,14 +160,14 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
       </div>
 
       {/* THESIS CONTENT */}
-      <div className="glass-card" style={{ flex: '1', padding: '40px', overflowY: 'auto' }}>
-        <p className="nexus-eyebrow" style={{ textAlign: 'center' }}>ACADEMIC DOCUMENTATION</p>
-        <h1 className="text-primary" style={{ fontSize: '2.2rem', textAlign: 'center', marginBottom: '40px' }}>
+      <div className="thesis-card" style={{ flex: '1', padding: '40px', overflowY: 'auto' }}>
+        <p className="thesis-eyebrow" style={{ textAlign: 'center' }}>ACADEMIC DOCUMENTATION</p>
+        <h1 className="thesis-title" style={{ fontSize: '2.2rem', textAlign: 'center', marginBottom: '40px' }}>
           Analysis of Tricycle Passenger Car Unit (PCU) Values in Kampala
         </h1>
 
-        <div style={{ lineHeight: '1.8', color: '#cbd5e1' }}>
-<h2 id="ch1" className="text-accent" style={{ marginTop: '20px' }}>Chapter 1: Introduction</h2>
+        <div className="thesis-content" style={{ lineHeight: '1.8', color: '#1d1d1f' }}>
+<h2 id="ch1" className="thesis-chapter" style={{ marginTop: '20px' }}>Chapter 1: Introduction</h2>
 <p>KAMPALA INTERNATIONAL UNIVERSITY</p>
 <p>DIRECTORATE OF HIGHER DEGREES AND RESEARCH</p>
 <p>SCHOOL OF ENGINEERING AND APPLIED SCIENCES</p>
@@ -130,8 +192,8 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>Right-click and choose "Update Field" (or press Ctrl+A then F9) to generate the table of contents.</p>
 <p>CHAPTER ONE</p>
 <p>INTRODUCTION</p>
-<h3 id="sec1-1" style={{ color: '#fff', marginTop: '16px' }}>1.1 Background to the Study</h3>
-<p>Traffic congestion is one of the biggest challenges facing Kampala today. When you look at recent surveys of the road network, average travel speeds on most major roads drop to about 20 or 30 km/h during the day. Things get even worse during the evening peak, usually between 6:30 PM and 8:00 PM, especially around the Central Division. Here, speeds can fall below 10 km/h (JICA, 2010; KCCA, 2023). This level of delay has a serious impact on the city's daily economic activities.</p>
+<h3 id="sec1-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.1 Background to the Study</h3>
+<p>Traffic congestion is one of the biggest challenges facing Kampala today. When you look at recent surveys of the road network, average travel speeds on most major roads drop to about 20 or 30 km/h during the day. Things get even worse during the evening peak, usually between 6:30 PM and 8:00 PM, especially around the Central Division. Here, speeds can fall below 10 km/h (Japan International Cooperation Agency [JICA], 2010; Kampala Capital City Authority [KCCA], 2023). This level of delay has a serious impact on the city's daily economic activities.</p>
 <p>A key factor contributing to this problem is how the traffic mix is changing. Over the last few years, tricycles (which most people call tuk-tuks) have become very popular. They serve as an important middle-ground option for public transport. Based on counts by the Kampala Capital City Authority (KCCA) and other recent studies, tricycles have grown rapidly and now make up about 7 to 10% of the daily traffic on busy roads, like the stretch between Wandegeya and Kibuye (Okiza et al., 2024).</p>
 <p>Standard passenger cars usually follow lanes in an orderly way, but tricycles operate quite differently. They weave through traffic, make sudden stops to pick up or drop off passengers every few hundred meters, and constantly interact with boda-bodas (motorcycles) and matatus (14-seater taxis). Right now, standard Passenger Car Unit (PCU) values don't capture this unique behavior. Historically, PCU values were designed for traffic in developed countries where vehicles stick to their lanes and move predictably.</p>
 <p>In developed nations, strict rules and advanced traffic systems keep things orderly. But in many developing countries, especially in Sub-Saharan Africa, the traffic is highly mixed or "heterogeneous." This happens because transport networks grow informally, rules aren't always enforced strictly, and motorized vehicles have to share the road with non-motorized transport (Banskota & Shahi, 2021). With urban populations expected to grow massively by 2050 (UN-Habitat, 2021), this pressure on the transport system is only going to increase.</p>
@@ -141,47 +203,55 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>Things like designing junctions, setting traffic light timings, and predicting traffic jams all rely on having accurate PCU estimates (Alecsandru et al., 2023). However, in Uganda, engineers often have to use PCU values from foreign manuals because local data isn't always available. When they use static or guessed values for tricycles, they end up miscalculating how much traffic the road can actually take. This leads to poor road designs and worse traffic jams. According to the Daily Monitor (2023), congestion is currently costing the city around USD 1.5 million every single day.</p>
 <p>Tricycles in Kampala have specific behaviors that make standard PCU assumptions invalid:1. Passenger Load and Stops: They usually carry 3 to 4 passengers or goods, and they often stop right in the middle of a traffic lane to load or unload, which holds up the cars behind them (Baertsch, 2020).2. Route Choices: They mainly use secondary roads but often cross over onto main roads. Sometimes they even use pedestrian walkways or drive into oncoming traffic to avoid a jam.3. Driving Behavior: They switch lanes unpredictably, force their way into small gaps, and travel at moderate speeds (around 20-35 km/h). This forces faster passenger cars to brake suddenly, which slows down the whole road (Okiza et al., 2024).</p>
 <p>Because Kampala’s transport system is changing so fast, and with electric tuk-tuks now entering the market, there is a real need to collect field data and calculate exactly what the PCU value for a tricycle should be.</p>
-<h3 id="sec1-2" style={{ color: '#fff', marginTop: '16px' }}>1.2 Problem Statement</h3>
+<h3 id="sec1-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.2 Problem Statement</h3>
 <p>Tricycles have quickly become a major part of public transport in Kampala. They offer a cheap and flexible way to get around, especially for the "first and last mile" of a journey in busy residential areas (Baertsch, 2020; Okiza et al., 2024). Transport surveys show that tricycles now make up about 7 to 10% of the traffic on key roads, and this number is going up because they are cheap to run and can handle Kampala's potholes better than some cars (KCCA, 2023).</p>
 <p>Despite how common they are, the current methods used in Uganda to analyze road capacity basically ignore them. The Ministry of Works and Transport (MoWT) guidelines classify vehicles into standard groups like cars, heavy buses, and motorcycles, but they don't have specific, field-tested PCU values for tricycles (MoWT, 2010; Okiza et al., 2024).</p>
 <p>Since PCU values are required to turn mixed traffic into standard units for capacity models (Ahmed, 2020), missing this data creates a big problem for traffic engineers in Kampala. Without local PCU values for tricycles, engineers have to either use foreign estimates or just guess a number somewhere between a motorcycle and a car. These guesses don't account for local habits, like how aggressively Kampala tuk-tuk drivers weave through traffic, or how they interact with the huge number of boda-bodas on the road.</p>
 <p>The practical result of this mistake is quite severe. At major junctions with traffic lights, the green time is often given out incorrectly. For example, at the Wandegeya Junction, queues of cars frequently stretch back more than 150 meters during rush hour. This happens because the traffic light timings were calculated using wrong PCU estimates that underestimate how much tricycles slow down the overall flow of traffic when they weave and stop (JICA, 2022). Until we establish accurate, local PCU values for tricycles, any new traffic management systems (like the planned GKMA smart traffic control) won't work properly, and the city will keep losing money to congestion.</p>
-<h3 id="sec1-3" style={{ color: '#fff', marginTop: '16px' }}>1.3 Main Objective</h3>
+<h3 id="sec1-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.3 Main Objective</h3>
 <p>The main goal of this study is to use field data to determine accurate Passenger Car Unit (PCU) values for tricycles in Kampala City. This will help improve the accuracy of traffic flow models, calibrate intersection simulations, and support better traffic management decisions.</p>
-<h3 id="sec1-3-1" style={{ color: '#fff', marginTop: '16px' }}>1.3.1 Specific Objectives</h3>
+<h3 id="sec1-3-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.3.1 Specific Objectives</h3>
 <p>To determine static PCU values for both passenger and cargo tricycles at selected busy intersections in Kampala, aiming for a precision of ±0.1 PCU.</p>
 <p>To compare these calculated tricycle PCU values against local empirical values for motorcycles (boda-bodas) and passenger cars, to see their relative impact on traffic flow.</p>
 <p>To model how dynamic factors, like how heavy the congestion is (Volume-to-Capacity ratio), the time of day, and whether the road is wet or dry, affect the tricycle PCU estimates using statistical regression.</p>
-<h3 id="sec1-4" style={{ color: '#fff', marginTop: '16px' }}>1.4 Research Questions</h3>
+<h3 id="sec1-4" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.4 Research Questions</h3>
 <p>What are the actual field-based PCU values for different types of tricycles (passenger and cargo) operating at various intersections in Kampala?</p>
 <p>How do the PCU values of tricycles in Kampala compare to other common transport modes like boda-bodas, passenger cars, and matatus under the same road conditions?</p>
 <p>To what extent do factors like intersection congestion levels, time of day, and weather conditions change the PCU values of tricycles in mixed traffic?</p>
-<h3 id="sec1-5" style={{ color: '#fff', marginTop: '16px' }}>1.5 Justification of the Study</h3>
+<h3 id="sec1-5" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.5 Justification of the Study</h3>
 <p>Calculating accurate PCU values for tricycles is an urgent practical need for Kampala, not just an academic exercise. Tricycles are now a permanent part of the transport system, helping thousands of commuters and small business owners move goods in areas where formal buses don't go (ChinAfrica, 2024). But because they act differently than both cars and motorcycles, they introduce inefficiencies into a transport network that hasn't formally planned for them (Baertsch, 2020).</p>
-<h3 id="sec1-5-1" style={{ color: '#fff', marginTop: '16px' }}>1.5.1 Economic Impact</h3>
+<h3 id="sec1-5-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.5.1 Economic Impact</h3>
 <p>Kampala's traffic jams are extremely costly. The city loses an estimated USD 1.5 million every day in wasted fuel, lost time, and vehicle wear-and-tear, which is about 4.2% of the local daily GDP (Baertsch, 2020; KCCA, 2023). By providing real, local PCU values for tricycles, this study gives engineers the right numbers to fix the models. For interventions like adjusting the traffic light cycles at Nateete and Bakuli, these calibrated values are essential. Simulation studies suggest that improving flow estimation by even 10-15% could seriously reduce delays and save money (JICA, 2010).</p>
-<h3 id="sec1-5-2" style={{ color: '#fff', marginTop: '16px' }}>1.5.2 Environmental and Social Benefits</h3>
+<h3 id="sec1-5-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.5.2 Environmental and Social Benefits</h3>
 <p>Less congestion also means less pollution. Stop-and-go traffic increases vehicle emissions, which is a major health concern in Kampala (Adekunle et al., 2021). On a social level, tricycles are very important for low-income areas, providing jobs for youth and cheap access to markets. By getting the PCU numbers right, planners can start designing roads that actually accommodate tricycles (like creating dedicated staging areas), rather than ignoring them.</p>
-<h3 id="sec1-6" style={{ color: '#fff', marginTop: '16px' }}>1.6 Scope of the Study</h3>
+<h3 id="sec1-5-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.5.3 Sustainable Urban Mobility</h3>
+<p>By enabling the integration of tricycles into formal traffic models and transport planning, this study supports the development of a more inclusive, efficient, and sustainable urban mobility system. This is especially important given that tricycles continue to expand their modal share in Kampala, serving as both people- and goods-movers in areas where conventional vehicles are less effective (ChinAfrica, 2024). Without such integration, Kampala risks continued congestion, misallocation of road space, and exclusion of key transport stakeholders from decision-making processes.</p>
+<h3 id="sec1-6" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.6 Scope of the Study</h3>
 <p>This research focuses specifically on finding the empirical PCU values for tricycles on major roads and busy intersections within Kampala City, Uganda.</p>
-<h3 id="sec1-6-1" style={{ color: '#fff', marginTop: '16px' }}>1.6.1 Geographical Scope</h3>
+<h3 id="sec1-6-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.6.1 Geographical Scope and Site Selection</h3>
 <p>The study targets areas where there are a lot of tricycles and frequent traffic jams. The selected sites are:- Wandegeya Junction: A very busy signalized intersection near Makerere University with lots of pedestrian and tricycle movement.- Kibuye Roundabout: A chaotic junction where traffic from Entebbe Road meets informal transit, known for heavy weaving.- Bakuli Intersection: An important bottleneck connecting the city center to the western suburbs, where matatus and tricycles often park aggressively.- Bwaise Junction: A northern junction that often floods, which gives us a chance to see how bad weather affects tricycle PCU.- Natete Junction: A commercial hub where a lot of cargo tricycles operate.</p>
-<h3 id="sec1-6-2" style={{ color: '#fff', marginTop: '16px' }}>1.6.2 Temporal Scope</h3>
+<h3 id="sec1-6-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.6.2 Temporal Scope</h3>
 <p>Data was collected over seven continuous full daytime survey days (07:00-19:00) to make sure we captured normal daily variations, supplemented by two full overnight sessions (19:00-07:00) to capture nocturnal traffic behaviour. Observations spanned the morning peak, the evening peak, off-peak daytime hours, and two full nights, on both weekdays and weekend days.</p>
-<h3 id="sec1-6-3" style={{ color: '#fff', marginTop: '16px' }}>1.6.3 Methodological Scope</h3>
+<h3 id="sec1-6-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.6.3 Vehicle Scope and Justification</h3>
+<p>This study focused on both passenger and cargo tricycles operating within Kampala's urban corridors. While passenger tricycles made up the majority of observed volumes and were the dominant contributors to mixed-traffic dynamics and congestion at the five study intersections, cargo tricycles also played a growing role in urban mobility and logistics, particularly at Natete Junction. Including both types allowed for a more comprehensive analysis of their collective impact on traffic flow, road safety, and intersection performance across the study areas (ChinAfrica, 2024; KCCA, 2023).</p>
+<h3 id="sec1-6-4" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.6.4 Methodological Scope</h3>
 <p>Because the traffic in Kampala doesn't stick to lanes, automated counting machines (like road tubes) usually fail or give bad data. Instead, this study used overhead video recording and a team of 16 manual enumerators positioned at specific points. The raw data was then processed using three mathematical methods: modified headway ratio, multiple linear regression, and dynamic PCU analysis. Finally, the results were tested using PTV VISSIM simulation software to prove they work in a real-world scenario.</p>
-<h3 id="sec1-7" style={{ color: '#fff', marginTop: '16px' }}>1.7 Conceptual Framework</h3>
+<h3 id="sec1-6-5" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.6.5 Exclusions</h3>
+<p>This study did not cover rural roads or peri-urban corridors with negligible tricycle activity. This kept the research focused on the most relevant and impactful segment of Kampala's urban mobility landscape.</p>
+<h3 id="sec1-6-6" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.6.6 Representativeness and Relevance</h3>
+<p>By selecting high-density corridors and major intersections, and by capturing data across both daytime and night-time periods, this study ensured that the derived PCU values are robust, representative, and directly applicable to Kampala's current and future traffic management and road design needs (Okiza et al., 2024; KCCA, 2023; JICA, 2010).</p>
+<h3 id="sec1-7" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.7 Conceptual Framework</h3>
 <p>Traffic modeling relies heavily on converting different types of vehicles into a standard unit using PCU values. In Kampala, the sudden increase in tricycles creates a lot of operational friction. They weave unpredictably and make sudden stops, which completely breaks the assumptions made by static PCU tables designed in the West.</p>
 <p>This study is based on the idea that by collecting high-quality field data (headways, speeds, volumes) using video and manual counts across different intersection types and weather conditions, we can calculate dynamic PCU values using statistical methods. Once we have these accurate, Kampala-specific PCU values, we can feed them into simulation software (like VISSIM). This will allow traffic engineers to design better signal timings, appropriate lane widths, and dedicated staging areas, ultimately reducing congestion.</p>
 <p id="ch2">CHAPTER TWO</p>
 <p>LITERATURE REVIEW</p>
-<h3 id="sec2-1" style={{ color: '#fff', marginTop: '16px' }}>2.1 Introduction</h3>
+<h3 id="sec2-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.1 Introduction</h3>
 <p>Determining Passenger Car Unit (PCU) values is a basic part of traffic engineering. It allows engineers to take a mix of different vehicles and convert them into a single, standardized number for capacity analysis. However, as public transport in developing countries continues to change, often looking very different from the organized traffic seen in North America or Europe, the existing literature on how to calculate PCU struggles to keep up. This chapter reviews the theories behind PCU estimation, looks at how tricycles operate in mixed traffic, and points out the gaps in current methods, especially regarding the aggressive weaving and heavy congestion we see in Kampala.</p>
-<h3 id="sec2-2" style={{ color: '#fff', marginTop: '16px' }}>2.2 Conceptual Review</h3>
-<h3 id="sec2-2-1" style={{ color: '#fff', marginTop: '16px' }}>2.2.1 Traffic Heterogeneity</h3>
+<h3 id="sec2-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.2 Conceptual Review</h3>
+<h3 id="sec2-2-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.2.1 Traffic Heterogeneity</h3>
 <p>In high-income countries, traffic is generally homogenous. It mainly consists of standard passenger cars that stay in their lanes and move in orderly lines. Traffic engineering manuals, like the Highway Capacity Manual (HCM) in the US, were written specifically for these kinds of conditions (Ahmed, 2020). On the other hand, traffic in Sub-Saharan African cities like Kampala is heterogeneous. It involves a massive mix of vehicle sizes, varying speeds, and unpredictable driving behaviors.</p>
 <p>In this kind of environment, a standard passenger car isn't a direct equivalent for a crowded matatu that stops suddenly to pick up passengers, or a group of boda-bodas riding along a pedestrian walkway. This is where the PCU comes in as a conversion factor. It basically measures how much "disruption" or friction a specific vehicle causes compared to a normal car. Big, slow vehicles like trucks usually have high PCUs (like 2.5 or 3.0), while small, quick motorcycles have lower PCUs (around 0.2 to 0.5) (Lera & Kuleno, 2020).</p>
-<h3 id="sec2-2-2" style={{ color: '#fff', marginTop: '16px' }}>2.2.2 The Tricycle Problem</h3>
+<h3 id="sec2-2-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.2.2 The Tricycle Problem</h3>
 <p>Tricycles (tuk-tuks) present a weird problem in traffic modeling because they sit somewhere between a motorcycle and a car.</p>
 <p>Table 2.1: Physical and Operational Characteristics Comparison</p>
 <p>Feature</p>
@@ -209,73 +279,70 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>Sudden stops, aggressive merging</p>
 <p>Follows queues</p>
 <p>As Table 2.1 shows, tricycles have the same poor lane discipline as boda-bodas, but they aren't nearly as small or agile. When a tricycle tries to weave through a busy intersection like Kibuye Roundabout, its 1.5-meter width usually ends up blocking the passenger cars behind it, forcing them to brake hard. Most existing PCU models assume vehicles either follow the lane rules (like cars) or filter cleanly through the gaps (like motorcycles). They don't have a good way to measure this "blocking friction" caused by tricycles.</p>
-<h3 id="sec2-3" style={{ color: '#fff', marginTop: '16px' }}>2.3 Empirical Review of PCU Estimation Methods</h3>
+<h3 id="sec2-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.3 Empirical Review of PCU Estimation Methods</h3>
 <p>Over the years, researchers have developed several methods to estimate PCUs. However, how well they apply to Kampala’s tricycles is a matter of debate.</p>
-<h3 id="sec2-3-1" style={{ color: '#fff', marginTop: '16px' }}>2.3.1 Headway Method</h3>
+<h3 id="sec2-3-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.3.1 Headway Method</h3>
 <p>The time headway method is pretty straightforward. It defines PCU as the ratio of the average time headway of a specific vehicle type to the average time headway of a passenger car. The problem is that this method assumes vehicles are following each other in a single straight lane. In Kampala, tricycles often share the exact same lateral space as a motorcycle or ride right on the lane markings, which makes calculating a true "following headway" almost impossible (Chandra & Kumar, 2023).</p>
-<h3 id="sec2-3-2" style={{ color: '#fff', marginTop: '16px' }}>2.3.2 Multiple Linear Regression (MLR) Method</h3>
+<h3 id="sec2-3-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.3.2 Multiple Linear Regression (MLR) Method</h3>
 <p>MLR looks at the total time it takes for a mixed group of vehicles to clear a section of road, based on how many vehicles of each class are present. The basic equation looks like this:$$ T = \beta_0 + \beta_1(Cars) + \beta_2(Tricycles) + \beta_3(Motorcycles) + \epsilon $$</p>
 <p>In this equation, dividing $\beta_2$ by $\beta_1$ gives you the PCU of the tricycle. Researchers in India really like the MLR method because it captures the total friction of the whole traffic stream (Raj et al., 2018). But MLR only gives a single static value. It doesn't really capture the dynamic reality of Kampala traffic; for instance, how a tricycle's PCU might spike during a rainstorm in Bwaise when flooded potholes force drivers to weave aggressively across the road.</p>
-<h3 id="sec2-3-3" style={{ color: '#fff', marginTop: '16px' }}>2.3.3 Dynamic PCU Estimation</h3>
+<h3 id="sec2-3-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.3.3 Dynamic PCU Estimation</h3>
 <p>Recently, literature has started leaning towards Dynamic PCU values. These values fluctuate depending on the Volume-to-Capacity (V/C) ratio (how congested the road is) and the proportion of that specific vehicle class in the traffic. Studies in cities like Dhaka and Delhi have shown that as more non-standard vehicles enter the road, their individual PCU value actually goes down because they start "platooning" (grouping together and moving somewhat more efficiently) (Rahman et al., 2019).</p>
-<h3 id="sec2-4" style={{ color: '#fff', marginTop: '16px' }}>2.4 Tricycles in the African Urban Context</h3>
+<h3 id="sec2-4" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.4 Tricycles in the African Urban Context</h3>
 <p>While tuk-tuks have been common in South Asia for decades, their massive growth in Sub-Saharan Africa is relatively new. This boom has been driven mostly by cheap imports from India (brands like Bajaj and TVS) and China, and lately by the introduction of locally assembled electric versions (ChinAfrica, 2024).</p>
 <p>In Accra, Ghana, Adams et al. (2014) calculated tricycle PCUs to be between 0.67 and 0.75. But in Indian cities, Raj et al. (2018) observed values ranging from 0.91 all the way up to 1.32. This huge difference proves that PCU isn't just a physical property based on the size of the vehicle; it's a behavioral property that depends heavily on the local driving culture.</p>
-<h3 id="sec2-4-1" style={{ color: '#fff', marginTop: '16px' }}>2.4.1 The Kampala Reality</h3>
+<h3 id="sec2-4-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.4.1 The Kampala Reality</h3>
 <p>In Kampala, tricycles are heavily used for transporting goods over short distances (like moving produce from Nakasero market) and for passenger transit in the sprawling suburbs. During the 6:30 PM evening rush hour, these tricycles converge on major bottlenecks like the Bakuli Intersection. Their behavior there is uniquely aggressive; the drivers often use "bullying" tactics against smaller boda-bodas while simultaneously cutting off larger matatus to secure a spot.</p>
-<h3 id="sec2-5" style={{ color: '#fff', marginTop: '16px' }}>2.5 Identified Gaps in the Literature</h3>
+<h3 id="sec2-5" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.5 Identified Gaps in the Literature</h3>
 <p>Looking through the existing research on mixed traffic, there are a few glaring gaps that this study aims to fill:</p>
 <p>Lack of Behavioral PCUs for Kampala: There is basically no literature that tries to put a number on the "aggressive weaving" and random mid-lane stopping behaviors that are unique to Kampala's tricycle drivers.</p>
 <p>Static vs. Dynamic Deficiencies: Transport models used in East Africa still rely on static PCUs. They completely ignore the temporal shifts, especially the severe congestion window between 18:30 and 20:00 that JICA identified in their 2022 report.</p>
 <p>Simulation Calibration Void: There are no validated parameters (like standstill distances or lateral clearance thresholds) for tricycles in microsimulation programs like VISSIM specifically tailored for Uganda's traffic conditions.</p>
-<h3 id="sec2-6" style={{ color: '#fff', marginTop: '16px' }}>2.6 Recent and Emerging Empirical Evidence (2020-2026)</h3>
+<h3 id="sec2-6" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.6 Recent and Emerging Empirical Evidence (2020-2026)</h3>
 <p>A broader scan of the recent global and regional literature reinforces the gaps identified in Section 2.5 and situates this study within an active, evolving research field. This section synthesises findings published or updated since 2020, together with several foundational studies that remain the theoretical backbone of PCU and headway analysis.</p>
-<h3 id="sec2-6-1" style={{ color: '#fff', marginTop: '16px' }}>2.6.1 Three-Wheeler and Auto-Rickshaw PCU Studies</h3>
-<p>Three-wheeled vehicles occupy an unusual position in the PCU literature: unlike buses or trucks, their equivalence factor does not always rise with traffic volume. Golias (2003) first demonstrated this using a Taxi Equivalence Factor that increased with the proportion of taxis in the stream, a pattern later confirmed for motorised three-wheelers by Rahman and Nakamura (2005), who proposed a speed-based PCU model for rickshaws showing a linear increase in equivalence with traffic volume. However, subsequent work complicates this picture. Praveen and Arasan (2013) found that the rate of PCU increase slows as the subject vehicle's own proportion in the stream grows, while Mondal et al. (2017) and Biswas et al. (2017) both report that, in contrast to heavy vehicles, motorised two- and three-wheelers can show a flat or even declining PCU trend as volume rises. Ben-Edigbe and Ferguson (2005), applying the headway-ratio method used in this study, derived PCU values for eight urban Nigerian road segments and demonstrated that the method transfers reasonably well to African mixed-traffic contexts, lending methodological support to the approach adopted here. More recently, Herman et al. (2021) applied Bayesian linear regression to re-estimate PCE values for motorcycles, cars, and motorised rickshaws in Banda Aceh, Indonesia, finding substantial deviation from the older Indonesian Highway Capacity Manual (IHCM 1997) values and confirming that PCU values decay in relevance as vehicle-mix composition shifts over time; this is precisely the phenomenon this study argues is occurring in Kampala with the rapid rise of the tricycle fleet.</p>
-<h3 id="sec2-6-2" style={{ color: '#fff', marginTop: '16px' }}>2.6.2 Headway and Poisson Arrival Literature</h3>
+<h3 id="sec2-6-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.6.1 Three-Wheeler and Auto-Rickshaw PCU Studies</h3>
+<p>Three-wheeled vehicles occupy an unusual position in the PCU literature: unlike buses or trucks, their equivalence factor does not always rise with traffic volume. Golias (2003) first demonstrated this using a Taxi Equivalence Factor that increased with the proportion of taxis in the stream, a pattern later confirmed for motorised three-wheelers by Rahman and Nakamura (2005), who proposed a speed-based PCU model for rickshaws showing a linear increase in equivalence with traffic volume. However, subsequent work complicates this picture. Praveen and Arasan (2013) found that the rate of PCU increase slows as the subject vehicle's own proportion in the stream grows, while Mondal et al. (2017) and Biswas et al. (2017) both report that, in contrast to heavy vehicles, motorised two- and three-wheelers can show a flat or even declining PCU trend as volume rises. Ben-Edigbe and Ferguson (2005), applying the headway-ratio method used in this study, derived PCU values for eight urban Nigerian road segments and demonstrated that the method transfers reasonably well to African mixed-traffic contexts, lending methodological support to the approach adopted here. More recently, Herman et al. (2021) applied Bayesian linear regression to re-estimate PCE values for motorcycles, cars, and motorised rickshaws in Banda Aceh, Indonesia, finding substantial deviation from the older Indonesian Highway Capacity Manual (Directorate General of Highways [IHCM], 1997) values and confirming that PCU values decay in relevance as vehicle-mix composition shifts over time; this is precisely the phenomenon this study argues is occurring in Kampala with the rapid rise of the tricycle fleet.</p>
+<h3 id="sec2-6-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.6.2 Headway and Poisson Arrival Literature</h3>
 <p>The assumption that vehicle arrivals follow a Poisson process traces back to Adams (1936), who first showed empirically that vehicle counts over fixed intervals approximate the Poisson distribution at low to moderate flow. Subsequent research has repeatedly shown this assumption breaks down as flow increases or as vehicles begin travelling in clusters: Cowan's M3 bunched-exponential distribution (as reviewed in Islam, 2020) and Wasielewski's (1979) semi-Poisson model were both developed specifically to capture the departure from randomness caused by "following" behaviour, where a leading vehicle constrains the headway of vehicles behind it. This is directly relevant to the Poisson goodness-of-fit test conducted in Section 4.9.6 of this study: a rejection of the null hypothesis of Poisson arrivals is not an anomaly but is, in fact, the expected signature of platooning behaviour reported throughout the literature on constrained, mixed-traffic streams.</p>
-<h3 id="sec2-6-3" style={{ color: '#fff', marginTop: '16px' }}>2.6.3 Kampala- and East-Africa-Specific Studies</h3>
+<h3 id="sec2-6-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.6.3 Kampala- and East-Africa-Specific Studies</h3>
 <p>Recent Kampala-focused research continues to focus overwhelmingly on motorcycle taxis (boda-bodas) rather than tricycles, underscoring the specific gap this thesis addresses. Vermeiren et al. (2012) modelled Kampala's urban growth pattern and projected the spatial pressure that would be placed on the road network as the city's population continued to expand; this projection has materialised in the corridor-level congestion this study documents. More recently, a 2025 ScienceDirect study on Kampala's paratransit system found that motorcycle taxis are increasingly competing with, rather than complementing, minibus taxis for the same commuter trips, intensifying competition for road space at exactly the junctions studied here (Wandegeya, Kibuye, Bakuli, Bwaise, and Natete). A 2025 assessment of the boda-boda industry in the Greater Kampala Metropolitan Area estimated that congestion-related delays cost the metropolitan area over 24,000 lost man-hours and 26,000 lost vehicle-hours annually, corroborating the economic-loss estimates cited in Section 1.5.1. None of this recent literature, however, disaggregates tricycles from motorcycles or provides empirically derived PCU values for tricycles specifically, confirming that the gap identified in Section 2.5 remains open.</p>
-<h3 id="sec2-6-4" style={{ color: '#fff', marginTop: '16px' }}>2.6.4 Qualitative and Mixed-Methods Research Design</h3>
+<h3 id="sec2-6-4" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.6.4 Qualitative and Mixed-Methods Research Design</h3>
 <p>The qualitative component of this study (Section 3.3.1) follows the six-phase thematic analysis process formalised by Braun and Clarke (2006): familiarisation with the transcripts, generation of initial codes, searching for themes, reviewing themes, defining and naming themes, and producing the final analytic narrative. This approach is well established in transport research; Sweet et al. (2022) argue explicitly for the value of qualitative methods in transport studies, noting that semi-structured interviews and thematic coding are particularly suited to capturing the subjective, context-dependent driving behaviours, such as pothole avoidance and lane-straddling, that purely quantitative count data cannot explain on its own. Combining this qualitative layer with the quantitative count and simulation data (Sections 3.4 and 4.9) follows the concurrent mixed-methods design recommended for applied transport research, where numerical and narrative evidence are triangulated rather than treated as separate, unconnected strands of enquiry.</p>
-<h3 id="sec2-7" style={{ color: '#fff', marginTop: '16px' }}>2.7 Conclusion</h3>
+<h3 id="sec2-7" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.7 Conclusion</h3>
 <p>The literature shows pretty clearly that using imported, static PCU values for Kampala's highly aggressive tricycle fleet doesn't make mathematical sense. If we want to accurately model and solve Kampala's daily congestion problems, we need to establish empirical, dynamic, and locally calibrated PCU values. The next chapter will detail the methodology used to do exactly that.</p>
 <p id="ch3">CHAPTER THREE</p>
 <p>METHODOLOGY</p>
-<h3 id="sec3-1" style={{ color: '#fff', marginTop: '16px' }}>3.1 Introduction</h3>
+<h3 id="sec3-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.1 Introduction</h3>
 <p>This chapter outlines the research methods we used to figure out the actual Passenger Car Unit (PCU) values for tricycles in Kampala City. Because Kampala’s traffic is so chaotic and mixed, we couldn't just use traditional automated counting machines like pneumatic road tubes. When vehicles don't stay in their lanes, those tubes get run over diagonally or miss smaller vehicles entirely, leading to terrible data. Instead, we decided to use a more labor-intensive but accurate approach: combining high-definition video recording from above with a lot of manual counting by trained enumerators, and then validating that data using traffic simulation software.</p>
-<h3 id="sec3-2" style={{ color: '#fff', marginTop: '16px' }}>3.2 Study Area and Site Selection</h3>
+<h3 id="sec3-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.2 Study Area and Site Selection</h3>
 <p>The study was strictly confined to Kampala City, focusing on five specific intersections that are known for having high volumes of tricycles and terrible daily traffic jams.</p>
 <p>We chose these five locations for very specific reasons:1. Wandegeya Junction: This is a major hotspot near Makerere University. The conflict between pedestrians, boda-bodas, and tricycles here is intense.2. Kibuye Roundabout: This is a notoriously complex multi-leg roundabout where high-speed traffic coming from Entebbe Road crashes into dense, slow-moving informal transit.3. Bakuli Intersection: This acts as a vital artery linking the city center to the western suburbs. It's well known for the aggressive way matatus and tricycles park and stage right on the roadside.4. Bwaise Junction: We specifically chose this northern gateway because it frequently floods. We wanted to see how extreme environmental factors, like dodging flooded potholes, change the tricycle PCU.5. Natete Junction: This is a huge commercial hub where cargo tricycles are especially common, allowing us to compare passenger and cargo variations.</p>
-<h3 id="sec3-3-draft" style={{ color: '#fff', marginTop: '16px' }}>3.3 Research Design and Sampling Strategy</h3>
-<h3 id="sec3-3-1-draft" style={{ color: '#fff', marginTop: '16px' }}>3.3.1 Temporal Scope</h3>
-<p>To make sure we captured the massive day-to-day changes in Kampala traffic, we collected data continuously for seven full daytime survey days (07:00-19:00, 12 hours each), supplemented by two full overnight sessions (19:00-07:00, 12 hours each) to capture nocturnal traffic behaviour. This design allowed direct comparison between daytime and night-time flow regimes in addition to the standard peak/off-peak analysis. We focused our daytime observations across the full 12-hour span, with particular attention to the two busiest windows:- Morning Peak: 07:00 AM - 09:00 AM- Evening Peak: 05:00 PM - 07:00 PM (This allowed us to capture the severe traffic collapse that almost always happens around 6:30 PM).</p>
-<h3 id="sec3-3" style={{ color: '#fff', marginTop: '16px' }}>3.3 Data Collection Strategy (Mixed Methods Approach)</h3>
+<h3 id="sec3-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.3 Data Collection Strategy (Mixed Methods Approach)</h3>
 <p>This study employs a comprehensive mixed-methods approach, rigorously combining both quantitative and qualitative testing to capture the full spectrum of tricycle operational friction. To achieve this, the research draws upon both Primary and Secondary data sources.</p>
-<h3 id="sec3-3-1" style={{ color: '#fff', marginTop: '16px' }}>3.3.1 Primary Data (Quantitative and Qualitative)</h3>
+<h3 id="sec3-3-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.3.1 Primary Data (Quantitative and Qualitative)</h3>
 <p>The primary data forms the bedrock of this study's original contribution to traffic engineering in Kampala.</p>
 <p>1. Quantitative Primary Data (Manual Classified Counts):Due to the lack of automated pneumatic tube sensors in Kampala, we conducted manual classified counts (MCC) across the five study intersections over seven full daytime sessions (07:00-19:00) and two full overnight sessions (19:00-07:00). The data was logged in precise 15-minute intervals, resulting in 2,160 distinct data rows (1,680 daytime records and 480 night-time records). The vehicle classifications tracked were:- Passenger Cars- Boda-bodas (motorcycles)- Tricycles (Tuk-tuks)- Matatus (14-seater minibuses)- Heavy TrucksThe day/night structure of the survey also allows a direct statistical comparison of daytime versus night-time flow regimes (Section 4.9.9). This massive quantitative dataset is used to run rigorous inferential probability tests (e.g., ANOVA, Independent T-Tests).</p>
 <p>2. Qualitative Primary Data (Structured Field Interviews):Traffic engineering often ignores the human element. To capture the behavioral "blocking friction" of tricycle operators, we conducted structured qualitative interviews with 50 local tricycle drivers. A Thematic Analysis, following the six-phase process of Braun and Clarke (2006), was applied to the interview transcripts using conceptual coding to identify recurring qualitative themes such as "pothole swerving," "police extortion," and "fatigue-induced lane straddling."</p>
-<h3 id="sec3-3-2" style={{ color: '#fff', marginTop: '16px' }}>3.3.2 Secondary Data</h3>
+<h3 id="sec3-3-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.3.2 Secondary Data</h3>
 <p>To establish a historical baseline and validate our primary observations, two critical secondary data sources were utilized:1. Ministry of Works and Transport (MoWT) Historical Traffic Logs (2021): We extracted historical 2021 intersection volume data from the MoWT archives. This secondary quantitative data serves as the baseline to calculate the exponential geometric growth rate of tricycle imports over the last five years.2. Uganda National Meteorological Authority (UNMA) Rainfall Data: Historical rainfall averages were cross-referenced with our primary count logs to validate the statistical significance of weather-induced capacity drops.</p>
-<h3 id="sec3-4" style={{ color: '#fff', marginTop: '16px' }}>3.4 Data Processing and Statistical Testing</h3>
+<h3 id="sec3-4" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.4 Data Processing and Statistical Testing</h3>
 <p>Once the primary and secondary data was collated, we applied robust statistical testing to ensure the validity of our findings. - Descriptive Statistics: Calculation of Means, Standard Deviations, and Variances to establish baseline intersection capacities.- Inferential Statistics: One-Way ANOVA tests were utilized to prove variance across geographical locations, and Independent T-Tests were used to test peak vs. off-peak differences and day vs. night differences in tricycle volume and V/C ratio.- Probability Testing (Goodness-of-Fit): A Chi-Square test was applied to tricycle arrival rates to determine if they follow a standard Poisson distribution or if they operate in aggressive non-random clusters (platoons).</p>
-<h3 id="sec3-4-1" style={{ color: '#fff', marginTop: '16px' }}>3.4.1 Modified Headway Ratio Method</h3>
+<h3 id="sec3-4-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.4.1 Modified Headway Ratio Method</h3>
 <p>Our data extractors watched the 60fps footage frame-by-frame to find "clean headway pairs" during times when the traffic was actually flowing. A "clean pair" happens when a tricycle directly follows a passenger car (or vice versa) without swerving out of the lane.Consistent with the headway-ratio approach validated for African urban roads by Ben-Edigbe and Ferguson (2005), we calculated the PCU of a tricycle ($PCU_t$) using the standard formula:$$ PCU_t = \frac&#123;H_t&#125;&#123;H_c&#125; $$Where $H_t$ is the average time headway of the tricycle, and $H_c$ is the average time headway of the passenger car.</p>
-<h3 id="sec3-4-2" style={{ color: '#fff', marginTop: '16px' }}>3.4.2 Multiple Linear Regression (MLR)</h3>
+<h3 id="sec3-4-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.4.2 Multiple Linear Regression (MLR)</h3>
 <p>Because headways don't tell the whole story in mixed traffic, we also used MLR to look at the stream friction. We took the macroscopic lane flow counts and modeled the total time it took the stream to clear the intersection against the counts of each vehicle class. The regression coefficients gave us the relative static PCUs.</p>
-<h3 id="sec3-4-3" style={{ color: '#fff', marginTop: '16px' }}>3.4.3 Dynamic PCU Modeling</h3>
+<h3 id="sec3-4-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.4.3 Dynamic PCU Modeling</h3>
 <p>To answer Objective 3, we stopped treating PCU as just a static number. We modeled it as a dynamic variable that changes based on the Volume-to-Capacity (V/C) ratio. We wrote Python scripts to calculate exactly how the tricycle PCU inflates as the intersection gets closer to total saturation ($V/C \geq 0.95$).</p>
-<h3 id="sec3-5" style={{ color: '#fff', marginTop: '16px' }}>3.5 VISSIM Microsimulation Validation</h3>
+<h3 id="sec3-5" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.5 VISSIM Microsimulation Validation</h3>
 <p>Finally, to prove our empirical findings were correct, we coded the new dynamic PCUs into PTV VISSIM software. By default, VISSIM uses German driving behaviors (the Wiedemann 74/99 models), which obviously don't apply to Kampala. We had to manually calibrate parameters like "Standstill Distance" and "Lateral Clearance" to mimic how closely Kampala tuk-tuks follow each other and how aggressively they weave. We then ran the simulation and compared the resulting queue lengths and delays against our actual video logs to confirm the new PCU values were accurate.</p>
 <p id="ch4">CHAPTER FOUR</p>
 <p>DATA PRESENTATION, ANALYSIS, AND RESULTS</p>
-<h3 id="sec4-1" style={{ color: '#fff', marginTop: '16px' }}>4.1 Introduction</h3>
+<h3 id="sec4-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.1 Introduction</h3>
 <p>This chapter breaks down the empirical data we collected over the seven daytime survey days and two overnight sessions at Kampala's major intersections. We processed all the raw counts and video footage using Python to extract dynamic Passenger Car Unit (PCU) values for tricycles, looking specifically at how they behave under different traffic conditions and across the day/night cycle.</p>
-<h3 id="sec4-2" style={{ color: '#fff', marginTop: '16px' }}>4.2 Overall Traffic Composition</h3>
+<h3 id="sec4-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.2 Overall Traffic Composition</h3>
 <p>Before we could calculate any PCU values, we first needed to understand the baseline traffic mix at our study sites. Our manual counts quickly confirmed just how much informal transit dominates the roads.</p>
 <p>As you can see in Figure 4.1, passenger cars still make up the largest raw count. However, boda-bodas and tricycles combined take up a massive proportion of the traffic stream. Tricycles specifically held a steady 8–11% modal share across the sites. This proves that they are no longer just a fringe option; they are a core, permanent piece of Kampala's transport system.</p>
-<h3 id="sec4-3" style={{ color: '#fff', marginTop: '16px' }}>4.3 Static PCU Estimation Results</h3>
+<h3 id="sec4-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.3 Static PCU Estimation Results</h3>
 <p>Using both the Modified Headway Ratio and the Multiple Linear Regression (MLR) methods, we calculated baseline static PCU values for the tricycles.</p>
 <p>Table 4.1: Baseline Static PCU Values by Intersection</p>
 <p>Intersection</p>
@@ -303,38 +370,38 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>0.98</p>
 <p>0.50</p>
 <p>Analysis: Looking at the data, it's clear that tricycles cause significantly more friction in the traffic stream than boda-bodas. At Bwaise and Kibuye, the MLR method (which looks at the turbulence of the entire traffic stream) gave us PCU values that were close to, or even above, 1.0. This is a huge finding. It means that in severe mixed traffic, a single tricycle disrupts the flow almost as much as a standard passenger car. This happens because they weave erratically but don't have the engine power to accelerate quickly out of bottlenecks.</p>
-<h3 id="sec4-4" style={{ color: '#fff', marginTop: '16px' }}>4.4 Dynamic PCU Modeling: The Impact of Congestion</h3>
+<h3 id="sec4-4" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.4 Dynamic PCU Modeling: The Impact of Congestion</h3>
 <p>To address Objective 3, we analyzed how the tricycle PCU changes depending on how congested the road is (the Volume-to-Capacity, or V/C, ratio).</p>
 <p>During the mid-morning off-peak hours when traffic is flowing reasonably well ($V/C \approx 0.4$), the tricycle PCU hovers around 0.75. But when the evening rush hour hits around 6:30 PM and the road reaches total saturation ($V/C \geq 0.95$), the tricycle PCU spikes all the way to 1.15.</p>
-<h3 id="sec4-4-1" style={{ color: '#fff', marginTop: '16px' }}>4.4.1 The "Blocking Friction" Phenomenon</h3>
+<h3 id="sec4-4-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.4.1 The "Blocking Friction" Phenomenon</h3>
 <p>When we reviewed the video footage, the reason for this spike became obvious. In a complete gridlock, boda-bodas can filter through stationary cars by lane-splitting, which keeps their PCU relatively low. Tricycles, however, are about 1.5 meters wide, so they can't filter. Instead, the drivers try to weave, but they usually just get stuck diagonally between lanes. They act like a physical blockade. This "blocking friction" causes the intersection's capacity to completely collapse, proving that using static PCU values severely underestimates how much damage tricycles do to traffic flow during peak hours.</p>
-<h3 id="sec4-5" style={{ color: '#fff', marginTop: '16px' }}>4.5 Descriptive and Inferential Statistical Analysis (Quantitative)</h3>
+<h3 id="sec4-5" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.5 Descriptive and Inferential Statistical Analysis (Quantitative)</h3>
 <p>To ensure the academic validity of these findings, the full dataset (N = 2,160 intervals: 1,680 daytime + 480 night-time) was subjected to rigorous statistical testing.</p>
-<h3 id="sec4-5-1" style={{ color: '#fff', marginTop: '16px' }}>4.5.1 Descriptive Statistics</h3>
+<h3 id="sec4-5-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.5.1 Descriptive Statistics</h3>
 <p>A baseline descriptive analysis of the primary raw tricycle volumes (daytime sessions, 07:00-19:00) reveals variance across the study sites:</p>
 <p>Table 4.2: Tricycle Volume Descriptive Statistics (15-min Intervals, Daytime)| Intersection | Mean Volume | Standard Deviation | Variance | Min | Max || :--- | :--- | :--- | :--- | :--- | :--- || Bwaise Junction | 14.50 | 8.89 | 79.04 | 2 | 43 || Bakuli Intersection | 15.90 | 9.59 | 91.95 | 2 | 44 || Wandegeya Junction | 16.67 | 10.32 | 106.50 | 2 | 50 || Natete Junction | 17.73 | 11.17 | 124.76 | 2 | 54 || Kibuye Roundabout | 17.92 | 11.01 | 121.29 | 2 | 49 |</p>
 <p>Kibuye Roundabout experiences the highest tricycle volume (Mean = 17.92) and Natete Junction the greatest volatility (Variance = 124.76), consistent with both sites being high-turnover commercial nodes. These figures are independently re-verified in Section 4.9.1 using the same underlying dataset.</p>
-<h3 id="sec4-5-2" style={{ color: '#fff', marginTop: '16px' }}>4.5.2 Inferential Statistics (One-Way ANOVA)</h3>
+<h3 id="sec4-5-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.5.2 Inferential Statistics (One-Way ANOVA)</h3>
 <p>To verify that these locational differences are statistically significant, a One-Way Analysis of Variance (ANOVA) was conducted across the five intersections (daytime sessions). - F-Statistic: 6.33- P-Value: &lt; 0.001</p>
 <p>Because the p-value is below 0.05, we reject the null hypothesis. There is a statistically significant difference in tricycle volumes based on intersection geometry and location, though the effect size is modest (eta-squared = 0.015; see Section 4.9.2 for the full ANOVA table and discussion).</p>
-<h3 id="sec4-5-3" style={{ color: '#fff', marginTop: '16px' }}>4.5.3 Probability Testing (Poisson Goodness-of-Fit)</h3>
+<h3 id="sec4-5-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.5.3 Probability Testing (Poisson Goodness-of-Fit)</h3>
 <p>To test if Kampala's tricycle traffic adheres to standard random arrival probability, we ran a Chi-Square Goodness-of-Fit test on the primary Wandegeya daytime data against a theoretical Poisson distribution.- P-Value: &lt; 0.001The test powerfully rejects the null hypothesis. The tricycle arrival distribution significantly deviates from a pure Poisson model (variance-to-mean ratio = 6.39), proving that tricycles arrive in "platoons" due to aggressive overtaking, fundamentally violating standard Western capacity modeling assumptions. The full merged-bin chi-square table is given in Section 4.9.6.</p>
-<h3 id="sec4-6" style={{ color: '#fff', marginTop: '16px' }}>4.6 Secondary Data Analysis: MoWT Historical Baseline Comparison</h3>
+<h3 id="sec4-6" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.6 Secondary Data Analysis: MoWT Historical Baseline Comparison</h3>
 <p>To prove the exponential growth of tricycle interference, we cross-referenced our 2026 Primary Data with Secondary Data sourced from the 2021 Ministry of Works and Transport (MoWT) traffic logs for Kibuye Roundabout.</p>
 <p>Table 4.3: Longitudinal Growth of Tricycle Volumes (Secondary vs Primary)| Metric | MoWT Secondary Data (2021) | Primary Field Data (2026) | Growth Rate || :--- | :--- | :--- | :--- || Peak Hour Volume (Veh/Hr) | 215 | 700 | +225% || Proportion of Total Fleet | 4.2% | 14.8% | +252% |</p>
 <p>This secondary data comparison mathematically proves that tricycles have transformed from a fringe logistical mode in 2021 to a dominant capacity-choking force in 2026.</p>
-<h3 id="sec4-7" style={{ color: '#fff', marginTop: '16px' }}>4.7 Qualitative Analysis: Thematic Driver Interviews</h3>
+<h3 id="sec4-7" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.7 Qualitative Analysis: Thematic Driver Interviews</h3>
 <p>While the quantitative data proves the capacity collapse, our Qualitative Tests (structured interviews with 50 operators) reveal the behavioral causes behind the soaring PCU values. Through rigorous thematic analysis, three core behavioral drivers emerged:</p>
 <p>Pothole Swerving & Infrastructure Decay (92% occurrence): Operators reported that the narrow wheelbase of the tricycle makes them highly susceptible to rolling over in Kampala's deep potholes. "If I hit the trench at Bwaise, the cargo flips. I must swerve into the fast lane, even if a car is there," stated Respondent 14. This qualitative finding perfectly explains the massive PCU inflation (1.05) observed in the quantitative T-Test during wet weather.</p>
 <p>Police Harassment and Junction Avoidance (78% occurrence): Traffic police frequently target tricycles for unofficial taxation at major junctions like Wandegeya. To avoid extortion, drivers execute sudden, illegal U-turns or cut across traffic medians, creating severe "blocking friction" that stops all lanes simultaneously.</p>
 <p>Fatigue-Induced Lane Straddling (65% occurrence): Working 14-hour shifts in heavy heat without power steering leads to severe driver fatigue. Operators admit to passively straddling two lanes to prevent being squeezed out by aggressive matatus, which halves the effective capacity of a dual-carriageway.</p>
-<h3 id="sec4-8" style={{ color: '#fff', marginTop: '16px' }}>4.8 VISSIM Microsimulation Validation</h3>
+<h3 id="sec4-8" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.8 VISSIM Microsimulation Validation</h3>
 <p>Finally, we fed our new dynamic values into a PTV VISSIM simulation model of the Wandegeya Junction.</p>
 <p>When we replaced the software's default static PCU (which was around 0.5) with our empirical dynamic PCU curve (0.85 - 1.15), the simulation perfectly replicated the massive 150-meter queues we saw in real life. Even better, when we used the simulation to theoretically optimize the traffic light signals based on these new accurate PCUs, the saturation flow improved by 14.2%. This validates just how critical it is to use localized PCU parameters.</p>
-<h3 id="sec4-9" style={{ color: '#fff', marginTop: '16px' }}>4.9 Independent Statistical Verification of the Field Dataset</h3>
+<h3 id="sec4-9" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.9 Independent Statistical Verification of the Field Dataset</h3>
 <p>To ensure analytical rigor and reproducibility, the complete 15-minute interval dataset compiled in Appendix A (2,160 records: 7 daytime survey days x 5 intersections x 48 intervals = 1,680 records, plus 2 overnight sessions x 5 intersections x 48 intervals = 480 records) was independently re-extracted and re-analysed in Python (pandas 2.x and SciPy 1.x), following the statistical framework set out in Section 3.4. Unless otherwise noted, Sections 4.9.1-4.9.6 use the 1,680 daytime records only, matching the peak/off-peak and location-based questions those tests address; Section 4.9.9 uses the full day/night dataset. The results below are reported in full, including tests that returned non-significant or significant results as they actually came out, in the interest of analytical transparency and to allow examiners to reproduce every figure directly from Appendix A.</p>
 <p>Significance convention used throughout this section: * p &lt; .05, ** p &lt; .01, *** p &lt; .001, (ns) = not significant (p &gt;= .05). All tests are two-tailed unless otherwise stated.</p>
-<h3 id="sec4-9-1" style={{ color: '#fff', marginTop: '16px' }}>4.9.1 Descriptive Statistics of Tricycle Volume by Intersection</h3>
+<h3 id="sec4-9-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.9.1 Descriptive Statistics of Tricycle Volume by Intersection</h3>
 <p>Table 4.9.1: Descriptive statistics of tricycle volume (vehicles per 15-minute interval, daytime 07:00-19:00), n = 336 per intersection</p>
 <p>Intersection</p>
 <p>N</p>
@@ -379,7 +446,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>2</p>
 <p>43</p>
 <p>Unlike the earlier 20-day design, the corrected 7-day daytime dataset shows a wider and more clearly ranked spread across intersections, from Bwaise Junction (M = 14.50) to Kibuye Roundabout (M = 17.92). Kibuye and Natete, the two busiest sites, show noticeably higher means and variances than Bwaise and Bakuli, foreshadowing the significant location effect confirmed in Section 4.9.2.</p>
-<h3 id="sec4-9-2" style={{ color: '#fff', marginTop: '16px' }}>4.9.2 Inferential Statistics: One-Way ANOVA on Location</h3>
+<h3 id="sec4-9-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.9.2 Inferential Statistics: One-Way ANOVA on Location</h3>
 <p>Table 4.9.2: One-way ANOVA of daytime tricycle volume by intersection</p>
 <p>Source</p>
 <p>SS</p>
@@ -400,7 +467,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>178,032.7</p>
 <p>1,679</p>
 <p>The one-way ANOVA returned F(4, 1675) = 6.33, p &lt; .001***, eta-squared = 0.015. Unlike the earlier (incorrectly structured) 20-day analysis, this corrected daytime dataset shows a statistically significant difference in tricycle volume across the five intersections. Although the effect size is modest (eta-squared = 1.5% of variance explained), the result is consistent with the descriptive pattern in Table 4.9.1: Kibuye Roundabout and Natete Junction, the two busiest commercial nodes, draw significantly more tricycle traffic than Bwaise Junction and Bakuli Intersection. This supports the study's underlying premise that intersection type and surrounding land use meaningfully shape tricycle demand, in addition to the interaction-dynamics effects documented in Sections 4.9.4-4.9.6.</p>
-<h3 id="sec4-9-3" style={{ color: '#fff', marginTop: '16px' }}>4.9.3 Inferential Statistics: Peak vs. Off-Peak Volume (Independent T-Test)</h3>
+<h3 id="sec4-9-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.9.3 Inferential Statistics: Peak vs. Off-Peak Volume (Independent T-Test)</h3>
 <p>Table 4.9.3: Independent-samples t-test, daytime tricycle volume, peak vs. off-peak windows</p>
 <p>Period</p>
 <p>N</p>
@@ -418,7 +485,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>1,120</p>
 <p>11.75</p>
 <p>Peak-hour tricycle volumes (M = 26.13) are significantly higher than off-peak daytime volumes (M = 11.75), t = 34.10, p &lt; .001*** (Welch's t-test, unequal variances assumed). This confirms that the temporal congestion window identified qualitatively in Section 2.5 (Gap 2) is statistically robust.</p>
-<h3 id="sec4-9-4" style={{ color: '#fff', marginTop: '16px' }}>4.9.4 Headway Comparison: Tricycles vs. Passenger Cars</h3>
+<h3 id="sec4-9-4" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.9.4 Headway Comparison: Tricycles vs. Passenger Cars</h3>
 <p>Table 4.9.4: Independent-samples t-test, average headway, tricycles vs. passenger cars (daytime)</p>
 <p>Vehicle Type</p>
 <p>Mean Headway (s)</p>
@@ -433,7 +500,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>Passenger Cars</p>
 <p>2.50</p>
 <p>Tricycles maintain a significantly longer average headway (3.29s) than passenger cars (2.50s) during daytime hours, t = 50.00, p &lt; .001***. As in the original analysis, this counter-intuitive result (a physically smaller vehicle occupying more time-space) is consistent with the qualitative theme of "blocking friction" reported in Section 4.7.</p>
-<h3 id="sec4-9-5" style={{ color: '#fff', marginTop: '16px' }}>4.9.5 Correlation: Tricycle Volume and Volume-to-Capacity Ratio</h3>
+<h3 id="sec4-9-5" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.9.5 Correlation: Tricycle Volume and Volume-to-Capacity Ratio</h3>
 <p>Table 4.9.5: Pearson correlation, tricycle volume vs. V/C ratio (daytime)</p>
 <p>Pair</p>
 <p>Pearson r</p>
@@ -446,7 +513,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>&lt; .001</p>
 <p>***</p>
 <p>Tricycle volume is strongly and positively correlated with the interval's V/C ratio (r = .68, p &lt; .001***), meaning that roughly 47% of the variance in observed saturation (r-squared = .468) is statistically associated with tricycle presence alone during daytime hours.</p>
-<h3 id="sec4-9-6" style={{ color: '#fff', marginTop: '16px' }}>4.9.6 Probability Testing: Poisson Goodness-of-Fit (Wandegeya Junction, Daytime)</h3>
+<h3 id="sec4-9-6" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.9.6 Probability Testing: Poisson Goodness-of-Fit (Wandegeya Junction, Daytime)</h3>
 <p>Following the Chi-square goodness-of-fit procedure in Section 3.4, daytime tricycle arrivals at Wandegeya Junction were tested against the Poisson distribution implied by their sample mean (lambda = 16.67). Bins with expected frequency below 5 were merged prior to testing, in line with Cochran's rule for chi-square validity.</p>
 <p>Table 4.9.6: Poisson goodness-of-fit test, Wandegeya Junction daytime tricycle volume (merged bins)</p>
 <p>Volume Bin</p>
@@ -465,7 +532,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>128</p>
 <p>57.98</p>
 <p>Chi-square = 1,122.5, df = 2, p &lt; .001***. The null hypothesis of Poisson-distributed (random) arrivals is decisively rejected. The variance-to-mean ratio (index of dispersion) is 6.39, far above the value of 1.0 expected under a true Poisson process, indicating strong overdispersion. As in the original analysis, this is the statistical fingerprint of platooning: tricycles bunch together rather than arriving independently, consistent with the theoretical literature reviewed in Section 2.6.2 and the qualitative "blocking friction" theme in Section 4.7.</p>
-<h3 id="sec4-9-7" style={{ color: '#fff', marginTop: '16px' }}>4.9.7 Secondary Data Cross-Check: 2021 Regional ADT Context</h3>
+<h3 id="sec4-9-7" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.9.7 Secondary Data Cross-Check: 2021 Regional ADT Context</h3>
 <p>As a secondary-data cross-check, the Ministry of Works and Transport's 2021 road inventory (92 road links classified under the Central region, which includes Greater Kampala) was re-examined. Vehicle-class counts in that inventory are reported as a single combined "Motorcycles & Scooters" category and do not disaggregate tricycles from boda-bodas.</p>
 <p>Table 4.9.7: 2021 MoWT secondary ADT data, Central region road links (n = 92)</p>
 <p>Metric</p>
@@ -479,9 +546,9 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>Motorcycle/scooter share of mean ADT</p>
 <p>69.2%</p>
 <p>This confirms, from an independent government source, the central premise of Section 2.5 (Gap 1): as of 2021, Uganda's official road inventory had no vehicle class for tricycles at all. The frequently cited illustrative growth comparison for Kibuye Roundabout (215 vehicles/hour in 2021 vs. 700 vehicles/hour in 2026, Section 4.6) should therefore be read as a field-reported estimate rather than a figure independently reconstructable from the national road inventory.</p>
-<h3 id="sec4-9-8" style={{ color: '#fff', marginTop: '16px' }}>4.9.8 Data Limitation: Weather-Conditioned Comparison</h3>
+<h3 id="sec4-9-8" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.9.8 Data Limitation: Weather-Conditioned Comparison</h3>
 <p>Section 3.3.1 initially proposed testing a wet-vs-dry weather comparison. The 7-day daytime plus 2-night dataset compiled in Appendix A records vehicle counts, headways, and V/C ratio per interval but does not carry an explicit weather-condition field. Consequently, the wet-vs-dry t-test could not be reproduced from Appendix A as presented. To close this gap, it is recommended that a daily weather log (or the UNMA daily rainfall record for the nine survey dates) be appended to Appendix A as an additional column; once available, the same t-test procedure used in Sections 4.9.3 and 4.9.4 above can be applied directly.</p>
-<h3 id="sec4-9-9" style={{ color: '#fff', marginTop: '16px' }}>4.9.9 New Inferential Test: Day vs. Night Tricycle Volume and V/C Ratio</h3>
+<h3 id="sec4-9-9" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.9.9 New Inferential Test: Day vs. Night Tricycle Volume and V/C Ratio</h3>
 <p>The corrected survey design, comprising seven full daytime sessions (07:00-19:00) and two full overnight sessions (19:00-07:00), makes it possible to run a genuinely powered day-versus-night comparison for the first time in this study, using the complete 2,160-record dataset (1,680 daytime + 480 night-time records).</p>
 <p>Table 4.9.9: Independent-samples t-test, tricycle volume and V/C ratio, day vs. night</p>
 <p>Measure</p>
@@ -562,74 +629,76 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>Taken together, this chart gallery reinforces the numerical findings of Section 4.9: tricycle volumes are temporally concentrated in the daytime peak windows (Section 4.10.2), show clustered rather than random arrival patterns (Section 4.10.7 and the Poisson chart above), are consistently associated with elevated V/C ratios across every intersection studied (Section 4.10.5), and collapse to a small fraction of daytime levels overnight (Section 4.10.6), regardless of the specific geometric layout of the junction.</p>
 <p>CHAPTER FIVE</p>
 <p>DISCUSSION OF FINDINGS</p>
-<h3 id="sec5-1" style={{ color: '#fff', marginTop: '16px' }}>5.1 Introduction</h3>
+<h3 id="sec5-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>5.1 Introduction</h3>
 <p>The results we presented in Chapter Four really challenge the way traffic capacity has traditionally been analyzed in Uganda. This chapter discusses what these findings actually mean for the city. We will focus specifically on how current models severely underestimate the friction caused by tricycles, and what this means for urban mobility in Sub-Saharan Africa as a whole.</p>
-<h3 id="sec5-2" style={{ color: '#fff', marginTop: '16px' }}>5.2 The Problem with Static PCU Values</h3>
+<h3 id="sec5-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>5.2 The Problem with Static PCU Values</h3>
 <p>The biggest takeaway from this study is that applying static Passenger Car Unit (PCU) values to highly dynamic, informal transport like tricycles is fundamentally flawed. Historically, the Ministry of Works and Transport (MoWT) and international consultants have just imported static PCU values from the US Highway Capacity Manual or loosely adapted them from Indian studies (JICA, 2010; MoWT, 2010).</p>
 <p>But our findings show that a tricycle’s PCU isn't just a fixed physical property based on its size; it’s a behavioral variable dictated by the environment. The fact that the tricycle PCU spikes from 0.75 in free-flowing traffic to 1.15 during peak congestion ($V/C \geq 0.95$) proves that tricycles become disproportionately disruptive as road space shrinks. This "blocking friction" completely disproves the common assumption that because tricycles are smaller than cars, they automatically ease congestion.</p>
-<h3 id="sec5-2-1" style={{ color: '#fff', marginTop: '16px' }}>5.2.1 Comparison with Regional Literature</h3>
+<h3 id="sec5-2-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>5.2.1 Comparison with Regional Literature</h3>
 <p>The PCU ranges we derived for Kampala (0.82 – 1.15) are notably higher than those reported in Accra, Ghana (0.67 – 0.75) by Adams et al. (2014). However, they align closely with the upper bounds of severe mixed-traffic studies done in Dhaka (Rahman et al., 2019). This variance really highlights the unique aggression of Kampala's traffic culture. In Kampala, tricycles have to fiercely compete for lateral space against a massive boda-boda fleet (which often makes up more than 30% of the traffic). To survive on the road, tricycle drivers use abrupt, diagonal blocking maneuvers. This forces the cars behind them to brake harshly, which artificially inflates the tricycle's PCU value.</p>
-<h3 id="sec5-3" style={{ color: '#fff', marginTop: '16px' }}>5.3 The Cost of Miscalculation</h3>
+<h3 id="sec5-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>5.3 The Cost of Miscalculation</h3>
 <p>Failing to account for these dynamic tricycle PCUs has severe economic consequences. Take the Wandegeya Junction, for example. Right now, the traffic light cycles there are optimized based on the assumption that tricycles act slightly worse than motorcycles (an estimated static PCU of around 0.6). But the reality is that their peak-hour PCU exceeds 1.0. This means the intersection mathematically reaches saturation long before the traffic light models predict it will.</p>
 <p>This basic calibration error is the mathematical root cause of the massive queues we see stretching back every day at 6:30 PM. The delay caused by giving out the wrong amount of green time contributes directly to the estimated USD 1.5 million daily economic loss suffered by the city (KCCA, 2023).</p>
-<h3 id="sec5-4" style={{ color: '#fff', marginTop: '16px' }}>5.4 Weather Dynamics and Infrastructure Resilience</h3>
+<h3 id="sec5-4" style={{ color: '#1d1d1f', marginTop: '16px' }}>5.4 Weather Dynamics and Infrastructure Resilience</h3>
 <p>Our observation that wet weather inflates the PCU (jumping from 0.85 to 1.05 at Bwaise Junction) exposes a critical vulnerability in Kampala’s infrastructure. The extreme lateral swerving drivers use to navigate flooded potholes destroys lane discipline entirely. This suggests that basic civil engineering interventions, like proper drainage and pothole patching, wouldn't just save vehicle wear and tear. They would literally increase the mathematical capacity of the road by reducing the behavioral friction of informal transit.</p>
 <p>CHAPTER SIX</p>
 <p id="conclusion">CONCLUSIONS AND RECOMMENDATIONS</p>
-<h3 id="sec6-1" style={{ color: '#fff', marginTop: '16px' }}>6.1 Conclusions</h3>
+<h3 id="sec6-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>6.1 Conclusions</h3>
 <p>Based on our empirical analysis of how tricycles operate across Kampala's major corridors, this study draws the following main conclusions:</p>
 <p>Static PCUs Don't Work for Tricycles: Using imported, static Passenger Car Unit (PCU) values for tricycles in Kampala is mathematically flawed. Our data shows the empirical static PCU for tricycles ranges between 0.82 and 1.02 depending on the intersection. This is significantly higher than motorcycles (0.45 - 0.55) and dangerously close to a full passenger car (1.0).</p>
 <p>Dynamic Friction Dominates: Tricycle PCUs are highly sensitive to how congested the road is (the Volume-to-Capacity ratio). During the severe evening peak ($V/C \geq 0.95$), tricycle PCUs inflate to a maximum of 1.15 due to "blocking friction." Their intermediate width prevents them from lane-splitting, while their erratic maneuvering chokes the passenger cars trapped behind them.</p>
 <p>Environmental Vulnerability: Bad road surfaces and localized flooding (like what we saw at Bwaise Junction) force drivers into extreme lateral weaving. This artificially inflates tricycle PCUs by up to 23% during heavy rain.</p>
 <p>Simulation Calibration is Mandatory: Standard microsimulation models (like VISSIM) that use default Western driving behaviors fail completely when applied to Kampala. You absolutely have to custom-calibrate the "Standstill Distance" and "Lateral Clearance" parameters to accurately replicate the delays caused by tricycle weaving.</p>
-<h3 id="sec6-2" style={{ color: '#fff', marginTop: '16px' }}>6.2 Recommendations</h3>
-<h3 id="sec6-2-1" style={{ color: '#fff', marginTop: '16px' }}>6.2.1 To the Ministry of Works and Transport (MoWT)</h3>
+<h3 id="sec6-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>6.2 Recommendations</h3>
+<h3 id="sec6-2-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>6.2.1 To the Ministry of Works and Transport (MoWT)</h3>
 <p>Update the Road Design Manual: The MoWT needs to immediately update the national geometric design manuals. They must formally recognize tricycles as a distinct vehicle class and adopt a dynamic PCU range of 0.85 (off-peak) to 1.15 (peak) for all future capacity planning.</p>
 <p>Build Dedicated Staging Areas: Unlike motorcycles, tricycles take up a lot of space when loading passengers. Future road designs must incorporate designated, recessed tricycle staging zones (lay-bys) to stop the mid-lane loading that currently shatters intersection capacity.</p>
-<h3 id="sec6-2-2" style={{ color: '#fff', marginTop: '16px' }}>6.2.2 To the Kampala Capital City Authority (KCCA)</h3>
+<h3 id="sec6-2-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>6.2.2 To the Kampala Capital City Authority (KCCA)</h3>
 <p>Signal Re-optimization: The KCCA Traffic Management Center urgently needs to recalibrate the signal timing plans at Wandegeya, Kibuye, and Bakuli using these newly derived dynamic PCU values. Our VISSIM models indicate this single intervention could improve saturation flow by 10-15%.</p>
 <p>Route Restrictions: Given how much friction cargo tricycles cause during peak hours, KCCA should strongly consider restricting them from entering primary radial roads during the 5:00 PM – 7:30 PM evening peak, forcing them onto secondary feeder roads instead.</p>
-<h3 id="sec6-2-3" style={{ color: '#fff', marginTop: '16px' }}>6.2.3 To Future Researchers</h3>
+<h3 id="sec6-2-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>6.2.3 To Future Researchers</h3>
 <p>Look at Electric Tuk-Tuks: With the recent introduction of electric tricycles (e-Tuks) in Uganda, future researchers should investigate whether their different acceleration speeds and silent motors change their PCU values or how they interact with pedestrians.</p>
 <p>Machine Learning Integration: Future studies could attempt to train computer vision models (like YOLOv8) to automate the extraction of dynamic PCUs directly from KCCA CCTV feeds in real-time.</p>
-<h2 id="references" className="text-accent" style={{ marginTop: '40px' }}>REFERENCES</h2>
-<p>Adams, W. F. (1936). Road traffic considered as a random series. Journal of the Institution of Civil Engineers, 4(1), 121–130.</p>
-<p>Adekunle, A., et al. (2021). Urban air quality and traffic congestion in Sub-Saharan Africa: The case of Kampala. Journal of Environmental Management, 289, 112–125.</p>
-<p>Ahmed, S. (2020). Fundamentals of traffic engineering and capacity analysis (3rd ed.). McGraw-Hill.</p>
-<p>Alecsandru, C., et al. (2023). Simulation-based calibration of passenger car unit values for mixed traffic corridors. Journal of Advanced Transportation, 2023, 1–15.</p>
-<p>Al-kaisy, A., et al. (2015). Developing passenger car equivalents for heavy vehicles on urban arterials. Transportation Research Record, 2483(1), 34–42.</p>
-<p>Baertsch, M. (2020). The informal transit network of Kampala: Boda-bodas, matatus, and tuk-tuks. Urban Mobility Studies, 14(2), 45–60.</p>
-<p>Banskota, S., & Shahi, P. (2021). Traffic heterogeneity in developing nations: A South Asian perspective. Transport Policy, 105, 12–21.</p>
-<p>Ben-Edigbe, J., & Ferguson, N. (2005). A comparative study of passenger car unit values on major roads in Nigeria. Journal of Transportation Engineering, 131(3), 200–206.</p>
-<p>Biswas, S., Chandra, S., & Ghosh, I. (2017). Effects of heterogeneity of traffic stream on modeling of passenger car equivalency. Transportation Research Procedia, 21, 68–79.</p>
-<p>Braun, V., & Clarke, V. (2006). Using thematic analysis in psychology. Qualitative Research in Psychology, 3(2), 77–101.</p>
-<p>Chandra, S., & Kumar, U. (2023). Effect of lane discipline on PCU values in mixed traffic. Journal of Transportation Engineering, 129(4), 458–463.</p>
-<p>ChinAfrica. (2024, May). The rise of the e-tuk-tuk: Chinese EV exports to East Africa. ChinAfrica Magazine, 22–26.</p>
-<p>CSIR – Central Road Research Institute. (2017). Guidelines for capacity of urban roads in plain areas. Indian Roads Congress.</p>
-<p>Daily Monitor. (2023). Kampala loses $1.5 million daily to traffic jams, says KCCA report. Daily Monitor.</p>
-<p>Golias, J. C. (2003). Analysis of traffic corridor impacts from the introduction of the high occupancy vehicle (HOV) lane. European Transport, 23–24, 26–34.</p>
-<p>Greater Kampala Metropolitan Area boda-boda industry assessment. (2025). Assessment of the boda-boda industry in Uganda: A case study of the Greater Kampala Metropolitan Area.</p>
-<p>Herman, L. W., Ahmad, F., & Kurniati, A. (2021). Determining passenger car equivalents for pretimed signalized intersections with severe motorcycle composition using Bayesian linear regression. PLOS ONE, 16(8), e0255321.</p>
-<p>Huerta, M. (2024). First and last mile connectivity in the Global South. Mobility Review, 8(1), 11–19.</p>
-<p>Japan International Cooperation Agency. (2010). The study on the greater Kampala road network and transport improvement in the Republic of Uganda (Final report).</p>
-<p>Japan International Cooperation Agency. (2022). Comprehensive urban development plan for Greater Kampala (Update report).</p>
-<p>Kampala Capital City Authority. (2022). Draft ordinance on the regulation of tricycles and commercial motorcycles.</p>
-<p>Kampala Capital City Authority. (2023). Kampala traffic and congestion annual report. Directorate of Engineering and Technical Services.</p>
-<p>Khisty, C. J., & Lall, B. K. (2016). Transportation engineering: An introduction (3rd ed.). Pearson.</p>
-<p>Lera, M., & Kuleno, B. (2020). Estimating passenger car units at signalized intersections. International Journal of Traffic and Transportation Engineering, 9(3), 112–120.</p>
-<p>Ministry of Works and Transport. (2010). Road design manual, Vol. 1: Geometric design.</p>
-<p>Mondal, P., Sharma, N., & Roy, S. (2017). Effects of traffic mix on passenger car unit at different levels of service under heterogeneous traffic. Journal of the Eastern Asia Society for Transportation Studies, 12, 1170–1185.</p>
-<p>Okiza, P., et al. (2024). Analyzing the modal shift: The rise of tuk-tuks on Kampala’s arterials. African Transport Journal, 12(4), 88–105.</p>
-<p>Olawale, S., et al. (2017). Influence of vehicle type on traffic flow characteristics. Transportation Letters, 9(2), 101–115.</p>
-<p>Porter, G. (2014). Transport planning in Sub-Saharan Africa. Progress in Development Studies, 14(1), 21–39.</p>
-<p>Praveen, P. S., & Arasan, V. T. (2013). Influence of traffic mix on PCU value of vehicles under heterogeneous traffic conditions. International Journal for Traffic and Transport Engineering, 3(3), 302–330.</p>
-<p>Rahman, M., & Nakamura, F. (2005). Measuring passenger car equivalents for non-motorized vehicle (rickshaws) at mid-block sections. Journal of the Eastern Asia Society for Transportation Studies, 6, 119–126.</p>
-<p>Rahman, M., et al. (2019). Dynamic PCU estimation in mixed traffic conditions: A study in Dhaka. Transportation Research Part A, 124, 25–40.</p>
-<p>Raj, P., et al. (2018). Multiple linear regression for PCU estimation on Indian urban arterials. Journal of the Eastern Asia Society for Transportation Studies, 12, 1145–1159.</p>
-<p>Sweet, M. N., Handy, S., & Sabale, R. (2022). The case for qualitative methods in transport research. Australasian Transport Research Forum Proceedings.</p>
-<p>UN-Habitat. (2021). State of African cities report: Urbanization and mobility.</p>
-<p>Vanderschuren, M., Baufeldt, J., & Kampira, E. (2025). Are motorcycle taxis competing with collective public transport? Analyzing the role of boda-bodas in Kampala's urban mobility system. Journal of Transport Geography, 124, 104150.</p>
-<p>Vermeiren, K., Van Rompaey, A., Loopmans, M., Serwajja, E., & Mukwaya, P. (2012). Urban growth of Kampala, Uganda: Pattern analysis and scenario development. Landscape and Urban Planning, 106(2), 199–206.</p>
+<h2 id="references" className="thesis-chapter" style={{ marginTop: '40px' }}>REFERENCES</h2>
+<p>Adams, W. F. (1936). Road traffic considered as a random series. <em>Journal of the Institution of Civil Engineers, 4</em>(1), 121–130.</p>
+<p>Adekunle, A., et al. (2021). Urban air quality and traffic congestion in Sub-Saharan Africa: The case of Kampala. <em>Journal of Environmental Management, 289</em>, 112–125.</p>
+<p>Ahmed, S. (2020). <em>Fundamentals of traffic engineering and capacity analysis</em> (3rd ed.). McGraw-Hill.</p>
+<p>Alecsandru, C., et al. (2023). Simulation-based calibration of passenger car unit values for mixed traffic corridors. <em>Journal of Advanced Transportation, 2023</em>, 1–15.</p>
+<p>Al-kaisy, A., et al. (2015). Developing passenger car equivalents for heavy vehicles on urban arterials. <em>Transportation Research Record, 2483</em>(1), 34–42.</p>
+<p>Baertsch, M. (2020). The informal transit network of Kampala: Boda-bodas, matatus, and tuk-tuks. <em>Urban Mobility Studies, 14</em>(2), 45–60.</p>
+<p>Banskota, S., & Shahi, P. (2021). Traffic heterogeneity in developing nations: A South Asian perspective. <em>Transport Policy, 105</em>, 12–21.</p>
+<p>Ben-Edigbe, J., & Ferguson, N. (2005). A comparative study of passenger car unit values on major roads in Nigeria. <em>Journal of Transportation Engineering, 131</em>(3), 200–206.</p>
+<p>Biswas, S., Chandra, S., & Ghosh, I. (2017). Effects of heterogeneity of traffic stream on modeling of passenger car equivalency. <em>Transportation Research Procedia, 21</em>, 68–79.</p>
+<p>Braun, V., & Clarke, V. (2006). Using thematic analysis in psychology. <em>Qualitative Research in Psychology, 3</em>(2), 77–101.</p>
+<p>Chandra, S., & Kumar, U. (2023). Effect of lane discipline on PCU values in mixed traffic. <em>Journal of Transportation Engineering, 129</em>(4), 458–463.</p>
+<p>ChinAfrica. (2024, May). The rise of the e-tuk-tuk: Chinese EV exports to East Africa. <em>ChinAfrica Magazine</em>, 22–26.</p>
+<p>CSIR – Central Road Research Institute. (2017). <em>Guidelines for capacity of urban roads in plain areas</em>. Indian Roads Congress.</p>
+<p>Daily Monitor. (2023). Kampala loses $1.5 million daily to traffic jams, says KCCA report. <em>Daily Monitor</em>.</p>
+<p>Directorate General of Highways. (1997). <em>Indonesian highway capacity manual (IHCM)</em>. Ministry of Public Works, Republic of Indonesia.</p>
+<p>Golias, J. C. (2003). Analysis of traffic corridor impacts from the introduction of the high occupancy vehicle (HOV) lane. <em>European Transport, 23–24</em>, 26–34.</p>
+<p>Greater Kampala Metropolitan Area boda-boda industry assessment. (2025). <em>Assessment of the boda-boda industry in Uganda: A case study of the Greater Kampala Metropolitan Area</em>.</p>
+<p>Herman, L. W., Ahmad, F., & Kurniati, A. (2021). Determining passenger car equivalents for pretimed signalized intersections with severe motorcycle composition using Bayesian linear regression. <em>PLOS ONE, 16</em>(8), e0255321.</p>
+<p>Huerta, M. (2024). First and last mile connectivity in the Global South. <em>Mobility Review, 8</em>(1), 11–19.</p>
+<p>Japan International Cooperation Agency. (2010). <em>The study on the greater Kampala road network and transport improvement in the Republic of Uganda</em> (Final report).</p>
+<p>Japan International Cooperation Agency. (2022). <em>Comprehensive urban development plan for Greater Kampala</em> (Update report).</p>
+<p>Kampala Capital City Authority. (2022). <em>Draft ordinance on the regulation of tricycles and commercial motorcycles</em>.</p>
+<p>Kampala Capital City Authority. (2023). <em>Kampala traffic and congestion annual report</em>. Directorate of Engineering and Technical Services.</p>
+<p>Khisty, C. J., & Lall, B. K. (2016). <em>Transportation engineering: An introduction</em> (3rd ed.). Pearson.</p>
+<p>Lera, M., & Kuleno, B. (2020). Estimating passenger car units at signalized intersections. <em>International Journal of Traffic and Transportation Engineering, 9</em>(3), 112–120.</p>
+<p>Ministry of Works and Transport. (2010). <em>Road design manual, Vol. 1: Geometric design</em>.</p>
+<p>Mondal, P., Sharma, N., & Roy, S. (2017). Effects of traffic mix on passenger car unit at different levels of service under heterogeneous traffic. <em>Journal of the Eastern Asia Society for Transportation Studies, 12</em>, 1170–1185.</p>
+<p>Okiza, P., et al. (2024). Analyzing the modal shift: The rise of tuk-tuks on Kampala’s arterials. <em>African Transport Journal, 12</em>(4), 88–105.</p>
+<p>Olawale, S., et al. (2017). Influence of vehicle type on traffic flow characteristics. <em>Transportation Letters, 9</em>(2), 101–115.</p>
+<p>Porter, G. (2014). Transport planning in Sub-Saharan Africa. <em>Progress in Development Studies, 14</em>(1), 21–39.</p>
+<p>Praveen, P. S., & Arasan, V. T. (2013). Influence of traffic mix on PCU value of vehicles under heterogeneous traffic conditions. <em>International Journal for Traffic and Transport Engineering, 3</em>(3), 302–330.</p>
+<p>Rahman, M., & Nakamura, F. (2005). Measuring passenger car equivalents for non-motorized vehicle (rickshaws) at mid-block sections. <em>Journal of the Eastern Asia Society for Transportation Studies, 6</em>, 119–126.</p>
+<p>Rahman, M., et al. (2019). Dynamic PCU estimation in mixed traffic conditions: A study in Dhaka. <em>Transportation Research Part A, 124</em>, 25–40.</p>
+<p>Raj, P., et al. (2018). Multiple linear regression for PCU estimation on Indian urban arterials. <em>Journal of the Eastern Asia Society for Transportation Studies, 12</em>, 1145–1159.</p>
+<p>Sweet, M. N., Handy, S., & Sabale, R. (2022). The case for qualitative methods in transport research. <em>Australasian Transport Research Forum Proceedings</em>.</p>
+<p>UN-Habitat. (2021). <em>State of African cities report: Urbanization and mobility</em>.</p>
+<p>Vanderschuren, M., Baufeldt, J., & Kampira, E. (2025). Are motorcycle taxis competing with collective public transport? Analyzing the role of boda-bodas in Kampala's urban mobility system. <em>Journal of Transport Geography, 124</em>, 104150.</p>
+<p>Vermeiren, K., Van Rompaey, A., Loopmans, M., Serwajja, E., & Mukwaya, P. (2012). Urban growth of Kampala, Uganda: Pattern analysis and scenario development. <em>Landscape and Urban Planning, 106</em>(2), 199–206.</p>
+<p>Wasielewski, P. (1979). Car-following headways on freeways interpreted by the semi-Poisson headway distribution model. <em>Transportation Science, 13</em>(1), 36–55.</p>
 <p>APPENDICES</p>
 <p>Appendix A: Raw Traffic Volume and Headway Enumeration Logs (7-Day Daytime + 2 Overnight Sessions)</p>
 <p>The following tables contain the raw 15-minute aggregated vehicle counts and calculated average headways (in seconds) for the five study intersections. Daytime counts were conducted continuously for seven consecutive days, 07:00-19:00 (12 hours/day, 48 fifteen-minute intervals/day). In addition, two full overnight sessions, 19:00-07:00 (12 hours, 48 intervals), were conducted to capture off-peak nocturnal traffic behaviour. Data was logged manually by the enumerator team and cross-verified with overhead video footage. Total dataset size: 2,160 records (7 days x 5 intersections x 48 intervals = 1,680 daytime records; 2 nights x 5 intersections x 48 intervals = 480 night records).</p>
@@ -20741,8 +20810,8 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>Appendix C: Multiple Linear Regression ANOVA Outputs</p>
 <p>textRegression Analysis: Stream Clearance Time vs. Vehicle ClassesIteration 0: R-Sq = 92.2%, F-Value = 374.6, P-Value &lt; 0.001Iteration 1: R-Sq = 91.4%, F-Value = 198.7, P-Value &lt; 0.001Iteration 2: R-Sq = 85.6%, F-Value = 253.4, P-Value &lt; 0.001Iteration 3: R-Sq = 88.7%, F-Value = 423.5, P-Value &lt; 0.001Iteration 4: R-Sq = 92.2%, F-Value = 199.9, P-Value &lt; 0.001Iteration 5: R-Sq = 87.7%, F-Value = 381.9, P-Value &lt; 0.001Iteration 6: R-Sq = 86.3%, F-Value = 128.6, P-Value &lt; 0.001Iteration 7: R-Sq = 90.2%, F-Value = 487.5, P-Value &lt; 0.001Iteration 8: R-Sq = 94.6%, F-Value = 143.0, P-Value &lt; 0.001Iteration 9: R-Sq = 94.8%, F-Value = 400.8, P-Value &lt; 0.001Iteration 10: R-Sq = 89.5%, F-Value = 419.9, P-Value &lt; 0.001Iteration 11: R-Sq = 86.4%, F-Value = 143.1, P-Value &lt; 0.001Iteration 12: R-Sq = 86.6%, F-Value = 126.0, P-Value &lt; 0.001Iteration 13: R-Sq = 92.1%, F-Value = 387.3, P-Value &lt; 0.001Iteration 14: R-Sq = 92.0%, F-Value = 403.7, P-Value &lt; 0.001Iteration 15: R-Sq = 91.9%, F-Value = 386.3, P-Value &lt; 0.001Iteration 16: R-Sq = 86.2%, F-Value = 253.3, P-Value &lt; 0.001Iteration 17: R-Sq = 88.8%, F-Value = 383.0, P-Value &lt; 0.001Iteration 18: R-Sq = 86.1%, F-Value = 209.8, P-Value &lt; 0.001Iteration 19: R-Sq = 91.2%, F-Value = 108.8, P-Value &lt; 0.001Iteration 20: R-Sq = 92.4%, F-Value = 374.3, P-Value &lt; 0.001Iteration 21: R-Sq = 87.5%, F-Value = 358.2, P-Value &lt; 0.001Iteration 22: R-Sq = 91.9%, F-Value = 237.5, P-Value &lt; 0.001Iteration 23: R-Sq = 89.5%, F-Value = 317.1, P-Value &lt; 0.001Iteration 24: R-Sq = 87.2%, F-Value = 133.9, P-Value &lt; 0.001Iteration 25: R-Sq = 93.3%, F-Value = 115.0, P-Value &lt; 0.001Iteration 26: R-Sq = 87.7%, F-Value = 432.4, P-Value &lt; 0.001Iteration 27: R-Sq = 87.3%, F-Value = 389.5, P-Value &lt; 0.001Iteration 28: R-Sq = 91.6%, F-Value = 499.0, P-Value &lt; 0.001Iteration 29: R-Sq = 89.3%, F-Value = 239.7, P-Value &lt; 0.001Iteration 30: R-Sq = 88.4%, F-Value = 433.9, P-Value &lt; 0.001Iteration 31: R-Sq = 86.8%, F-Value = 230.4, P-Value &lt; 0.001Iteration 32: R-Sq = 90.2%, F-Value = 188.5, P-Value &lt; 0.001Iteration 33: R-Sq = 92.3%, F-Value = 451.9, P-Value &lt; 0.001Iteration 34: R-Sq = 88.6%, F-Value = 352.1, P-Value &lt; 0.001Iteration 35: R-Sq = 86.2%, F-Value = 365.9, P-Value &lt; 0.001Iteration 36: R-Sq = 85.3%, F-Value = 290.0, P-Value &lt; 0.001Iteration 37: R-Sq = 92.9%, F-Value = 493.2, P-Value &lt; 0.001Iteration 38: R-Sq = 92.8%, F-Value = 412.6, P-Value &lt; 0.001Iteration 39: R-Sq = 86.7%, F-Value = 288.7, P-Value &lt; 0.001Iteration 40: R-Sq = 93.9%, F-Value = 362.9, P-Value &lt; 0.001Iteration 41: R-Sq = 90.5%, F-Value = 126.6, P-Value &lt; 0.001Iteration 42: R-Sq = 89.3%, F-Value = 271.6, P-Value &lt; 0.001Iteration 43: R-Sq = 85.7%, F-Value = 419.2, P-Value &lt; 0.001Iteration 44: R-Sq = 94.4%, F-Value = 269.1, P-Value &lt; 0.001Iteration 45: R-Sq = 94.9%, F-Value = 491.3, P-Value &lt; 0.001Iteration 46: R-Sq = 91.7%, F-Value = 394.0, P-Value &lt; 0.001Iteration 47: R-Sq = 85.2%, F-Value = 446.3, P-Value &lt; 0.001Iteration 48: R-Sq = 85.6%, F-Value = 143.5, P-Value &lt; 0.001Iteration 49: R-Sq = 88.6%, F-Value = 451.3, P-Value &lt; 0.001Iteration 50: R-Sq = 91.3%, F-Value = 319.6, P-Value &lt; 0.001Iteration 51: R-Sq = 85.8%, F-Value = 262.1, P-Value &lt; 0.001Iteration 52: R-Sq = 91.9%, F-Value = 152.6, P-Value &lt; 0.001Iteration 53: R-Sq = 89.9%, F-Value = 334.4, P-Value &lt; 0.001Iteration 54: R-Sq = 86.2%, F-Value = 270.6, P-Value &lt; 0.001Iteration 55: R-Sq = 85.5%, F-Value = 371.3, P-Value &lt; 0.001Iteration 56: R-Sq = 92.0%, F-Value = 396.4, P-Value &lt; 0.001Iteration 57: R-Sq = 92.3%, F-Value = 379.3, P-Value &lt; 0.001Iteration 58: R-Sq = 90.6%, F-Value = 201.6, P-Value &lt; 0.001Iteration 59: R-Sq = 86.0%, F-Value = 438.6, P-Value &lt; 0.001Iteration 60: R-Sq = 89.2%, F-Value = 349.9, P-Value &lt; 0.001Iteration 61: R-Sq = 90.0%, F-Value = 122.4, P-Value &lt; 0.001Iteration 62: R-Sq = 94.0%, F-Value = 362.4, P-Value &lt; 0.001Iteration 63: R-Sq = 90.4%, F-Value = 198.5, P-Value &lt; 0.001Iteration 64: R-Sq = 92.6%, F-Value = 115.5, P-Value &lt; 0.001Iteration 65: R-Sq = 85.4%, F-Value = 224.7, P-Value &lt; 0.001Iteration 66: R-Sq = 87.7%, F-Value = 286.2, P-Value &lt; 0.001Iteration 67: R-Sq = 94.5%, F-Value = 205.9, P-Value &lt; 0.001Iteration 68: R-Sq = 88.6%, F-Value = 149.8, P-Value &lt; 0.001Iteration 69: R-Sq = 92.6%, F-Value = 284.7, P-Value &lt; 0.001Iteration 70: R-Sq = 90.4%, F-Value = 269.2, P-Value &lt; 0.001Iteration 71: R-Sq = 88.5%, F-Value = 411.3, P-Value &lt; 0.001Iteration 72: R-Sq = 92.1%, F-Value = 484.3, P-Value &lt; 0.001Iteration 73: R-Sq = 93.5%, F-Value = 282.6, P-Value &lt; 0.001Iteration 74: R-Sq = 94.4%, F-Value = 495.2, P-Value &lt; 0.001Iteration 75: R-Sq = 86.5%, F-Value = 207.3, P-Value &lt; 0.001Iteration 76: R-Sq = 86.9%, F-Value = 314.6, P-Value &lt; 0.001Iteration 77: R-Sq = 91.9%, F-Value = 224.6, P-Value &lt; 0.001Iteration 78: R-Sq = 91.5%, F-Value = 407.6, P-Value &lt; 0.001Iteration 79: R-Sq = 92.2%, F-Value = 246.1, P-Value &lt; 0.001Iteration 80: R-Sq = 87.8%, F-Value = 263.1, P-Value &lt; 0.001Iteration 81: R-Sq = 90.6%, F-Value = 278.9, P-Value &lt; 0.001Iteration 82: R-Sq = 90.8%, F-Value = 223.3, P-Value &lt; 0.001Iteration 83: R-Sq = 87.1%, F-Value = 436.5, P-Value &lt; 0.001Iteration 84: R-Sq = 90.6%, F-Value = 420.2, P-Value &lt; 0.001Iteration 85: R-Sq = 93.7%, F-Value = 348.6, P-Value &lt; 0.001Iteration 86: R-Sq = 91.4%, F-Value = 214.8, P-Value &lt; 0.001Iteration 87: R-Sq = 92.8%, F-Value = 447.7, P-Value &lt; 0.001Iteration 88: R-Sq = 94.5%, F-Value = 401.6, P-Value &lt; 0.001Iteration 89: R-Sq = 91.5%, F-Value = 224.2, P-Value &lt; 0.001Iteration 90: R-Sq = 86.9%, F-Value = 364.7, P-Value &lt; 0.001Iteration 91: R-Sq = 91.3%, F-Value = 474.1, P-Value &lt; 0.001Iteration 92: R-Sq = 91.2%, F-Value = 394.9, P-Value &lt; 0.001Iteration 93: R-Sq = 93.6%, F-Value = 497.1, P-Value &lt; 0.001Iteration 94: R-Sq = 94.3%, F-Value = 150.8, P-Value &lt; 0.001Iteration 95: R-Sq = 86.7%, F-Value = 232.6, P-Value &lt; 0.001Iteration 96: R-Sq = 88.4%, F-Value = 285.5, P-Value &lt; 0.001Iteration 97: R-Sq = 85.3%, F-Value = 376.7, P-Value &lt; 0.001Iteration 98: R-Sq = 86.6%, F-Value = 414.2, P-Value &lt; 0.001Iteration 99: R-Sq = 87.3%, F-Value = 495.9, P-Value &lt; 0.001</p>
 
-          <div id="downloads" style={{ marginTop: '60px', padding: '24px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <h3 style={{ color: '#fff', marginBottom: '20px' }}>Download Source Files</h3>
+          <div id="downloads" style={{ marginTop: '60px', padding: '24px', background: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.08)' }}>
+            <h3 style={{ color: '#1d1d1f', marginBottom: '20px' }}>Download Source Files</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -20766,6 +20835,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
           </div>
 
         </div>
+      </div>
       </div>
     </div>
   );
