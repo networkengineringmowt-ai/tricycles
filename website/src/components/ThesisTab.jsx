@@ -103,9 +103,10 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
             max-height: none !important;
             overflow-y: visible !important;
           }
-          .thesis-body-card { padding: 20px !important; }
+          .thesis-body-card { padding: 20px !important; width: 100% !important; box-sizing: border-box; }
           .thesis-doc-title { font-size: 1.5rem !important; margin-bottom: 24px !important; }
-          .thesis-content table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+          .thesis-content table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; max-width: 100%; }
+          .thesis-content pre { max-width: 100%; box-sizing: border-box; }
         }
         @media (max-width: 480px) {
           .thesis-light { padding: 24px 8px 70px; }
