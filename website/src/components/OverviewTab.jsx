@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON, LayersControl, LayerGroup, ScaleControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, LayersControl, LayerGroup, ScaleControl, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import {
@@ -114,7 +114,6 @@ const KpiCard = ({ icon, color, label, value, sub }) => (
 // ---------------------------------------------------------------------------
 const OverviewTab = ({ goBack, canGoBack } = {}) => {
   const [selectedSite, setSelectedSite] = useState(null);
-  const [geoData, setGeoData] = useState(null);
   const [weatherView, setWeatherView] = useState('Dry');
   const stats = useTrafficStats();
 
@@ -144,14 +143,6 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
     );
     downloadTextFile('tricycle_pcu_study_sites.csv', [header, ...lines].join('\n'));
   };
-
-  useEffect(() => {
-    const baseUrl = import.meta.env.BASE_URL || '/';
-    fetch(`${baseUrl}assets/kampala_roads.geojson`)
-      .then(res => res.json())
-      .then(data => setGeoData(data))
-      .catch(err => console.error('Error loading geojson:', err));
-  }, []);
 
   const totalVolume = studySites ? studySites.reduce((s, x) => s + x.meanDailyVolume, 0) : 0;
   const busiest = studySites && stats ? studySites.find(s => s.name === stats.busiestIntersection) : null;
@@ -299,9 +290,6 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                 <ScaleControl position="bottomleft" metric imperial />
                 <MapFullscreenControl />
                 <LayersControl position="topright" collapsed={true}>
-                  <LayersControl.Overlay checked name="Road Network">
-                    {geoData ? <GeoJSON data={geoData} style={{ color: C.indigo, weight: 2, opacity: 0.55 }} /> : <LayerGroup />}
-                  </LayersControl.Overlay>
                   <LayersControl.Overlay checked name="Study Site Markers">
                     <LayerGroup>
                       {studySites.map((site, idx) => (
