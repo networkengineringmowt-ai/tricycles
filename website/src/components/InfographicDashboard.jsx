@@ -350,7 +350,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         .a-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 22px; }
         .a-kpi { padding: 22px; gap: 10px; }
         .a-kpi-icon { width: 42px; height: 42px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 17px; margin-bottom: 4px; }
-        .a-kpi-value { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.02em; color: ${C.ink}; font-feature-settings: "tnum" 1; }
+        .a-kpi-value { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; color: ${C.ink}; font-feature-settings: "tnum" 1; }
         .a-kpi-label { font-size: 0.72rem; font-weight: 700; color: ${C.sub}; text-transform: uppercase; letter-spacing: 0.03em; }
         .a-kpi-sub { font-size: 0.76rem; color: ${C.faint}; margin-top: -2px; }
 
@@ -486,7 +486,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Doughnut
                 data={{
-                  labels: ['Boda Bodas (Motorcycle Taxis)', 'Tricycles', 'Passenger Cars', 'Matatus (14-Seater)', 'Heavy Trucks'],
+                  labels: [VEH_LABELS.Boda_bodas, VEH_LABELS.Tricycles, VEH_LABELS.Cars, VEH_LABELS.Minibuses, VEH_LABELS.Heavy_Trucks],
                   datasets: [{
                     data: [
                       stats.overallCompositionPct.Boda_bodas, stats.overallCompositionPct.Tricycles,
@@ -1136,9 +1136,15 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
-        {/* Poisson VMR + platooning radar + PCU~VC scatter */}
+        {/* Poisson VMR + PCU~VC scatter */}
+        {/* NOTE: a third panel here ("Platooning Index Across Sites", a Radar)
+            was removed -- it re-plotted this exact same VMR-by-intersection
+            series a second time with no new dimension (its own subtitle said
+            "Same VMR values, radar view"), which is a genuine duplicate, not
+            a distinct analytical angle. Removing it drops the gallery from
+            31 to 30 canvases and rebalances this row to two s-6 panels. */}
         <div className="a-grid">
-          <div className="a-card s-4">
+          <div className="a-card s-6">
             <SectionHeader eyebrow="Poisson dispersion · 7-day baseline dataset" title="Arrival Platooning (VMR) by Intersection" color={C.red} sub="Variance-to-mean ratio of tricycle arrivals; VMR ≫ 1 = platooning" />
             <div className="a-chart-box">
               <Bar
@@ -1155,24 +1161,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             </div>
           </div>
 
-          <div className="a-card s-4">
-            <SectionHeader eyebrow="Poisson dispersion · 7-day baseline dataset" title="Platooning Index Across Sites" color={C.pink} sub="Same VMR values, radar view" />
-            <div className="a-chart-box" style={{ minHeight: '240px' }}>
-              <Radar
-                data={{
-                  labels: siteNames.map(stats.shortName),
-                  datasets: [{ label: 'VMR', data: siteNames.map((n) => Number(stats.poissonByIntersection[n]?.vmr.toFixed(2))), backgroundColor: hex2rgba(C.pink, 0.16), borderColor: C.pink, borderWidth: 2, pointBackgroundColor: C.pink, pointBorderColor: '#fff', pointRadius: 3 }]
-                }}
-                options={{
-                  animation: animConfig, maintainAspectRatio: false, layout: { padding: 14 },
-                  scales: { r: { min: 0, ticks: { showLabelBackdrop: false, color: chartSub, font: { size: 8.5 } }, grid: { color: chartGrid }, angleLines: { color: chartGrid }, pointLabels: { color: chartText, font: { size: 9.5, weight: '600' } } } },
-                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="a-card s-4">
+          <div className="a-card s-6">
             <SectionHeader eyebrow="Pearson correlation · 7-day baseline dataset" title="PCU Ratio vs. V/C Ratio" color={C.indigo}
               sub={`r = ${fmt(stats.pcuVcCorrelation.r, 2)}, ${pFmt(stats.pcuVcCorrelation.p)}, n = ${fmtN(stats.pcuVcCorrelation.n)}`} />
             <div className="a-chart-box">

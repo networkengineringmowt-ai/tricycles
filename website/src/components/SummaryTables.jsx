@@ -238,7 +238,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
         <div className="a-kpi-grid">
           <KpiCard icon="fa-database" color={C.blue} label="Sample Size" value={stats.sampleSizeIntervals.toLocaleString()} sub="15-min intervals, all 5 sites" />
           <KpiCard icon="fa-car-side" color={C.indigo} label="Network Peak-Hour Total" value={Math.round(totals.Total).toLocaleString()} sub="Veh/hr, sum of all sites · n = 2,000 peak intervals" />
-          <KpiCard icon="fa-route" color={C.green} label="Tricycle Share" value={`${tricycleShare.toFixed(1)}%`} sub={`${Math.round(totals.Tricycles).toLocaleString()} veh/hr network-wide · n = 6,400`} />
+          <KpiCard icon="fa-route" color={C.green} label="Tricycle Share" value={`${tricycleShare.toFixed(1)}%`} sub={`${Math.round(totals.Tricycles).toLocaleString()} veh/hr network-wide · n = 2,000 peak intervals`} />
           <KpiCard icon="fa-fire" color={C.orange} label="Busiest Junction" value={stats.shortName(busiest.junction)} sub={`${Math.round(busiest.Total).toLocaleString()} veh/hr total motorized`} />
           <KpiCard icon="fa-gauge-high" color={C.pink} label="Network PCU (headway-ratio)" value={stats.pcuHeadwayOverall.toFixed(2)} sub="Mean across all 5 sites · n = 2,160 intervals" />
         </div>
@@ -261,7 +261,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
-                  scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 0 } }, y: { stacked: true, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 45, minRotation: 0 } }, y: { stacked: true, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
                   plugins: {
                     legend: { labels: legendTheme.labels },
                     tooltip: { ...tooltipTheme, callbacks: { title: (items) => rows[items[0].dataIndex].junction } }
@@ -295,7 +295,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                 }}
               />
             </div>
-            <p className="a-footnote">Tricycles account for {tricycleShare.toFixed(1)}% of all motorized flow across the five study sites.</p>
+            <p className="a-footnote">Tricycles account for {(totals.Tricycles / totals.Total * 100).toFixed(1)}% of peak-hour motorized flow across the five study sites.</p>
           </div>
 
           <div className="a-card s-7">
@@ -308,7 +308,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
-                  scales: { y: { ticks: { stepSize: 5, color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 0 } } },
+                  scales: { y: { ticks: { stepSize: 5, color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 45, minRotation: 0 } } },
                   plugins: {
                     legend: { display: false },
                     tooltip: { ...tooltipTheme, callbacks: { title: (items) => rows[items[0].dataIndex].junction } }
