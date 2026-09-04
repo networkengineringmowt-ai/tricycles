@@ -47,6 +47,49 @@ const variance = (arr) => {
 };
 const std = (arr) => Math.sqrt(variance(arr));
 
+// --- order statistics -------------------------------------------------------
+// Linear-interpolation quantile (same convention as Excel/NumPy's default
+// "linear" method), operating on a pre-sorted array.
+function quantileSorted(sorted, q) {
+  const n = sorted.length;
+  if (n === 1) return sorted[0];
+  const pos = q * (n - 1);
+  const lo = Math.floor(pos), hi = Math.ceil(pos);
+  if (lo === hi) return sorted[lo];
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+const median = (arr) => {
+  const s = [...arr].sort((a, b) => a - b);
+  return quantileSorted(s, 0.5);
+};
+// Discrete mode -- the most frequently occurring exact value. For the
+// count-style fields used here (vehicle counts, rounded ratios) this is a
+// meaningful, well-defined statistic; ties resolve to the smallest value.
+function mode(arr) {
+  const freq = new Map();
+  arr.forEach((v) => freq.set(v, (freq.get(v) || 0) + 1));
+  let best = arr[0], bestCount = 0;
+  freq.forEach((count, v) => {
+    if (count > bestCount || (count === bestCount && v < best)) { best = v; bestCount = count; }
+  });
+  return { value: best, count: bestCount };
+}
+// Full descriptive-statistics summary used by the Analytics tab's
+// "Descriptive Statistics" panels -- every field computed live from the
+// array passed in, never hand-typed.
+function describe(arr) {
+  const s = [...arr].sort((a, b) => a - b);
+  const n = s.length;
+  const m = mean(s);
+  const sd = n > 1 ? std(s) : 0;
+  const q1 = quantileSorted(s, 0.25), q3 = quantileSorted(s, 0.75);
+  return {
+    n, mean: m, median: quantileSorted(s, 0.5), mode: mode(s).value, std: sd,
+    min: s[0], max: s[n - 1], q1, q3, iqr: q3 - q1,
+    cv: m !== 0 ? (sd / Math.abs(m)) * 100 : null,
+  };
+}
+
 // Abramowitz & Stegun 7.1.26 erf approximation (max error ~1.5e-7)
 function erf(x) {
   const sign = x < 0 ? -1 : 1;
@@ -260,6 +303,86 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   });
   const incidentTotalsByType = {};
   incidents.forEach((r) => { incidentTotalsByType[r.IncidentType] = (incidentTotalsByType[r.IncidentType] || 0) + 1; });
+  // overall severity totals, summed across every incident type -- powers a
+  // single network-wide severity Pie
+  const incidentSeverityTotals = { Fatal: 0, Serious: 0, Minor: 0 };
+  incidents.forEach((r) => { incidentSeverityTotals[r.Severity] = (incidentSeverityTotals[r.Severity] || 0) + 1; });
+
+  // ---------------------------------------------------------------------
+  // Extended aggregates -- support the Analytics tab's extended chart
+  // gallery. Every value below is a live derivation of field20 / baseline7 /
+  // incidents, computed the same way as everything above.
+  // ---------------------------------------------------------------------
+
+  // --- descriptive statistics: Total Volume (field20), PCU ratio & V/C
+  //     ratio (baseline7, per-interval) ---
+  const totalVolumeDescribe = describe(field20.map((r) => r.TotalVolume));
+  const pcuRatioValues = baseline7.map((r) => r.TriHeadway / r.CarHeadway);
+  const pcuRatioDescribe = describe(pcuRatioValues);
+  const vcRatioDescribe = describe(vcValues);
+
+  // --- histogram of Total Volume across all 6,400 field20 intervals, binned
+  //     into 10 equal-width bins spanning the observed min-max range ---
+  const totalVolumeHistogram = (() => {
+    const { min, max } = totalVolumeDescribe;
+    const binCount = 10;
+    const width = (max - min) / binCount || 1;
+    const bins = Array.from({ length: binCount }, (_, i) => ({
+      binStart: min + i * width, binEnd: min + (i + 1) * width, count: 0,
+    }));
+    field20.forEach((r) => {
+      const idx = Math.min(binCount - 1, Math.floor((r.TotalVolume - min) / width));
+      bins[Math.max(0, idx)].count += 1;
+    });
+    return bins;
+  })();
+
+  // --- hourly volume profile, per intersection (field20) ---
+  const hourlyProfileByIntersection = {};
+  Object.entries(byIntDate).forEach(([name, rows]) => {
+    const byHourSite = groupBy(rows, 'Hour');
+    const entry = {};
+    Object.entries(byHourSite).forEach(([h, hRows]) => { entry[h] = mean(hRows.map((r) => r.TotalVolume)); });
+    hourlyProfileByIntersection[name] = entry;
+  });
+
+  // --- day vs night tricycle volume, per intersection (baseline7) ---
+  const dayNightByIntersection = {};
+  Object.entries(groupBy(baseline7, 'Intersection')).forEach(([name, rows]) => {
+    const d = rows.filter((r) => r.Session_Type === 'Day').map((r) => r.Tricycles);
+    const nt = rows.filter((r) => r.Session_Type === 'Night').map((r) => r.Tricycles);
+    dayNightByIntersection[name] = { dayMean: mean(d), nightMean: mean(nt), dayN: d.length, nightN: nt.length };
+  });
+
+  // --- V/C ratio descriptive stats, per intersection (baseline7) ---
+  const vcByIntersection = {};
+  Object.entries(groupBy(baseline7, 'Intersection')).forEach(([name, rows]) => {
+    const vc = rows.map((r) => r.VC);
+    vcByIntersection[name] = { mean: mean(vc), std: std(vc), min: Math.min(...vc), max: Math.max(...vc), n: vc.length };
+  });
+
+  // --- vehicle-class composition, by weather condition (field20) ---
+  const compositionByWeather = {};
+  ['Dry', 'Wet (Rain)'].forEach((w) => {
+    const rows = field20.filter((r) => r.Weather === w);
+    const comp = {};
+    VEH_COLS.forEach((c) => { comp[c] = sum(rows.map((r) => r[c])); });
+    const total = sum(Object.values(comp));
+    const pct = {};
+    VEH_COLS.forEach((c) => { pct[c] = total ? (comp[c] / total) * 100 : 0; });
+    compositionByWeather[w === 'Dry' ? 'Dry' : 'Wet'] = pct;
+  });
+
+  // --- peak-hour network composition (sum of peakHourlyByIntersection
+  //     across all 5 sites, per vehicle class) ---
+  const peakNetworkComposition = {};
+  VEH_COLS.forEach((c) => { peakNetworkComposition[c] = sum(Object.values(peakHourlyByIntersection).map((v) => v[c])); });
+
+  // --- PCU ratio (per-interval) <-> V/C ratio correlation (baseline7) --
+  //     does a locally larger tricycle/car headway ratio track with a
+  //     locally busier V/C ratio? Same Pearson method as volumeVcCorrelation.
+  const pcuVcCorrelation = pearson(pcuRatioValues, vcValues);
+  const pcuVcPairs = baseline7.map((r) => ({ x: r.TriHeadway / r.CarHeadway, y: r.VC }));
 
   return {
     byIntersection, peakHourlyByIntersection, busiestIntersection, highestTricycleShareIntersection,
@@ -267,7 +390,10 @@ export function computeTrafficStats(field20, baseline7, incidents) {
     weatherTest, peakOffpeakTest, tricycleAnova, tricycleByIntersection,
     pcuByIntersection, pcuHeadwayOverall, vcStats, volumeVcCorrelation, volumeVcPairs, dayNightTest,
     headwayTest, poissonNetwork, poissonByIntersection,
-    incidentSeverityByType, incidentTotalsByType, incidentN: incidents.length,
+    incidentSeverityByType, incidentTotalsByType, incidentSeverityTotals, incidentN: incidents.length,
+    totalVolumeDescribe, pcuRatioDescribe, vcRatioDescribe, totalVolumeHistogram,
+    hourlyProfileByIntersection, dayNightByIntersection, vcByIntersection,
+    compositionByWeather, peakNetworkComposition, pcuVcCorrelation, pcuVcPairs,
     shortName,
   };
 }
@@ -298,6 +424,13 @@ export const FORMULAS = {
   headwayTest: { formula: 'Paired-samples t-test, Avg Tricycle Headway (s) vs Avg Car Headway (s) recorded on the same interval', source: 'baseline7', n: '2,160' },
   poissonDispersion: { formula: 'Variance-to-mean ratio (VMR) of Tricycles per interval; VMR ≫ 1 indicates arrivals bunch into platoons rather than a random Poisson stream', source: 'baseline7', n: '2,160 network-wide' },
   incidentSeverity: { formula: 'Cross-tabulation of IncidentType × Severity, direct counts', source: 'incidents', n: '840' },
+  descriptiveStats: { formula: 'mean / median / mode / std / Q1 / Q3 / IQR / coefficient of variation, computed directly from the full array of per-interval values (linear-interpolation quantiles)', source: 'field20 / baseline7', n: 'varies — stated per panel' },
+  pcuVcCorrelation: { formula: 'Pearson correlation, per-interval PCU ratio (Avg Tricycle Headway ÷ Avg Car Headway) vs V/C Ratio: r = cov(x,y) ÷ (σx·σy)', source: 'baseline7', n: '2,160' },
+  hourlyProfileByIntersection: { formula: 'Mean Total Volume per 15-min interval, grouped by Hour, computed separately within each intersection', source: 'field20', n: '~80 intervals/hour/site' },
+  dayNightByIntersection: { formula: 'Mean Tricycles per interval, Session=Day vs Session=Night, computed separately within each intersection', source: 'baseline7', n: '336 day / 96 night per site' },
+  compositionByWeather: { formula: 'class_total ÷ sum(all 5 class totals) × 100, computed separately for Weather=Dry and Weather=Wet intervals', source: 'field20', n: '6,001 dry / 399 wet' },
+  incidentSeverityTotals: { formula: 'Count of Severity=Fatal / Serious / Minor, summed across all incident types', source: 'incidents', n: '840' },
+  totalVolumeHistogram: { formula: '10 equal-width bins spanning the observed min-max range of Total Volume per interval, counts per bin', source: 'field20', n: '6,400' },
 };
 
 // ---------------------------------------------------------------------------
