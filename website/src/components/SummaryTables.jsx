@@ -176,7 +176,15 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
 
         .a-chart-box { flex: 1; min-height: 300px; position: relative; width: 100%; margin-top: 10px; }
 
-        .a-table-wrap { overflow-x: auto; margin-top: 6px; }
+        .a-table-wrap { overflow-x: auto; margin-top: 6px; position: relative; }
+        @media (max-width: 860px) {
+          .a-table-wrap::after {
+            content: ''; position: sticky; float: right; top: 0; right: 0; height: 100%; width: 28px;
+            margin-left: -28px; margin-top: -1px;
+            background: linear-gradient(to right, transparent, ${C.canvas});
+            pointer-events: none; display: block;
+          }
+        }
         .a-table { width: 100%; min-width: 820px; border-collapse: separate; border-spacing: 0 6px; text-align: right; font-size: 0.82rem; }
         .a-table thead th { padding: 0 0 8px; white-space: nowrap; }
         .a-th-btn { display: inline-flex; align-items: center; background: none; border: none; margin: 0; padding: 4px 8px; font: inherit; color: ${C.faint}; font-weight: 700; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer; user-select: none; border-radius: 6px; }

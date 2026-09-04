@@ -3,7 +3,7 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, RadialLinearScale, PointElement, LineElement,
   BarElement, ArcElement, Filler, Tooltip, Legend
 } from 'chart.js';
-import { Line, Bar, Doughnut, Scatter, Radar } from 'react-chartjs-2';
+import { Line, Bar, Doughnut, Scatter, Radar, Pie, PolarArea, Bubble, Chart } from 'react-chartjs-2';
 import PageControls, { downloadTextFile } from './PageControls';
 import MethodologyPanel from './MethodologyPanel';
 import SearchableSelect, { searchableSelectCss } from './SearchableSelect';
@@ -45,6 +45,18 @@ const tooltipTheme = {
 };
 const legendTheme = { labels: { color: chartSub, boxWidth: 10, boxHeight: 10, padding: 14, font: { size: 11, weight: '600' }, usePointStyle: true, pointStyle: 'circle' } };
 const INCIDENT_COLORS = [C.red, C.orange, C.blue, C.indigo, C.teal, C.purple, C.pink, C.green, C.yellow, '#8e8e93'];
+const SITE_COLORS = [C.blue, C.indigo, C.teal, C.orange, C.purple];
+const VEH_ORDER = ['Cars', 'Boda_bodas', 'Tricycles', 'Minibuses', 'Heavy_Trucks'];
+const VEH_LABELS = { Cars: 'Passenger Cars', Boda_bodas: 'Boda Bodas', Tricycles: 'Tricycles', Minibuses: 'Minibuses', Heavy_Trucks: 'Heavy Trucks' };
+const CLASS_COLORS = { Cars: C.blue, Boda_bodas: C.indigo, Tricycles: C.green, Minibuses: C.teal, Heavy_Trucks: C.red };
+
+// Guarded number formatters -- every derived figure passes through one of
+// these before it reaches the DOM, so a null/undefined/NaN (e.g. an empty
+// filter, or a divide-by-zero coefficient of variation) renders as an em
+// dash instead of leaking "undefined"/"NaN" text.
+const isBad = (v) => v === null || v === undefined || Number.isNaN(v);
+const fmt = (v, d = 1) => (isBad(v) ? '—' : Number(v).toFixed(d));
+const fmtN = (v) => (isBad(v) ? '—' : Number(v).toLocaleString());
 
 // ---------------------------------------------------------------------------
 // Small reusable pieces
@@ -199,7 +211,38 @@ const PhotoCarousel = ({ photos }) => {
   );
 };
 
-const pFmt = (p) => (p < 0.001 ? 'p < .001' : `p = ${p.toFixed(3)}`);
+const pFmt = (p) => (isBad(p) ? '—' : (p < 0.001 ? 'p < .001' : `p = ${p.toFixed(3)}`));
+
+const StatRow = ({ label, value }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '7px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+    <span style={{ fontSize: '0.8rem', color: C.sub, fontWeight: 600 }}>{label}</span>
+    <span style={{ fontSize: '0.85rem', color: C.ink, fontWeight: 800, fontFeatureSettings: '"tnum" 1' }}>{value}</span>
+  </div>
+);
+
+// Descriptive-statistics card: mean/median/mode/std/quartiles/IQR/CV for a
+// single field, computed by `describe()` in trafficStats.js from the real
+// per-interval values -- never hand-typed.
+const DescribeCard = ({ color, eyebrow, title, sub, d, unit }) => {
+  const u = unit ? ` ${unit}` : '';
+  return (
+    <div className="a-card s-4">
+      <SectionHeader eyebrow={eyebrow} title={title} color={color} sub={sub} />
+      <div style={{ marginTop: '4px' }}>
+        <StatRow label="Sample size (n)" value={fmtN(d?.n)} />
+        <StatRow label="Mean" value={d ? `${fmt(d.mean, 2)}${u}` : '—'} />
+        <StatRow label="Median" value={d ? `${fmt(d.median, 2)}${u}` : '—'} />
+        <StatRow label="Mode" value={d ? `${fmt(d.mode, 2)}${u}` : '—'} />
+        <StatRow label="Std. deviation" value={d ? `${fmt(d.std, 2)}${u}` : '—'} />
+        <StatRow label="Q1 (25th pct.)" value={d ? `${fmt(d.q1, 2)}${u}` : '—'} />
+        <StatRow label="Q3 (75th pct.)" value={d ? `${fmt(d.q3, 2)}${u}` : '—'} />
+        <StatRow label="IQR" value={d ? `${fmt(d.iqr, 2)}${u}` : '—'} />
+        <StatRow label="Min – Max" value={d ? `${fmt(d.min, 2)} – ${fmt(d.max, 2)}${u}` : '—'} />
+        <StatRow label="Coeff. of variation" value={d && !isBad(d.cv) ? `${fmt(d.cv)}%` : '—'} />
+      </div>
+    </div>
+  );
+};
 
 // ---------------------------------------------------------------------------
 const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
@@ -257,6 +300,33 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
   // (no selective reporting); the searchable dropdown narrows to one.
   const [incidentFocus, setIncidentFocus] = useState(null);
   const visibleIncidentTypes = incidentFocus ? incidentTypes.filter((t) => t === incidentFocus) : incidentTypes;
+
+  // --- derived data for the Extended Chart Gallery ---------------------
+  // Everything here is a pure re-shaping of numbers already computed live
+  // in trafficStats.js (sorting, ranking, CDF construction) -- no new
+  // figures are invented.
+  const HOURS = useMemo(() => (stats ? Object.keys(stats.hourlyProfile).map(Number).sort((a, b) => a - b) : []), [stats]);
+
+  const vcCdf = useMemo(() => {
+    if (!stats) return [];
+    const sorted = stats.volumeVcPairs.map((p) => p.y).sort((a, b) => a - b);
+    const n = sorted.length;
+    return sorted.map((v, i) => ({ x: v, y: ((i + 1) / n) * 100 }));
+  }, [stats]);
+
+  const siteNames = useMemo(() => (stats ? Object.keys(stats.byIntersection) : []), [stats]);
+  const siteColorOf = useMemo(() => Object.fromEntries(siteNames.map((n, i) => [n, SITE_COLORS[i % SITE_COLORS.length]])), [siteNames]);
+
+  const modalShareRanked = useMemo(() => {
+    if (!stats) return [];
+    return Object.entries(stats.byIntersection).sort((a, b) => b[1].tricycleSharePct - a[1].tricycleSharePct);
+  }, [stats]);
+
+  const bubbleMaxStd = useMemo(() => {
+    if (!stats) return 1;
+    const vals = Object.values(stats.byIntersection).map((v) => v.stdDailyVolume).filter((v) => !isBad(v));
+    return vals.length ? Math.max(...vals) || 1 : 1;
+  }, [stats]);
 
   return (
     <div className="apple-dash">
@@ -745,9 +815,503 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* ===================================================================
+            EXTENDED CHART GALLERY
+            Every remaining angle on the same three real datasets, using
+            every chart type react-chartjs-2 ships (Pie, PolarArea, Bubble,
+            and a mixed bar+line via the generic Chart component, alongside
+            further Bar / Line / Radar / Scatter / Doughnut panels). ===== */}
+        <div className="a-hero" style={{ maxWidth: '820px', marginTop: '8px' }}>
+          <p className="a-hero-eyebrow" style={{ color: C.indigo }}>Extended Chart Gallery</p>
+          <h2 className="a-title" style={{ fontSize: '1.9rem' }}>Every Angle of the Field Data</h2>
+          <p className="a-hero-sub" style={{ fontSize: '0.92rem' }}>Every remaining panel below is computed live from the same three field datasets above — no additional or hypothetical data.</p>
+        </div>
+
+        {/* Descriptive statistics */}
+        <div className="a-grid">
+          <DescribeCard color={C.blue} eyebrow="Descriptive Statistics · 20-day field dataset" title="Total Volume" unit="veh/15-min" d={stats.totalVolumeDescribe}
+            sub="Every recorded 15-minute interval, all 5 sites, all vehicle classes summed" />
+          <DescribeCard color={C.indigo} eyebrow="Descriptive Statistics · 7-day baseline dataset" title="PCU Ratio" unit="" d={stats.pcuRatioDescribe}
+            sub="Per-interval Avg Tricycle Headway ÷ Avg Car Headway" />
+          <DescribeCard color={C.teal} eyebrow="Descriptive Statistics · 7-day baseline dataset" title="V/C Ratio" unit="" d={stats.vcRatioDescribe}
+            sub="Recorded Volume/Capacity ratio, per interval" />
+        </div>
+
+        {/* Pie + PolarArea */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow={`Safety Analysis (N = ${stats.incidentN.toLocaleString()})`} title="Incident Severity — Network Totals" color={C.red} sub="Every recorded incident, summed across all 10 incident types" />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Pie
+                data={{
+                  labels: ['Fatal', 'Serious', 'Minor'],
+                  datasets: [{
+                    data: [stats.incidentSeverityTotals.Fatal, stats.incidentSeverityTotals.Serious, stats.incidentSeverityTotals.Minor],
+                    backgroundColor: [C.red, C.orange, C.green], borderColor: '#ffffff', borderWidth: 3, hoverOffset: 8,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: 'bottom', labels: legendTheme.labels },
+                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${fmtN(ctx.parsed)} (${fmt((ctx.parsed / stats.incidentN) * 100)}%)` } }
+                  }
+                }}
+              />
+            </div>
+            <p className="a-footnote" style={{ textAlign: 'center' }}>{fmt((stats.incidentSeverityTotals.Fatal / stats.incidentN) * 100)}% of all recorded incidents were fatal.</p>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow={`Safety Analysis (N = ${stats.incidentN.toLocaleString()})`} title="Incident Type Distribution" color={C.orange} sub="All 10 recorded incident types, by count" />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <PolarArea
+                data={{
+                  labels: incidentTypes,
+                  datasets: [{
+                    data: incidentTypes.map((t) => stats.incidentTotalsByType[t]),
+                    backgroundColor: incidentTypes.map((_, i) => hex2rgba(INCIDENT_COLORS[i % INCIDENT_COLORS.length], 0.65)),
+                    borderColor: '#ffffff', borderWidth: 2,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { r: { ticks: { display: false }, grid: { color: chartGrid }, angleLines: { color: chartGrid } } },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, boxWidth: 8, font: { size: 9 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bubble + mixed bar/line combo */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="20-day field dataset · Bubble" title="Intersection Profile" color={C.purple} sub="x = mean daily volume · y = tricycle share (%) · bubble size = day-to-day variability (σ)" />
+            <div className="a-chart-box">
+              <Bubble
+                data={{
+                  datasets: [{
+                    label: 'Study site',
+                    data: siteNames.map((name) => {
+                      const v = stats.byIntersection[name];
+                      const r = 8 + (isBad(v.stdDailyVolume) ? 0 : (v.stdDailyVolume / bubbleMaxStd) * 22);
+                      return { x: v.meanDailyVolume, y: v.tricycleSharePct, r };
+                    }),
+                    backgroundColor: siteNames.map((n) => hex2rgba(siteColorOf[n], 0.55)),
+                    borderColor: siteNames.map((n) => siteColorOf[n]),
+                    borderWidth: 2,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'Mean daily volume (veh/day)', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } },
+                    y: { title: { display: true, text: 'Tricycle share (%)', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } }
+                  },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => stats.shortName(siteNames[items[0].dataIndex]), label: (ctx) => [`Mean daily volume: ${fmtN(Math.round(ctx.parsed.x))}`, `Tricycle share: ${fmt(ctx.parsed.y)}%`, `σ (daily volume): ${fmtN(Math.round(stats.byIntersection[siteNames[ctx.dataIndex]].stdDailyVolume))}`] } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="20-day field dataset · Combo chart" title="Hourly Volume Profile + Cumulative Share" color={C.blue2} sub="Bars = mean volume per interval by hour · line = cumulative % of the daily total" />
+            <div className="a-chart-box">
+              <Chart
+                type="bar"
+                data={{
+                  labels: HOURS.map((h) => `${h}:00`),
+                  datasets: [
+                    { type: 'bar', label: 'Mean volume / 15-min interval', data: HOURS.map((h) => stats.hourlyProfile[h]), backgroundColor: hex2rgba(C.blue2, 0.55), borderRadius: 5, yAxisID: 'y' },
+                    { type: 'line', label: 'Cumulative % of daily volume', data: (() => { const total = HOURS.reduce((s, h) => s + stats.hourlyProfile[h], 0); let cum = 0; return HOURS.map((h) => { cum += stats.hourlyProfile[h]; return total ? (cum / total) * 100 : null; }); })(), borderColor: C.orange, backgroundColor: 'transparent', borderWidth: 3, tension: 0.3, pointRadius: 2, yAxisID: 'y1' },
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 9 } } },
+                    y: { position: 'left', title: { display: true, text: 'Veh / 15-min interval', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } },
+                    y1: { position: 'right', min: 0, max: 100, title: { display: true, text: 'Cumulative %', color: chartSub, font: { size: 9.5 } }, grid: { drawOnChartArea: false }, ticks: { color: chartSub, font: { size: 9.5 } } }
+                  },
+                  plugins: { legend: { labels: { ...legendTheme.labels, boxWidth: 8, font: { size: 9.5 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Range bars: daily volume + V/C ratio */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="20-day field dataset · Range" title="Daily Volume Range by Intersection" color={C.blue} sub="Min–max observed daily total volume across the 20 recorded days, per site" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: siteNames.map(stats.shortName),
+                  datasets: [{ label: 'Min–max daily volume', data: siteNames.map((n) => [stats.byIntersection[n].minDailyVolume, stats.byIntersection[n].maxDailyVolume]), backgroundColor: siteNames.map((n) => hex2rgba(siteColorOf[n], 0.55)), borderColor: siteNames.map((n) => siteColorOf[n]), borderWidth: 1.5, borderRadius: 6 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { y: { title: { display: true, text: 'Veh / day', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 0 } } },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => siteNames[items[0].dataIndex], label: (ctx) => `Range ${fmtN(Math.round(ctx.raw[0]))}–${fmtN(Math.round(ctx.raw[1]))} · mean ${fmtN(Math.round(stats.byIntersection[siteNames[ctx.dataIndex]].meanDailyVolume))}` } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="7-day baseline dataset · Range" title="V/C Ratio Range by Intersection" color={C.teal} sub="Min–max recorded V/C ratio per site" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: siteNames.map(stats.shortName),
+                  datasets: [{ label: 'Min–max V/C', data: siteNames.map((n) => stats.vcByIntersection[n] ? [stats.vcByIntersection[n].min, stats.vcByIntersection[n].max] : [0, 0]), backgroundColor: siteNames.map((n) => hex2rgba(siteColorOf[n], 0.55)), borderColor: siteNames.map((n) => siteColorOf[n]), borderWidth: 1.5, borderRadius: 6 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { y: { title: { display: true, text: 'V/C ratio', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 0 } } },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => siteNames[items[0].dataIndex], label: (ctx) => `Range ${fmt(ctx.raw[0])}–${fmt(ctx.raw[1])} · mean ${fmt(stats.vcByIntersection[siteNames[ctx.dataIndex]]?.mean)}` } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Hourly by site + composition radar */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="20-day field dataset · Line" title="Hourly Traffic Profile by Intersection" color={C.blue2} sub="Mean volume per 15-min interval, by hour of day, one line per site" />
+            <div className="a-chart-box">
+              <Line
+                data={{
+                  labels: HOURS.map((h) => `${h}:00`),
+                  datasets: siteNames.map((name, i) => ({
+                    label: stats.shortName(name),
+                    data: HOURS.map((h) => (stats.hourlyProfileByIntersection[name] && !isBad(stats.hourlyProfileByIntersection[name][h])) ? stats.hourlyProfileByIntersection[name][h] : null),
+                    borderColor: SITE_COLORS[i % SITE_COLORS.length], backgroundColor: 'transparent', borderWidth: 2, tension: 0.35, pointRadius: 1.5, spanGaps: true,
+                  }))
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { y: { title: { display: true, text: 'Veh / 15-min interval', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 9 } } } },
+                  plugins: { legend: { labels: { ...legendTheme.labels, boxWidth: 8, font: { size: 9.5 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="20-day field dataset · Radar" title="Vehicle-Class Composition by Intersection" color={C.indigo} sub="Share (%) of each site's own recorded volume, by class" />
+            <div className="a-chart-box" style={{ minHeight: '260px' }}>
+              <Radar
+                data={{
+                  labels: VEH_ORDER.map((c) => VEH_LABELS[c]),
+                  datasets: siteNames.map((name, i) => ({
+                    label: stats.shortName(name),
+                    data: VEH_ORDER.map((c) => stats.byIntersection[name].compositionPct[c]),
+                    borderColor: SITE_COLORS[i % SITE_COLORS.length], backgroundColor: hex2rgba(SITE_COLORS[i % SITE_COLORS.length], 0.06),
+                    borderWidth: 2, pointRadius: 2,
+                  }))
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false, layout: { padding: 12 },
+                  scales: { r: { min: 0, ticks: { showLabelBackdrop: false, color: chartSub, font: { size: 8.5 } }, grid: { color: chartGrid }, angleLines: { color: chartGrid }, pointLabels: { color: chartText, font: { size: 9.5, weight: '600' } } } },
+                  plugins: { legend: { labels: { ...legendTheme.labels, boxWidth: 8, font: { size: 9 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.parsed.r)}%` } } }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Weather impact + composition by weather */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="20-day field dataset · Grouped bar" title="Weather Impact on Volume by Intersection" color={C.yellow} sub="Mean interval volume, Weather=Dry vs Weather=Wet (Rain), per site" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: siteNames.map(stats.shortName),
+                  datasets: [
+                    { label: 'Dry', data: siteNames.map((n) => stats.byIntersection[n].meanIntervalVolumeDry), backgroundColor: '#f2c94c', borderRadius: 5 },
+                    { label: 'Wet (Rain)', data: siteNames.map((n) => stats.byIntersection[n].meanIntervalVolumeWet), backgroundColor: C.blue2, borderRadius: 5 },
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { y: { title: { display: true, text: 'Veh / 15-min interval', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 0 } } },
+                  plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="20-day field dataset · Stacked bar" title="Vehicle-Class Composition by Weather" color={C.orange} sub="Share (%) of volume by class, Dry vs Wet (Rain) intervals" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: ['Dry', 'Wet (Rain)'],
+                  datasets: VEH_ORDER.map((c) => ({
+                    label: VEH_LABELS[c],
+                    data: [stats.compositionByWeather.Dry[c], stats.compositionByWeather.Wet[c]],
+                    backgroundColor: CLASS_COLORS[c],
+                  }))
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { stacked: true, max: 100, title: { display: true, text: '% of volume', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } } },
+                  plugins: { legend: { labels: { ...legendTheme.labels, boxWidth: 8, font: { size: 9.5 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}%` } } }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Peak composition + modal share ranked + headway comparison */}
+        <div className="a-grid">
+          <div className="a-card s-4">
+            <SectionHeader eyebrow="20-day field dataset · Doughnut" title="Peak-Hour Network Composition" color={C.blue} sub="Sum of peak-hour class rates across all 5 sites" />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Doughnut
+                data={{
+                  labels: VEH_ORDER.map((c) => VEH_LABELS[c]),
+                  datasets: [{ data: VEH_ORDER.map((c) => stats.peakNetworkComposition[c]), backgroundColor: VEH_ORDER.map((c) => CLASS_COLORS[c]), borderColor: '#ffffff', borderWidth: 3, hoverOffset: 8 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false, cutout: '64%',
+                  plugins: {
+                    legend: { position: 'bottom', labels: { ...legendTheme.labels, boxWidth: 8, font: { size: 9.5 } } },
+                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => { const total = VEH_ORDER.reduce((s, c) => s + stats.peakNetworkComposition[c], 0); return `${ctx.label}: ${fmtN(Math.round(ctx.parsed))} veh/hr (${fmt((ctx.parsed / total) * 100)}%)`; } } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-4">
+            <SectionHeader eyebrow="20-day field dataset · Ranked bar" title="Tricycle Modal Share, All Sites" color={C.green} sub="% of each site's own recorded volume that is tricycles" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: modalShareRanked.map(([n]) => stats.shortName(n)),
+                  datasets: [{ label: 'Tricycle share (%)', data: modalShareRanked.map(([, v]) => Number(v.tricycleSharePct.toFixed(1))), backgroundColor: modalShareRanked.map(([n]) => siteColorOf[n]), borderRadius: 6 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { y: { title: { display: true, text: '% of site volume', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 0 } } },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-4">
+            <SectionHeader eyebrow="7-day baseline dataset · Grouped bar" title="Headway Comparison by Intersection" color={C.purple} sub="Mean recorded headway (s), tricycle vs car, per site" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: siteNames.map(stats.shortName),
+                  datasets: [
+                    { label: 'Tricycle headway (s)', data: siteNames.map((n) => stats.pcuByIntersection[n]?.triHeadway), backgroundColor: C.purple, borderRadius: 5 },
+                    { label: 'Car headway (s)', data: siteNames.map((n) => stats.pcuByIntersection[n]?.carHeadway), backgroundColor: '#c7c7cc', borderRadius: 5 },
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { y: { title: { display: true, text: 'Seconds', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10 }, autoSkip: false, maxRotation: 0 } } },
+                  plugins: { legend: { labels: { ...legendTheme.labels, boxWidth: 8, font: { size: 9 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Poisson VMR + platooning radar + PCU~VC scatter */}
+        <div className="a-grid">
+          <div className="a-card s-4">
+            <SectionHeader eyebrow="Poisson dispersion · 7-day baseline dataset" title="Arrival Platooning (VMR) by Intersection" color={C.red} sub="Variance-to-mean ratio of tricycle arrivals; VMR ≫ 1 = platooning" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: siteNames.map(stats.shortName),
+                  datasets: [{ label: 'VMR', data: siteNames.map((n) => Number(stats.poissonByIntersection[n]?.vmr.toFixed(2))), backgroundColor: C.red, borderRadius: 6 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { y: { title: { display: true, text: 'Variance ÷ mean', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10 }, autoSkip: false, maxRotation: 0 } } },
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { afterLabel: (ctx) => `n = ${fmtN(stats.poissonByIntersection[siteNames[ctx.dataIndex]]?.n)}` } } }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-4">
+            <SectionHeader eyebrow="Poisson dispersion · 7-day baseline dataset" title="Platooning Index Across Sites" color={C.pink} sub="Same VMR values, radar view" />
+            <div className="a-chart-box" style={{ minHeight: '240px' }}>
+              <Radar
+                data={{
+                  labels: siteNames.map(stats.shortName),
+                  datasets: [{ label: 'VMR', data: siteNames.map((n) => Number(stats.poissonByIntersection[n]?.vmr.toFixed(2))), backgroundColor: hex2rgba(C.pink, 0.16), borderColor: C.pink, borderWidth: 2, pointBackgroundColor: C.pink, pointBorderColor: '#fff', pointRadius: 3 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false, layout: { padding: 14 },
+                  scales: { r: { min: 0, ticks: { showLabelBackdrop: false, color: chartSub, font: { size: 8.5 } }, grid: { color: chartGrid }, angleLines: { color: chartGrid }, pointLabels: { color: chartText, font: { size: 9.5, weight: '600' } } } },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-4">
+            <SectionHeader eyebrow="Pearson correlation · 7-day baseline dataset" title="PCU Ratio vs. V/C Ratio" color={C.indigo}
+              sub={`r = ${fmt(stats.pcuVcCorrelation.r, 2)}, ${pFmt(stats.pcuVcCorrelation.p)}, n = ${fmtN(stats.pcuVcCorrelation.n)}`} />
+            <div className="a-chart-box">
+              <Scatter
+                data={{ datasets: [{ label: 'Interval (PCU ratio vs V/C)', data: stats.pcuVcPairs, backgroundColor: hex2rgba(C.indigo, 0.4), pointRadius: 2.5, pointHoverRadius: 4.5 }] }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'PCU ratio (per interval)', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } },
+                    y: { title: { display: true, text: 'V/C ratio', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } }
+                  },
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `PCU ${fmt(ctx.parsed.x, 2)} · V/C ${fmt(ctx.parsed.y, 2)}` } } }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Empirical CDF + histogram */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="7-day baseline dataset · Empirical CDF" title="V/C Ratio — Cumulative Distribution" color={C.teal} sub={`Every recorded interval, sorted · n = ${fmtN(vcCdf.length)}`} />
+            <div className="a-chart-box">
+              <Line
+                data={{ datasets: [{ label: 'Cumulative %', data: vcCdf, borderColor: C.teal, backgroundColor: hex2rgba(C.teal, 0.12), borderWidth: 2, fill: true, pointRadius: 0, tension: 0 }] }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  parsing: false,
+                  scales: {
+                    x: { type: 'linear', title: { display: true, text: 'V/C ratio', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } },
+                    y: { min: 0, max: 100, title: { display: true, text: 'Cumulative % of intervals', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } }
+                  },
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${fmt(ctx.parsed.y)}% of intervals ≤ V/C ${fmt(ctx.parsed.x, 2)}` } } }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="20-day field dataset · Histogram" title="Total Volume — Distribution" color={C.blue} sub="10 equal-width bins across the observed min–max range, all recorded intervals" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: stats.totalVolumeHistogram.map((b) => `${Math.round(b.binStart)}–${Math.round(b.binEnd)}`),
+                  datasets: [{ label: 'Intervals', data: stats.totalVolumeHistogram.map((b) => b.count), backgroundColor: hex2rgba(C.blue, 0.6), borderRadius: 3 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { title: { display: true, text: 'Total volume (veh/15-min)', color: chartSub, font: { size: 9.5 } }, grid: { display: false }, ticks: { color: chartSub, font: { size: 8.5 }, maxRotation: 40, minRotation: 40 } }, y: { title: { display: true, text: 'Count of intervals', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } } },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Day/night by site + peak vs off-peak share */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="7-day baseline dataset · Grouped bar" title="Day vs. Night Tricycle Volume by Intersection" color={C.indigo} sub="Mean tricycles per interval, Session=Day vs Session=Night, per site" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: siteNames.map(stats.shortName),
+                  datasets: [
+                    { label: 'Day (07:00–19:00)', data: siteNames.map((n) => stats.dayNightByIntersection[n]?.dayMean), backgroundColor: '#f2c94c', borderRadius: 5 },
+                    { label: 'Night (19:00–07:00)', data: siteNames.map((n) => stats.dayNightByIntersection[n]?.nightMean), backgroundColor: C.indigo, borderRadius: 5 },
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { y: { title: { display: true, text: 'Tricycles / 15-min interval', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 0 } } },
+                  plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="20-day field dataset · Pie" title="Peak vs. Off-Peak Interval Share" color={C.orange} sub="Share of all recorded intervals classified Peak vs Off-Peak" />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Pie
+                data={{
+                  labels: ['Peak (07-09h, 16-19h)', 'Off-Peak'],
+                  datasets: [{ data: [stats.peakOffpeakTest.nA, stats.peakOffpeakTest.nB], backgroundColor: [C.orange, C.blue2], borderColor: '#ffffff', borderWidth: 3, hoverOffset: 8 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: 'bottom', labels: legendTheme.labels },
+                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => { const total = stats.peakOffpeakTest.nA + stats.peakOffpeakTest.nB; return `${ctx.label}: ${fmtN(ctx.parsed)} (${fmt((ctx.parsed / total) * 100)}%)`; } } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Correlation comparison + volume/share scatter */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Pearson correlation · comparison" title="Correlation Strength: Volume vs. PCU Ratio, Each vs. V/C" color={C.green} sub="Pearson r, both tested against the recorded V/C ratio (baseline7)" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: ['Tricycle volume ↔ V/C', 'PCU ratio ↔ V/C'],
+                  datasets: [{ label: 'Pearson r', data: [Number(stats.volumeVcCorrelation.r.toFixed(3)), Number(stats.pcuVcCorrelation.r.toFixed(3))], backgroundColor: [C.green, C.indigo], borderRadius: 8 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  indexAxis: 'y',
+                  scales: { x: { min: -1, max: 1, title: { display: true, text: 'Pearson r', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } }, y: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { afterLabel: (ctx) => ctx.dataIndex === 0 ? `${pFmt(stats.volumeVcCorrelation.p)} · n = ${fmtN(stats.volumeVcCorrelation.n)}` : `${pFmt(stats.pcuVcCorrelation.p)} · n = ${fmtN(stats.pcuVcCorrelation.n)}` } } }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="20-day field dataset · Scatter" title="Mean Daily Volume vs. Tricycle Share" color={C.pink} sub="One point per study site" />
+            <div className="a-chart-box">
+              <Scatter
+                data={{ datasets: [{ label: 'Study site', data: siteNames.map((n) => ({ x: stats.byIntersection[n].meanDailyVolume, y: stats.byIntersection[n].tricycleSharePct })), backgroundColor: siteNames.map((n) => siteColorOf[n]), pointRadius: 7, pointHoverRadius: 9 }] }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'Mean daily volume (veh/day)', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } },
+                    y: { title: { display: true, text: 'Tricycle share (%)', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } }
+                  },
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { title: (items) => stats.shortName(siteNames[items[0].dataIndex]), label: (ctx) => `Vol ${fmtN(Math.round(ctx.parsed.x))} · Share ${fmt(ctx.parsed.y)}%` } } }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* METHODOLOGY */}
         <div className="a-grid">
-          <MethodologyPanel color={C.indigo} keys={['totalVehiclesRecorded', 'compositionPct', 'peakOffpeakTest', 'weatherTest', 'pcuHeadway', 'dayNightTest', 'headwayTest', 'vcStats', 'volumeVcCorrelation', 'poissonDispersion', 'tricycleAnova', 'incidentSeverity']} />
+          <MethodologyPanel color={C.indigo} keys={['totalVehiclesRecorded', 'compositionPct', 'peakOffpeakTest', 'weatherTest', 'pcuHeadway', 'dayNightTest', 'headwayTest', 'vcStats', 'volumeVcCorrelation', 'poissonDispersion', 'tricycleAnova', 'incidentSeverity', 'descriptiveStats', 'pcuVcCorrelation', 'hourlyProfileByIntersection', 'dayNightByIntersection', 'compositionByWeather', 'incidentSeverityTotals', 'totalVolumeHistogram']} />
         </div>
 
         {/* PHOTO CAROUSEL */}
