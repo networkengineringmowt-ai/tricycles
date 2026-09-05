@@ -1305,19 +1305,19 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
 
         {/* PHOTO CAROUSEL */}
         <div className="a-card a-carousel-card s-12">
-          <SectionHeader eyebrow="Illustrative Photography" title="Traffic & Site Conditions" color={C.teal}
-            sub="Representative photography of the traffic behaviors and conditions discussed in this study. These images are illustrative, not photographs taken during this study's own field survey." />
+          <SectionHeader eyebrow="Field Documentation" title="Traffic & Site Conditions" color={C.teal}
+            sub="Photographs taken during this study's own traffic data collection at the case-study corridors in Kampala." />
           <PhotoCarousel photos={[
             { src: `${baseUrl}assets/weaving.jpg`, eyebrow: 'The Weaving Effect', title: 'Space Thieves', color: C.blue2,
               text: 'Tricycles rarely wait in line, wedging into the tight gaps between cars and taking up the safety buffer (headway) that following vehicles depend on — forcing abrupt braking and disrupting the whole road.' },
             { src: `${baseUrl}assets/shockwave.jpg`, eyebrow: 'The Ripple Effect', title: 'Stop-and-Go Chaos', color: C.green,
               text: 'A single tricycle stopping to drop off a passenger can block a lane for roughly 10 seconds — enough to trigger a backward shockwave that piles up traffic for a kilometer.' },
             { src: `${baseUrl}assets/accident.jpg`, eyebrow: 'Safety Reality', title: 'The Friction Tax', color: C.orange,
-              text: 'Tricycles often operate in the blind spots of sedans on narrow lanes. Minor side-swipes are common and can trigger sudden gridlock with little warning.' },
+              text: 'Tricycles often operate in the blind spots of sedans in tight, undivided traffic. Minor side-swipes are common and can trigger sudden gridlock with little warning.' },
             { src: `${baseUrl}assets/commute.jpg`, eyebrow: 'Origin-Destination Flow', title: 'The Commuter Arteries', color: C.blue2,
               text: 'Tricycles act as last-mile suburban feeders but add real friction to primary arteries at peak hours.' },
-            { src: `${baseUrl}assets/chokepoint.jpg`, eyebrow: 'Structural Geometry', title: 'Physical Constraints', color: C.red,
-              text: 'On narrow, undivided corridors like this, there is little physical room for a car to safely overtake a slower tricycle without crossing into the oncoming lane.' },
+            { src: `${baseUrl}assets/chokepoint.jpg`, eyebrow: 'Structural Geometry', title: 'Junction Conflict Points', color: C.red,
+              text: 'At junctions like this, tricycles, boda-bodas and cars converge from every direction with no dedicated lanes, forcing constant negotiation for the same road space.' },
           ]} />
         </div>
         </>
