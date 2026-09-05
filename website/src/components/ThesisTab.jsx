@@ -48,7 +48,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
           display: flex;
           gap: 24px;
           align-items: flex-start;
-          max-width: 1760px;
+          width: 100%;
           margin: 0 auto;
           font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
           color: #1d1d1f;
