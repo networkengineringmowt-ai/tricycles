@@ -1305,8 +1305,8 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
 
         {/* PHOTO CAROUSEL */}
         <div className="a-card a-carousel-card s-12">
-          <SectionHeader eyebrow="Field Evidence" title="Traffic & Site Data Collection" color={C.teal}
-            sub="Photographic reference material from the study corridors, illustrating the behaviors and conditions discussed above." />
+          <SectionHeader eyebrow="Illustrative Photography" title="Traffic & Site Conditions" color={C.teal}
+            sub="Representative photography of the traffic behaviors and conditions discussed in this study. These images are illustrative, not photographs taken during this study's own field survey." />
           <PhotoCarousel photos={[
             { src: `${baseUrl}assets/weaving.jpg`, eyebrow: 'The Weaving Effect', title: 'Space Thieves', color: C.blue2,
               text: 'Tricycles rarely wait in line, wedging into the tight gaps between cars and taking up the safety buffer (headway) that following vehicles depend on — forcing abrupt braking and disrupting the whole road.' },
@@ -1317,7 +1317,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             { src: `${baseUrl}assets/commute.jpg`, eyebrow: 'Origin-Destination Flow', title: 'The Commuter Arteries', color: C.blue2,
               text: 'Tricycles act as last-mile suburban feeders but add real friction to primary arteries at peak hours.' },
             { src: `${baseUrl}assets/chokepoint.jpg`, eyebrow: 'Structural Geometry', title: 'Physical Constraints', color: C.red,
-              text: 'Geospatial road-network mapping shows many Kampala routes are physically too narrow for safe mixed flow, making safe overtaking geometrically impossible in several corridors.' },
+              text: 'On narrow, undivided corridors like this, there is little physical room for a car to safely overtake a slower tricycle without crossing into the oncoming lane.' },
           ]} />
         </div>
         </>
