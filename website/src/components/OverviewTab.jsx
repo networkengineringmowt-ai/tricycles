@@ -286,7 +286,7 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
               </div>
             </div>
             <div className="a-map-wrap">
-              <MapContainer bounds={[[0.2981, 32.5469], [0.3458, 32.5761]]} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
+              <MapContainer bounds={[[0.2981, 32.5469], [0.3458, 32.5761]]} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
                 <TileLayer
                   url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
