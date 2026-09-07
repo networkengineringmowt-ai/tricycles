@@ -1303,21 +1303,60 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           <MethodologyPanel color={C.indigo} keys={['totalVehiclesRecorded', 'compositionPct', 'peakOffpeakTest', 'weatherTest', 'pcuHeadway', 'dayNightTest', 'headwayTest', 'vcStats', 'volumeVcCorrelation', 'poissonDispersion', 'tricycleAnova', 'incidentSeverity', 'descriptiveStats', 'pcuVcCorrelation', 'hourlyProfileByIntersection', 'dayNightByIntersection', 'compositionByWeather', 'incidentSeverityTotals', 'totalVolumeHistogram']} />
         </div>
 
-        {/* PHOTO CAROUSEL */}
+        {/* PHOTO CAROUSEL — all 24 original geotagged field photographs from
+            this study's own count sessions (no stock or illustrative images). */}
         <div className="a-card a-carousel-card s-12">
           <SectionHeader eyebrow="Field Documentation" title="Traffic & Site Conditions" color={C.teal}
-            sub="Photographs taken during this study's own traffic data collection at the case-study corridors in Kampala." />
+            sub="All 24 original photographs taken during this study's own traffic data collection at the case-study corridors in Kampala." />
           <PhotoCarousel photos={[
-            { src: `${baseUrl}assets/weaving.jpg`, eyebrow: 'The Weaving Effect', title: 'Space Thieves', color: C.blue2,
-              text: 'Tricycles rarely wait in line, wedging into the tight gaps between cars and taking up the safety buffer (headway) that following vehicles depend on — forcing abrupt braking and disrupting the whole road.' },
-            { src: `${baseUrl}assets/shockwave.jpg`, eyebrow: 'The Ripple Effect', title: 'Stop-and-Go Chaos', color: C.green,
-              text: 'A single tricycle stopping to drop off a passenger can block a lane for roughly 10 seconds — enough to trigger a backward shockwave that piles up traffic for a kilometer.' },
-            { src: `${baseUrl}assets/accident.jpg`, eyebrow: 'Safety Reality', title: 'The Friction Tax', color: C.orange,
-              text: 'Tricycles often operate in the blind spots of sedans in tight, undivided traffic. Minor side-swipes are common and can trigger sudden gridlock with little warning.' },
-            { src: `${baseUrl}assets/commute.jpg`, eyebrow: 'Origin-Destination Flow', title: 'The Commuter Arteries', color: C.blue2,
-              text: 'Tricycles act as last-mile suburban feeders but add real friction to primary arteries at peak hours.' },
-            { src: `${baseUrl}assets/chokepoint.jpg`, eyebrow: 'Structural Geometry', title: 'Junction Conflict Points', color: C.red,
-              text: 'At junctions like this, tricycles, boda-bodas and cars converge from every direction with no dedicated lanes, forcing constant negotiation for the same road space.' },
+            { src: `${baseUrl}assets/field/field-01.jpg`, eyebrow: 'Kibuye – Natete Road', title: 'Roadside Count Point', color: C.blue,
+              text: 'Enumerators seated at the roadside with clipboards, logging vehicle counts at the Kibuye–Natete Road study site.' },
+            { src: `${baseUrl}assets/field/field-02.jpg`, eyebrow: 'Kibuye – Natete Road', title: 'Pedestrian & Vehicle Flow', color: C.blue2,
+              text: 'Pedestrians and mixed traffic passing the shopfronts near the Kibuye–Natete Road count point.' },
+            { src: `${baseUrl}assets/field/field-03.jpg`, eyebrow: 'Kibuye – Natete Road', title: 'Logging a Count Interval', color: C.teal,
+              text: 'An enumerator in a hard hat recording vehicle counts at a roadside table during a 15-minute interval.' },
+            { src: `${baseUrl}assets/field/field-04.jpg`, eyebrow: 'Kibuye – Natete Road', title: 'The Junction Being Counted', color: C.indigo,
+              text: 'A wider view of the Kibuye–Natete Road intersection showing the mixed vehicle stream researchers counted.' },
+            { src: `${baseUrl}assets/field/field-05.jpg`, eyebrow: 'Wandegeya', title: 'Signalized Junction', color: C.green,
+              text: 'The signalized Wandegeya junction and pedestrian crossing, one of the five case-study intersections.' },
+            { src: `${baseUrl}assets/field/field-06.jpg`, eyebrow: 'Wandegeya', title: 'Observing Turning Movements', color: C.orange,
+              text: 'Enumerators positioned near a parked tricycle to observe turning movements at Wandegeya.' },
+            { src: `${baseUrl}assets/field/field-07.jpg`, eyebrow: 'Wandegeya', title: 'Market Street Approach', color: C.pink,
+              text: 'The market street approach to the Wandegeya junction, part of the mixed-traffic environment being studied.' },
+            { src: `${baseUrl}assets/field/field-08.jpg`, eyebrow: 'Bombo Road', title: 'Recording a Crossing', color: C.red,
+              text: 'An enumerator in a hi-vis vest recording pedestrian and vehicle activity at a Bombo Road crossing.' },
+            { src: `${baseUrl}assets/field/field-09.jpg`, eyebrow: 'Bombo Road', title: 'Counting Delivery Traffic', color: C.blue,
+              text: 'Enumerators counting delivery motorcycles and other traffic passing the Bombo Road site.' },
+            { src: `${baseUrl}assets/field/field-10.jpg`, eyebrow: 'Old Masaka Road', title: 'Roadside Count Point', color: C.blue2,
+              text: 'Two enumerators seated at the roadside logging vehicle counts at the Old Masaka Road junction.' },
+            { src: `${baseUrl}assets/field/field-11.jpg`, eyebrow: 'Old Masaka Road', title: 'Roadside Survey', color: C.teal,
+              text: 'A roadside survey in progress alongside passing traffic at the Old Masaka Road site.' },
+            { src: `${baseUrl}assets/field/field-12.jpg`, eyebrow: 'Extended-Hours Sampling', title: 'Counting Into the Evening', color: C.indigo,
+              text: 'Enumerators in hi-vis vests observing traffic as light fades, part of the study’s extended sampling window.' },
+            { src: `${baseUrl}assets/field/field-13.jpg`, eyebrow: 'Study Intersection', title: 'A Busy Crossing', color: C.green,
+              text: 'A busy pedestrian crossing at one of the study intersections during a count session.' },
+            { src: `${baseUrl}assets/field/field-14.jpg`, eyebrow: 'Study Intersection', title: 'Between Count Intervals', color: C.orange,
+              text: 'Enumerators seated streetside, logging counts between vehicle passes.' },
+            { src: `${baseUrl}assets/field/field-15.jpg`, eyebrow: 'Bombo Road', title: 'Recording the Stream', color: C.pink,
+              text: 'An enumerator in a hard hat recording the mixed vehicle stream on Bombo Road.' },
+            { src: `${baseUrl}assets/field/field-16.jpg`, eyebrow: 'Bombo Road', title: 'The Enumerator Team', color: C.red,
+              text: 'The enumerator team conferring between counting intervals on Bombo Road.' },
+            { src: `${baseUrl}assets/field/field-17.jpg`, eyebrow: 'Entebbe Road', title: 'Roadside Count Point', color: C.blue,
+              text: 'Enumerators positioned at the roadside near the Clock Tower for the Entebbe Road count.' },
+            { src: `${baseUrl}assets/field/field-18.jpg`, eyebrow: 'Bombo Road', title: 'Motorcycle Traffic', color: C.blue2,
+              text: 'Delivery motorcycles moving through the mixed traffic stream on Bombo Road.' },
+            { src: `${baseUrl}assets/field/field-19.jpg`, eyebrow: 'Bombo Road', title: 'Field Team at the Roadside', color: C.teal,
+              text: 'The enumerator team at the roadside during a Bombo Road count interval.' },
+            { src: `${baseUrl}assets/field/field-20.jpg`, eyebrow: 'Entebbe Road', title: 'Site Overview', color: C.indigo,
+              text: 'The Entebbe Road study site near the Clock Tower, with pedestrians and traffic passing the count point.' },
+            { src: `${baseUrl}assets/field/field-21.jpg`, eyebrow: 'Kibuye – Natete Road', title: 'Logging the Junction', color: C.green,
+              text: 'Enumerators logging counts as motorcycles and cars move through the Kibuye–Natete Road junction.' },
+            { src: `${baseUrl}assets/field/field-22.jpg`, eyebrow: 'Study Corridor', title: 'Street-Corner Count Point', color: C.orange,
+              text: 'The enumerator team stationed at a street-corner count point near local shopfronts.' },
+            { src: `${baseUrl}assets/field/field-23.jpg`, eyebrow: 'Study Corridor', title: 'Counting Alongside Transit', color: C.pink,
+              text: 'Enumerators seated near a line of parked minivans (matatus) during a roadside count.' },
+            { src: `${baseUrl}assets/field/field-24.jpg`, eyebrow: 'Study Corridor', title: 'Between Sessions', color: C.red,
+              text: 'The field team resting streetside between count sessions.' },
           ]} />
         </div>
         </>

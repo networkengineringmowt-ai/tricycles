@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, LayersControl, LayerGroup, ScaleControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip as LeafletTooltip, LayersControl, LayerGroup, ScaleControl, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import {
@@ -197,6 +197,11 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         .a-map-fullscreen-btn { display: flex; align-items: center; justify-content: center; font-size: 14px; }
         .leaflet-container:fullscreen { width: 100%; height: 100%; }
 
+        .a-map-label.leaflet-tooltip { background: ${C.ink}; color: #fff; border: none; border-radius: 8px; padding: 4px 9px; box-shadow: 0 3px 10px rgba(0,0,0,0.25); display: flex; flex-direction: column; align-items: center; line-height: 1.25; }
+        .a-map-label.leaflet-tooltip::before { border-top-color: ${C.ink}; }
+        .a-map-label-name { font-size: 10.5px; font-weight: 800; letter-spacing: 0.01em; white-space: nowrap; }
+        .a-map-label-pcu { font-size: 9.5px; font-weight: 700; color: ${C.teal}; white-space: nowrap; }
+
         .a-site-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
         .a-site-chip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: ${C.canvas}; cursor: pointer; transition: background .15s ease; border: 1px solid transparent; width: 100%; text-align: left; font: inherit; }
         .a-site-chip:hover { background: #ececee; }
@@ -298,11 +303,24 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                           position={site.coords}
                           eventHandlers={{ click: () => setSelectedSite(site) }}
                         >
+                          <LeafletTooltip permanent direction="top" offset={[0, -8]} opacity={1} className="a-map-label">
+                            <span className="a-map-label-name">{stats.shortName(site.name)}</span>
+                            <span className="a-map-label-pcu">PCU {site.pcuHeadway.toFixed(2)}</span>
+                          </LeafletTooltip>
                           <Popup>
-                            <strong style={{ color: '#000' }}>{site.name}</strong><br />
-                            <span style={{ color: '#333' }}>
-                              {weatherView} mean volume: {chipVolume(site) != null ? `${Math.round(chipVolume(site)).toLocaleString()} veh/15-min` : 'No recorded intervals for this condition'}
-                            </span>
+                            <div style={{ minWidth: '200px' }}>
+                              <strong style={{ color: '#000', fontSize: '13px' }}>{site.name}</strong><br />
+                              <span style={{ color: '#555', fontSize: '11px' }}>{site.interaction}</span>
+                              <div style={{ marginTop: '8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px', fontSize: '11.5px', color: '#333' }}>
+                                <div><b>PCU (headway):</b> {site.pcuHeadway.toFixed(3)}</div>
+                                <div><b>Tricycle share:</b> {site.tricycleSharePct.toFixed(1)}%</div>
+                                <div><b>Mean daily volume:</b> {Math.round(site.meanDailyVolume).toLocaleString()} veh/day</div>
+                                <div><b>{weatherView} mean (15-min):</b> {chipVolume(site) != null ? Math.round(chipVolume(site)).toLocaleString() : '—'}</div>
+                                <div><b>Dry mean (15-min):</b> {site.meanIntervalVolumeDry != null ? Math.round(site.meanIntervalVolumeDry).toLocaleString() : '—'}</div>
+                                <div><b>Wet mean (15-min):</b> {site.meanIntervalVolumeWet != null ? Math.round(site.meanIntervalVolumeWet).toLocaleString() : '—'}</div>
+                                <div style={{ gridColumn: '1 / -1' }}><b>Coordinates:</b> {site.coords[0].toFixed(4)}, {site.coords[1].toFixed(4)}</div>
+                              </div>
+                            </div>
                           </Popup>
                         </Marker>
                       ))}
@@ -353,9 +371,27 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                   <div className="a-stat-label">Tricycle Share of Volume (n = 1,280 intervals)</div>
                   <div className="a-stat-value" style={{ color: C.green }}>{selectedSite.tricycleSharePct.toFixed(1)}%</div>
                 </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div className="a-stat-box">
+                    <div className="a-stat-label"><i className="fa-solid fa-sun" style={{ marginRight: '5px' }}></i>Dry Mean (15-min)</div>
+                    <div className="a-stat-value" style={{ color: C.orange, fontSize: '1.05rem' }}>
+                      {selectedSite.meanIntervalVolumeDry != null ? Math.round(selectedSite.meanIntervalVolumeDry).toLocaleString() : '—'}
+                    </div>
+                  </div>
+                  <div className="a-stat-box">
+                    <div className="a-stat-label"><i className="fa-solid fa-cloud-showers-heavy" style={{ marginRight: '5px' }}></i>Wet Mean (15-min)</div>
+                    <div className="a-stat-value" style={{ color: C.blue2, fontSize: '1.05rem' }}>
+                      {selectedSite.meanIntervalVolumeWet != null ? Math.round(selectedSite.meanIntervalVolumeWet).toLocaleString() : '—'}
+                    </div>
+                  </div>
+                </div>
                 <div className="a-stat-box">
                   <div className="a-stat-label">Primary Vehicle Interaction</div>
                   <div className="a-sub" style={{ margin: 0, fontWeight: 600, color: C.ink }}>{selectedSite.interaction}</div>
+                </div>
+                <div className="a-stat-box">
+                  <div className="a-stat-label">Coordinates</div>
+                  <div className="a-sub" style={{ margin: 0, fontWeight: 600, color: C.ink, fontFeatureSettings: '"tnum" 1' }}>{selectedSite.coords[0].toFixed(4)}, {selectedSite.coords[1].toFixed(4)}</div>
                 </div>
               </div>
             )}
