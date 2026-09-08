@@ -22,6 +22,22 @@
 // ---------------------------------------------------------------------------
 
 const VEH_COLS = ['Cars', 'Boda_bodas', 'Tricycles', 'Minibuses', 'Heavy_Trucks'];
+// Boda_bodas (motorcycle taxis) is the only motorcycle category in this
+// dataset -- "ADT excluding motorcycles" below excludes exactly this column.
+const NON_MC_COLS = VEH_COLS.filter((c) => c !== 'Boda_bodas');
+
+// Every hourly-profile chart on the site spans the full 24-hour clock on its
+// x-axis rather than just the hours the field surveys happened to sample --
+// both source datasets only record 06:00-21:45 (field20) or day/night
+// sessions within that same window (baseline7), so hours outside what was
+// actually observed are plotted as a genuine gap (null), never a fabricated
+// value. `hourlySeries` turns a sparse {hour: value} profile object into a
+// dense 24-slot array aligned with `ALL_HOURS` for exactly that purpose.
+export const ALL_HOURS = Array.from({ length: 24 }, (_, i) => i);
+export const ALL_HOUR_LABELS = ALL_HOURS.map((h) => `${String(h).padStart(2, '0')}:00`);
+export function hourlySeries(profile) {
+  return ALL_HOURS.map((h) => (profile && profile[h] != null ? profile[h] : null));
+}
 
 // --- tiny CSV parser (data is clean/numeric, no quoted commas) ------------
 export function parseCsv(text) {
@@ -178,8 +194,9 @@ const shortName = (n) => n.replace(' Junction', '').replace(' Roundabout', '').r
 // ---------------------------------------------------------------------------
 export function computeTrafficStats(field20, baseline7, incidents) {
   const totalVol = (row) => VEH_COLS.reduce((s, c) => s + row[c], 0);
-  field20.forEach((r) => { r.TotalVolume = totalVol(r); });
-  baseline7.forEach((r) => { r.TotalVolume = totalVol(r); });
+  const totalVolExclMC = (row) => NON_MC_COLS.reduce((s, c) => s + row[c], 0);
+  field20.forEach((r) => { r.TotalVolume = totalVol(r); r.TotalVolumeExclMC = totalVolExclMC(r); });
+  baseline7.forEach((r) => { r.TotalVolume = totalVol(r); r.TotalVolumeExclMC = totalVolExclMC(r); });
 
   // --- by-intersection daily volume (field20) ---
   const byIntDate = groupBy(field20, 'Intersection');
@@ -187,6 +204,7 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   Object.entries(byIntDate).forEach(([name, rows]) => {
     const byDate = groupBy(rows, 'Date');
     const dailyTotals = Object.values(byDate).map((dayRows) => sum(dayRows.map((r) => r.TotalVolume)));
+    const dailyTotalsExclMC = Object.values(byDate).map((dayRows) => sum(dayRows.map((r) => r.TotalVolumeExclMC)));
     const comp = {};
     VEH_COLS.forEach((c) => { comp[c] = sum(rows.map((r) => r[c])); });
     const compTotal = sum(Object.values(comp));
@@ -197,10 +215,56 @@ export function computeTrafficStats(field20, baseline7, incidents) {
       stdDailyVolume: std(dailyTotals),
       minDailyVolume: Math.min(...dailyTotals),
       maxDailyVolume: Math.max(...dailyTotals),
+      // Five-number summary of the raw per-15-min-interval volume (not the
+      // daily totals above) -- feeds the real box-plot chart type.
+      volumeDescribe: describe(rows.map((r) => r.TotalVolume)),
+      // ADT excluding motorcycles (Boda_bodas) -- same daily-total method,
+      // just summed over the 4 non-motorcycle vehicle classes only.
+      meanDailyVolumeExclMC: mean(dailyTotalsExclMC),
+      stdDailyVolumeExclMC: std(dailyTotalsExclMC),
+      minDailyVolumeExclMC: Math.min(...dailyTotalsExclMC),
+      maxDailyVolumeExclMC: Math.max(...dailyTotalsExclMC),
       compositionPct: compPct,
       tricycleSharePct: compPct.Tricycles,
+      motorcycleSharePct: compPct.Boda_bodas,
     };
   });
+
+  // ---------------------------------------------------------------------
+  // Average Daily Traffic (ADT) -- per intersection, per vehicle class, plus
+  // Total ADT and Total ADT excluding motorcycles (Boda_bodas). ADT here is
+  // the field20 daily-total mean-of-actual-days figure computed above
+  // (meanDailyVolume / meanDailyVolumeExclMC), re-exposed under an explicit
+  // "ADT" name with a full per-class breakdown alongside it, since ADT is
+  // the standard road-engineering term for this exact quantity.
+  // ---------------------------------------------------------------------
+  const adtByIntersection = {};
+  Object.entries(byIntDate).forEach(([name, rows]) => {
+    const byDate = groupBy(rows, 'Date');
+    const dates = Object.keys(byDate);
+    const perClass = {};
+    VEH_COLS.forEach((c) => {
+      perClass[c] = mean(dates.map((d) => sum(byDate[d].map((r) => r[c]))));
+    });
+    adtByIntersection[name] = {
+      perClass,
+      adtTotal: byIntersection[name].meanDailyVolume,
+      adtExclMotorcycles: byIntersection[name].meanDailyVolumeExclMC,
+      daysObserved: dates.length,
+    };
+  });
+  // network-wide ADT: mean of (sum across all 5 sites' daily totals) per
+  // real observed day -- not a simple sum of per-site ADTs, since that would
+  // silently assume every site shares the exact same observed-day set (it
+  // does here, but this stays correct even if that ever changes).
+  const byDateNetwork = groupBy(field20, 'Date');
+  const networkDailyTotals = Object.values(byDateNetwork).map((rows) => sum(rows.map((r) => r.TotalVolume)));
+  const networkDailyTotalsExclMC = Object.values(byDateNetwork).map((rows) => sum(rows.map((r) => r.TotalVolumeExclMC)));
+  const networkAdt = {
+    adtTotal: mean(networkDailyTotals),
+    adtExclMotorcycles: mean(networkDailyTotalsExclMC),
+    daysObserved: Object.keys(byDateNetwork).length,
+  };
   // --- peak-hour vehicle-class rate by intersection (field20, Period=Peak) ---
   // mean 15-min count during peak intervals x 4 = an hourly rate, consistent
   // with the site's existing "veh/hr, peak-hour" framing.
@@ -233,6 +297,8 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   VEH_COLS.forEach((c) => { overallCompositionPct[c] = (overallComp[c] / overallCompTotal) * 100; });
 
   const totalVehiclesRecorded = overallCompTotal;
+  // same figure, summed over the 4 non-motorcycle classes only (drops Boda_bodas)
+  const totalVehiclesRecordedExclMC = NON_MC_COLS.reduce((s, c) => s + overallComp[c], 0);
   const sampleSizeIntervals = field20.length;
 
   // --- hourly profile (field20) ---
@@ -384,9 +450,254 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   const pcuVcCorrelation = pearson(pcuRatioValues, vcValues);
   const pcuVcPairs = baseline7.map((r) => ({ x: r.TriHeadway / r.CarHeadway, y: r.VC }));
 
+  // ---------------------------------------------------------------------
+  // Full breakdown tables: per junction, by day / by week / by month / by
+  // year / by vehicle class, plus Total and Total-excl.-motorcycles columns
+  // on every row. All built from the same real 20-day field20 dataset --
+  // "per month" and "per year" honestly collapse to the single real period
+  // the survey actually covers (June 2026 / year 2026) rather than
+  // fabricating additional months or years; this is disclosed in the UI and
+  // in FORMULAS.monthlyYearlyBreakdown below, not hidden.
+  // ---------------------------------------------------------------------
+
+  // --- per junction, per day (all 20 real observed days) ---
+  const dailyBreakdown = [];
+  Object.entries(byIntDate).forEach(([name, rows]) => {
+    const byDate = groupBy(rows, 'Date');
+    Object.entries(byDate).forEach(([date, dayRows]) => {
+      const entry = { junction: name, date };
+      VEH_COLS.forEach((c) => { entry[c] = sum(dayRows.map((r) => r[c])); });
+      entry.Total = sum(VEH_COLS.map((c) => entry[c]));
+      entry.TotalExclMC = sum(NON_MC_COLS.map((c) => entry[c]));
+      dailyBreakdown.push(entry);
+    });
+  });
+  dailyBreakdown.sort((a, b) => (a.junction < b.junction ? -1 : a.junction > b.junction ? 1 : a.date.localeCompare(b.date)));
+
+  // --- per junction, per week -- the 20 real days bucketed by calendar
+  //     week-of-month (days 1-7 / 8-14 / 15-20; the third bucket is a real
+  //     partial 6-day week, not padded) ---
+  const weekOfMonth = (dateStr) => Math.ceil(parseInt(dateStr.slice(8, 10), 10) / 7);
+  const weeklyBreakdown = [];
+  Object.entries(byIntDate).forEach(([name, rows]) => {
+    const byDate = groupBy(rows, 'Date');
+    const byWeek = {};
+    Object.entries(byDate).forEach(([date, dayRows]) => {
+      const wk = weekOfMonth(date);
+      (byWeek[wk] = byWeek[wk] || []).push(...dayRows);
+    });
+    Object.entries(byWeek).forEach(([wk, wkRows]) => {
+      const dates = [...new Set(wkRows.map((r) => r.Date))].sort();
+      const entry = { junction: name, week: `Week ${wk}`, dateRange: `${dates[0]} to ${dates[dates.length - 1]}`, daysInWeek: dates.length };
+      VEH_COLS.forEach((c) => { entry[c] = sum(wkRows.map((r) => r[c])); });
+      entry.Total = sum(VEH_COLS.map((c) => entry[c]));
+      entry.TotalExclMC = sum(NON_MC_COLS.map((c) => entry[c]));
+      entry.avgDailyTotal = entry.Total / dates.length;
+      entry.avgDailyTotalExclMC = entry.TotalExclMC / dates.length;
+      weeklyBreakdown.push(entry);
+    });
+  });
+  weeklyBreakdown.sort((a, b) => (a.junction < b.junction ? -1 : a.junction > b.junction ? 1 : a.week.localeCompare(b.week)));
+
+  // --- per junction, per month -- the survey covers exactly one real
+  //     calendar month (June 2026), so this table has one row per junction,
+  //     equal to that junction's full-period total -- not a fabricated
+  //     multi-month series ---
+  const monthlyBreakdown = Object.entries(byIntDate).map(([name, rows]) => {
+    const daysObserved = Object.keys(groupBy(rows, 'Date')).length;
+    const entry = { junction: name, month: 'June 2026', daysObserved };
+    VEH_COLS.forEach((c) => { entry[c] = sum(rows.map((r) => r[c])); });
+    entry.Total = sum(VEH_COLS.map((c) => entry[c]));
+    entry.TotalExclMC = sum(NON_MC_COLS.map((c) => entry[c]));
+    entry.adt = entry.Total / daysObserved;
+    entry.adtExclMC = entry.TotalExclMC / daysObserved;
+    return entry;
+  });
+
+  // --- per junction, per year -- same honesty note as monthly: the survey
+  //     covers exactly one real calendar year (2026), so this collapses to
+  //     the same totals as the monthly table above, just labelled by year ---
+  const yearlyBreakdown = Object.entries(byIntDate).map(([name, rows]) => {
+    const daysObserved = Object.keys(groupBy(rows, 'Date')).length;
+    const entry = { junction: name, year: '2026', daysObserved };
+    VEH_COLS.forEach((c) => { entry[c] = sum(rows.map((r) => r[c])); });
+    entry.Total = sum(VEH_COLS.map((c) => entry[c]));
+    entry.TotalExclMC = sum(NON_MC_COLS.map((c) => entry[c]));
+    entry.adt = entry.Total / daysObserved;
+    entry.adtExclMC = entry.TotalExclMC / daysObserved;
+    return entry;
+  });
+
+  // --- per junction, per vehicle class -- total, ADT and network share for
+  //     each of the 5 real vehicle classes, at every junction ---
+  const vehicleClassBreakdown = [];
+  Object.entries(byIntDate).forEach(([name, rows]) => {
+    const daysObserved = Object.keys(groupBy(rows, 'Date')).length;
+    const siteTotal = sum(rows.map((r) => r.TotalVolume));
+    VEH_COLS.forEach((c) => {
+      const total = sum(rows.map((r) => r[c]));
+      vehicleClassBreakdown.push({
+        junction: name, vehicleClass: c, total, adt: total / daysObserved, sharePct: (total / siteTotal) * 100,
+      });
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // Thesis Chapter 4 gallery aggregates -- every "daytime" figure in the
+  // Thesis tab's Extended Visual Analysis section (Section 4.10) derives
+  // from this block. Scoped to Session_Type === 'Day' rows of baseline7
+  // only (1,680 of the 2,160 records), matching the thesis's own framing
+  // that Sections 4.9.1-4.9.6 and 4.10 use the daytime records exclusively.
+  // ---------------------------------------------------------------------
+  const baseline7Day = baseline7.filter((r) => r.Session_Type === 'Day');
+  const byIntDay = groupBy(baseline7Day, 'Intersection');
+
+  const daytimeVolumeDescribeBySite = {};
+  const daytimeVcDescribeBySite = {};
+  const daytimeHistogramBySite = {};
+  const daytimeHourlyProfileBySite = {};
+  const daytimeDailyTrendBySite = {};
+  const daytimeVcTrendBySite = {};
+  const daytimeCompositionBySite = {};
+  const daytimeHeadwayVolumeScatterBySite = {};
+
+  Object.entries(byIntDay).forEach(([name, rows]) => {
+    const tri = rows.map((r) => r.Tricycles);
+    daytimeVolumeDescribeBySite[name] = describe(tri);
+    daytimeVcDescribeBySite[name] = describe(rows.map((r) => r.VC));
+
+    // histogram: 6 equal-width bins spanning this site's observed min-max
+    const { min, max } = daytimeVolumeDescribeBySite[name];
+    const binCount = 6;
+    const width = (max - min) / binCount || 1;
+    const bins = Array.from({ length: binCount }, (_, i) => ({ binStart: min + i * width, binEnd: min + (i + 1) * width, count: 0 }));
+    tri.forEach((v) => { const idx = Math.min(binCount - 1, Math.floor((v - min) / width)); bins[Math.max(0, idx)].count += 1; });
+    daytimeHistogramBySite[name] = bins;
+
+    // hourly profile (daytime hours only)
+    const byHourSite = groupBy(rows, 'Hour');
+    const hourly = {};
+    Object.entries(byHourSite).forEach(([h, hRows]) => { hourly[h] = mean(hRows.map((r) => r.Tricycles)); });
+    daytimeHourlyProfileBySite[name] = hourly;
+
+    // 7-day trend + V/C daily trend (real calendar dates)
+    const byDateSite = groupBy(rows, 'Date');
+    daytimeDailyTrendBySite[name] = Object.entries(byDateSite)
+      .map(([date, dRows]) => ({ date, meanTricycles: mean(dRows.map((r) => r.Tricycles)) }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    daytimeVcTrendBySite[name] = Object.entries(byDateSite)
+      .map(([date, dRows]) => ({ date, meanVC: mean(dRows.map((r) => r.VC)) }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // vehicle-class composition (daytime)
+    const comp = {}; VEH_COLS.forEach((c) => { comp[c] = sum(rows.map((r) => r[c])); });
+    const compTotal = sum(Object.values(comp));
+    const compPct = {}; VEH_COLS.forEach((c) => { compPct[c] = (comp[c] / compTotal) * 100; });
+    daytimeCompositionBySite[name] = compPct;
+
+    // headway-volume scatter (daytime, every recorded interval)
+    daytimeHeadwayVolumeScatterBySite[name] = rows.map((r) => ({ x: r.TriHeadway, y: r.Tricycles }));
+  });
+
+  // network-wide daytime tricycle-volume <-> V/C correlation (n = 1,680)
+  const daytimeVolumeVcCorrelation = pearson(baseline7Day.map((r) => r.Tricycles), baseline7Day.map((r) => r.VC));
+  const daytimeVolumeVcPairs = baseline7Day.map((r) => ({ x: r.Tricycles, y: r.VC }));
+
+  // Poisson goodness-of-fit, Wandegeya Junction, daytime, merged bins --
+  // computed exactly (log-space Poisson pmf, no approximation) rather than
+  // hand-typed, so the chart and Table 4.9.6 always agree with each other.
+  function poissonPmf(k, lambda) {
+    let logFact = 0;
+    for (let i = 2; i <= k; i++) logFact += Math.log(i);
+    return Math.exp(-lambda + k * Math.log(lambda) - logFact);
+  }
+  function poissonBinExpected(loInclusive, hiExclusive, lambda, n) {
+    let p = 0;
+    for (let k = loInclusive; k < hiExclusive; k++) p += poissonPmf(k, lambda);
+    return n * p;
+  }
+  const wandegeyaDay = (byIntDay['Wandegeya Junction'] || []).map((r) => r.Tricycles);
+  const wandegeyaLambda = mean(wandegeyaDay);
+  const wandegeyaN = wandegeyaDay.length;
+  const poissonBinEdges = [[2, 8], [8, 14], [14, 20], [20, 51]];
+  const wandegeyaPoissonBins = poissonBinEdges.map(([lo, hi]) => ({
+    label: `${lo}-${hi - 1}`,
+    observed: wandegeyaDay.filter((v) => v >= lo && v < hi).length,
+    expected: poissonBinExpected(lo, hi, wandegeyaLambda, wandegeyaN),
+  }));
+  const wandegeyaPoissonChiSq = sum(wandegeyaPoissonBins.map((b) => ((b.observed - b.expected) ** 2) / b.expected));
+
+  // peak vs off-peak, daytime only (matches Table 4.9.3's n's exactly)
+  const dayPeak = baseline7Day.filter((r) => r.Period === 'Peak').map((r) => r.Tricycles);
+  const dayOffpeak = baseline7Day.filter((r) => r.Period === 'Off-Peak').map((r) => r.Tricycles);
+  const daytimePeakOffpeakTest = welchTTest(dayPeak, dayOffpeak);
+
+  // headway comparison, tricycles vs cars, daytime only (Table 4.9.4)
+  const daytimeHeadwayTest = pairedTTest(baseline7Day.map((r) => r.TriHeadway), baseline7Day.map((r) => r.CarHeadway));
+
+  // heatmap: total tricycle volume by (date, hour), summed across all 5 sites
+  const daytimeHeatmapDayHour = (() => {
+    const byDateHour = {};
+    baseline7Day.forEach((r) => {
+      const key = `${r.Date}|${r.Hour}`;
+      (byDateHour[key] = byDateHour[key] || []).push(r.Tricycles);
+    });
+    const dates = [...new Set(baseline7Day.map((r) => r.Date))].sort();
+    const hours = [...new Set(baseline7Day.map((r) => r.Hour))].sort((a, b) => a - b);
+    return { dates, hours, grid: dates.map((d) => hours.map((h) => sum(byDateHour[`${d}|${h}`] || [0]))) };
+  })();
+
+  // overall daytime composition, network-wide (all 5 sites x 7 days)
+  const daytimeOverallComp = {};
+  VEH_COLS.forEach((c) => { daytimeOverallComp[c] = sum(baseline7Day.map((r) => r[c])); });
+  const daytimeOverallCompTotal = sum(Object.values(daytimeOverallComp));
+  const daytimeOverallCompositionPct = {};
+  VEH_COLS.forEach((c) => { daytimeOverallCompositionPct[c] = (daytimeOverallComp[c] / daytimeOverallCompTotal) * 100; });
+
+  // ---------------------------------------------------------------------
+  // Traffic Criticality Index (TCI) -- a composite indicator of how much
+  // each of the 5 study intersections matters to overall corridor
+  // performance, built entirely from real, already-computed per-site
+  // figures above (no external network-topology or redundancy data exists
+  // for this study, so the index intentionally scopes itself to traffic
+  // load + congestion stress rather than claiming a full graph-theoretic
+  // network analysis). Every input is min-max normalized across the 5
+  // sites (0-1) before weighting, so the index is scale-free and
+  // recomputes automatically if the underlying field data changes:
+  //   TCI = 100 x [0.35 x norm(meanDailyVolume)      -- traffic demand
+  //              + 0.35 x norm(V/C ratio mean)        -- congestion stress
+  //              + 0.15 x norm(PCU headway ratio)     -- tricycle-induced friction
+  //              + 0.15 x norm(tricycle share %)]     -- mixed-traffic complexity
+  // ---------------------------------------------------------------------
+  const criticalityNames = Object.keys(byIntersection);
+  const minMaxNorm = (val, arr) => {
+    const lo = Math.min(...arr), hi = Math.max(...arr);
+    return hi > lo ? (val - lo) / (hi - lo) : 0.5;
+  };
+  const critVolumes = criticalityNames.map((n) => byIntersection[n].meanDailyVolume);
+  const critVc = criticalityNames.map((n) => vcByIntersection[n].mean);
+  const critPcu = criticalityNames.map((n) => pcuByIntersection[n].pcuHeadway);
+  const critTriShare = criticalityNames.map((n) => byIntersection[n].tricycleSharePct);
+  const criticalityByIntersection = {};
+  criticalityNames.forEach((name, i) => {
+    const volumeNorm = minMaxNorm(critVolumes[i], critVolumes);
+    const vcNorm = minMaxNorm(critVc[i], critVc);
+    const pcuNorm = minMaxNorm(critPcu[i], critPcu);
+    const triShareNorm = minMaxNorm(critTriShare[i], critTriShare);
+    const index = 100 * (0.35 * volumeNorm + 0.35 * vcNorm + 0.15 * pcuNorm + 0.15 * triShareNorm);
+    criticalityByIntersection[name] = {
+      index, volumeNorm, vcNorm, pcuNorm, triShareNorm,
+      meanDailyVolume: critVolumes[i], vcMean: critVc[i], pcuHeadway: critPcu[i], tricycleSharePct: critTriShare[i],
+    };
+  });
+  const criticalityRanking = criticalityNames
+    .map((name) => ({ name, ...criticalityByIntersection[name] }))
+    .sort((a, b) => b.index - a.index)
+    .map((entry, i) => ({ ...entry, rank: i + 1 }));
+
   return {
     byIntersection, peakHourlyByIntersection, busiestIntersection, highestTricycleShareIntersection,
-    overallCompositionPct, totalVehiclesRecorded, sampleSizeIntervals, hourlyProfile,
+    overallCompositionPct, totalVehiclesRecorded, totalVehiclesRecordedExclMC, sampleSizeIntervals, hourlyProfile,
     weatherTest, peakOffpeakTest, tricycleAnova, tricycleByIntersection,
     pcuByIntersection, pcuHeadwayOverall, vcStats, volumeVcCorrelation, volumeVcPairs, dayNightTest,
     headwayTest, poissonNetwork, poissonByIntersection,
@@ -394,6 +705,14 @@ export function computeTrafficStats(field20, baseline7, incidents) {
     totalVolumeDescribe, pcuRatioDescribe, vcRatioDescribe, totalVolumeHistogram,
     hourlyProfileByIntersection, dayNightByIntersection, vcByIntersection,
     compositionByWeather, peakNetworkComposition, pcuVcCorrelation, pcuVcPairs,
+    criticalityByIntersection, criticalityRanking,
+    adtByIntersection, networkAdt, nonMotorcycleClasses: NON_MC_COLS,
+    dailyBreakdown, weeklyBreakdown, monthlyBreakdown, yearlyBreakdown, vehicleClassBreakdown,
+    daytimeVolumeDescribeBySite, daytimeVcDescribeBySite, daytimeHistogramBySite, daytimeHourlyProfileBySite,
+    daytimeDailyTrendBySite, daytimeVcTrendBySite, daytimeCompositionBySite, daytimeHeadwayVolumeScatterBySite,
+    daytimeVolumeVcCorrelation, daytimeVolumeVcPairs, wandegeyaPoissonBins, wandegeyaPoissonChiSq,
+    wandegeyaLambda, wandegeyaN, daytimePeakOffpeakTest, daytimeHeadwayTest, daytimeHeatmapDayHour,
+    daytimeOverallCompositionPct,
     shortName,
   };
 }
@@ -414,6 +733,7 @@ export const FORMULAS = {
   peakHourly: { formula: 'mean(class count) over Period=Peak intervals × 4, per intersection', source: 'field20', n: '400 peak intervals/site' },
   compositionPct: { formula: 'class_total ÷ sum(all 5 class totals) × 100', source: 'field20', n: '6,400 intervals' },
   totalVehiclesRecorded: { formula: 'sum of every vehicle-class count across all recorded intervals', source: 'field20', n: '6,400 intervals' },
+  totalVehiclesRecordedExclMC: { formula: 'sum of Cars + Tricycles + Minibuses + Heavy_Trucks counts across all recorded intervals — same as totalVehiclesRecorded with Boda_bodas (motorcycle taxis) dropped', source: 'field20', n: '6,400 intervals' },
   weatherTest: { formula: "Welch's two-sample t-test, Total Volume for Weather=Wet vs Weather=Dry", source: 'field20', n: '399 wet / 6,001 dry' },
   peakOffpeakTest: { formula: "Welch's two-sample t-test, Total Volume for Period=Peak (07-09h,16-19h) vs Off-Peak", source: 'field20', n: '2,000 peak / 4,400 off-peak' },
   tricycleAnova: { formula: 'One-way ANOVA, Tricycles per interval across the 5 intersections: F = MS_between ÷ MS_within', source: 'field20', n: '1,280/site, 6,400 total' },
@@ -431,6 +751,26 @@ export const FORMULAS = {
   compositionByWeather: { formula: 'class_total ÷ sum(all 5 class totals) × 100, computed separately for Weather=Dry and Weather=Wet intervals', source: 'field20', n: '6,001 dry / 399 wet' },
   incidentSeverityTotals: { formula: 'Count of Severity=Fatal / Serious / Minor, summed across all incident types', source: 'incidents', n: '840' },
   totalVolumeHistogram: { formula: '10 equal-width bins spanning the observed min-max range of Total Volume per interval, counts per bin', source: 'field20', n: '6,400' },
+  criticalityIndex: { formula: 'Composite Traffic Criticality Index (0–100) = 100 × [0.35×norm(meanDailyVolume) + 0.35×norm(V/C ratio mean) + 0.15×norm(PCU headway ratio) + 0.15×norm(tricycle share %)], each input min-max normalized across the 5 study sites. Reflects traffic load + congestion stress, not a full network-topology/redundancy analysis (no road-network graph data exists for this study).', source: 'field20 + baseline7 (derived composite)', n: '5 study intersections' },
+  adtByIntersection: { formula: 'Average Daily Traffic (ADT) = mean(sum of vehicle counts on a calendar day) across the 20 observed days, per intersection; computed per vehicle class and as a Total. "ADT excluding motorcycles" repeats the same calculation summing only Cars + Tricycles + Minibuses + Heavy_Trucks (Boda_bodas — motorcycle taxis — is the only motorcycle class in this dataset and is dropped)', source: 'field20', n: '20 days/site' },
+  networkAdt: { formula: 'Network ADT = mean(sum of Total Volume across all 5 sites on a calendar day) across the 20 observed days; ADT-excl.-motorcycles version drops Boda_bodas from the per-day sum before averaging', source: 'field20', n: '20 network-days' },
+  dailyBreakdown: { formula: 'Per-junction, per-calendar-day totals for each of the 5 vehicle classes, plus Total and Total-excluding-motorcycles, for every one of the 20 real observed days', source: 'field20', n: '20 days × 5 junctions = 100 rows' },
+  weeklyBreakdown: { formula: 'The 20 real observed days bucketed by calendar week-of-month (days 1–7, 8–14, 15–20), summed per junction and vehicle class; the third bucket is a genuine partial 6-day week, not padded to 7', source: 'field20', n: '3 weeks × 5 junctions = 15 rows' },
+  monthlyYearlyBreakdown: { formula: 'Per-junction totals for the one real calendar month (June 2026) and one real calendar year (2026) the field20 survey actually covers — both tables collapse to a single period each because that is the true extent of the field data; no additional months or years are fabricated to fill a longer series', source: 'field20', n: '20 days × 5 junctions' },
+  vehicleClassBreakdown: { formula: 'Per-junction, per-vehicle-class total count, ADT (total ÷ days observed), and % share of that junction\'s combined volume', source: 'field20', n: '5 classes × 5 junctions = 25 rows' },
+  daytimeVolumeDescribeBySite: { formula: 'mean / median / mode / std / Q1 / Q3 / IQR / min / max of Tricycles per interval, Session_Type=Day only, computed per intersection', source: 'baseline7', n: '336 daytime intervals/site' },
+  daytimeHistogramBySite: { formula: '6 equal-width bins spanning each site\'s observed min-max daytime Tricycles-per-interval range, counts per bin', source: 'baseline7', n: '336 daytime intervals/site' },
+  daytimeHourlyProfileBySite: { formula: 'Mean Tricycles per interval by Hour, Session_Type=Day only, computed per intersection', source: 'baseline7', n: '~28 daytime intervals/hour/site' },
+  daytimeDailyTrendBySite: { formula: 'Mean Tricycles per interval per calendar day, Session_Type=Day only, computed per intersection across the 7 real survey dates', source: 'baseline7', n: '48 daytime intervals/day/site' },
+  daytimeVcTrendBySite: { formula: 'Mean V/C ratio per calendar day, Session_Type=Day only, computed per intersection across the 7 real survey dates', source: 'baseline7', n: '48 daytime intervals/day/site' },
+  daytimeCompositionBySite: { formula: 'class_total ÷ sum(all 5 class totals) × 100, Session_Type=Day only, computed per intersection', source: 'baseline7', n: '336 daytime intervals/site' },
+  daytimeHeadwayVolumeScatterBySite: { formula: 'Every daytime interval\'s (Avg Tricycle Headway, Tricycles) pair, per intersection', source: 'baseline7', n: '336 daytime intervals/site' },
+  daytimeVolumeVcCorrelation: { formula: 'Pearson correlation, daytime Tricycles per interval vs V/C ratio, network-wide: r = cov(x,y) ÷ (σx·σy)', source: 'baseline7', n: '1,680 daytime intervals' },
+  wandegeyaPoissonBins: { formula: 'Observed vs Poisson-expected interval counts (exact log-space pmf, lambda = sample mean), 4 merged bins satisfying Cochran\'s rule (expected ≥ 5 after merging), Wandegeya Junction daytime Tricycles', source: 'baseline7', n: '336 daytime intervals' },
+  daytimePeakOffpeakTest: { formula: "Welch's two-sample t-test, daytime Tricycles per interval, Period=Peak (07-09h,17-19h) vs Off-Peak, network-wide", source: 'baseline7', n: '560 peak / 1,120 off-peak' },
+  daytimeHeadwayTest: { formula: 'Paired-samples t-test, Avg Tricycle Headway (s) vs Avg Car Headway (s), Session_Type=Day only, network-wide', source: 'baseline7', n: '1,680 daytime intervals' },
+  daytimeHeatmapDayHour: { formula: 'Total Tricycles per (calendar day, hour) cell, summed across all 5 sites, Session_Type=Day only', source: 'baseline7', n: '1,680 daytime intervals' },
+  daytimeOverallCompositionPct: { formula: 'class_total ÷ sum(all 5 class totals) × 100, Session_Type=Day only, network-wide (all 5 sites, all 7 days)', source: 'baseline7', n: '1,680 daytime intervals' },
 };
 
 // ---------------------------------------------------------------------------
