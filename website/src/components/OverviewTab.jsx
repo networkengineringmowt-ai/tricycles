@@ -3,15 +3,16 @@ import { MapContainer, TileLayer, Marker, Popup, Tooltip as LeafletTooltip, Laye
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import {
-  Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Filler, Tooltip, Legend
+  Chart as ChartJS, CategoryScale, LinearScale, RadialLinearScale, BarElement, PointElement, LineElement, ArcElement, Filler, Tooltip, Legend
 } from 'chart.js';
-import { Bar, Line } from 'react-chartjs-2';
-import PageControls, { downloadTextFile } from './PageControls';
+import { Bar, Line, Doughnut, Pie, Radar, PolarArea, Scatter, Bubble } from 'react-chartjs-2';
+import PageControls, { downloadTextFile, downloadJsonFile, downloadChartsAsZip } from './PageControls';
 import MethodologyPanel from './MethodologyPanel';
 import SearchableSelect, { searchableSelectCss } from './SearchableSelect';
 import useTrafficStats from '../lib/useTrafficStats';
+import { ALL_HOUR_LABELS, hourlySeries } from '../lib/trafficStats';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Filler, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, RadialLinearScale, BarElement, PointElement, LineElement, ArcElement, Filler, Tooltip, Legend);
 
 // Fix Leaflet default marker icon issue in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -59,12 +60,16 @@ const MapFullscreenControl = () => {
 // Geographic position + qualitative interaction description only -- every
 // numeric figure (volume, tricycle share, PCU) is computed live from real
 // field data by useTrafficStats() below, never hand-typed here.
+// Coordinates cross-checked against each area's published reference point
+// (OpenStreetMap / Wikipedia geodata for Wandegeya, Kibuye, Bakuli, Bwaise
+// and Nateete) so markers sit on the correct road feature rather than an
+// approximate hand-placed guess.
 const SITE_GEO = [
-  { name: "Wandegeya Junction", coords: [0.3308, 32.5744], interaction: "Tricycle-Boda-boda (Motorcycle Taxi)-Non-Motorized Transport (NMT)" },
-  { name: "Kibuye Roundabout", coords: [0.2981, 32.5761], interaction: "Tricycle-Car (Expressway Exit)" },
-  { name: "Bakuli Intersection", coords: [0.3114, 32.5669], interaction: "Tricycle-Bus (Hub)" },
-  { name: "Bwaise Junction", coords: [0.3458, 32.5611], interaction: "Tricycle-Non-Motorized Transport (NMT) (Flood Zone)" },
-  { name: "Natete Junction", coords: [0.3014, 32.5469], interaction: "Tricycle-Public Service Vehicle (PSV/Minibus) Hub" }
+  { name: "Wandegeya Junction", coords: [0.3311, 32.5736], interaction: "Tricycle-Boda-boda (Motorcycle Taxi)-Non-Motorized Transport (NMT)" },
+  { name: "Kibuye Roundabout", coords: [0.2936, 32.5731], interaction: "Tricycle-Car (Expressway Exit)" },
+  { name: "Bakuli Intersection", coords: [0.3130, 32.5641], interaction: "Tricycle-Bus (Hub)" },
+  { name: "Bwaise Junction", coords: [0.3500, 32.5610], interaction: "Tricycle-Non-Motorized Transport (NMT) (Flood Zone)" },
+  { name: "Natete Junction", coords: [0.2983, 32.5350], interaction: "Tricycle-Public Service Vehicle (PSV/Minibus) Hub" }
 ];
 
 // ---------------------------------------------------------------------------
@@ -124,27 +129,38 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
     if (!stats) return null;
     return SITE_GEO.map((geo) => {
       const s = stats.byIntersection[geo.name] || {};
+      const crit = stats.criticalityByIntersection[geo.name] || {};
       return {
         ...geo,
         meanDailyVolume: s.meanDailyVolume,
+        meanDailyVolumeExclMC: s.meanDailyVolumeExclMC,
         tricycleSharePct: s.tricycleSharePct,
         pcuHeadway: stats.pcuByIntersection[geo.name]?.pcuHeadway,
         meanIntervalVolumeDry: s.meanIntervalVolumeDry,
         meanIntervalVolumeWet: s.meanIntervalVolumeWet,
+        criticalityIndex: crit.index,
       };
     });
   }, [stats]);
 
   const exportSites = () => {
     if (!studySites) return;
-    const header = 'Study Site,Latitude,Longitude,Mean Daily Volume (2026 field sample),Tricycle Share (%),PCU (headway-ratio method),Dominant Interaction';
+    const header = 'Study Site,Latitude,Longitude,Mean Daily Volume (2026 field sample),ADT Excluding Motorcycles,Tricycle Share (%),PCU (headway-ratio method),Traffic Criticality Index (0-100),Dominant Interaction';
     const lines = studySites.map(s =>
-      `"${s.name}",${s.coords[0]},${s.coords[1]},${Math.round(s.meanDailyVolume)},${s.tricycleSharePct.toFixed(2)},${s.pcuHeadway.toFixed(3)},"${s.interaction}"`
+      `"${s.name}",${s.coords[0]},${s.coords[1]},${Math.round(s.meanDailyVolume)},${Math.round(s.meanDailyVolumeExclMC)},${s.tricycleSharePct.toFixed(2)},${s.pcuHeadway.toFixed(3)},${s.criticalityIndex.toFixed(1)},"${s.interaction}"`
     );
     downloadTextFile('tricycle_pcu_study_sites.csv', [header, ...lines].join('\n'));
   };
 
+  const overviewExportOptions = [
+    { id: 'csv', label: 'Site Data (CSV)', icon: 'fa-file-csv', hint: 'Volume, PCU & criticality per site', action: exportSites },
+    { id: 'json', label: 'Full Dataset (JSON)', icon: 'fa-file-code', hint: 'All computed network stats, raw', action: () => downloadJsonFile('tricycle_pcu_network_stats.json', stats) },
+    { id: 'png', label: 'Charts as Images (ZIP)', icon: 'fa-images', hint: 'Every chart on this page as PNG', action: () => downloadChartsAsZip('tricycle_pcu_overview_charts.zip') },
+    { id: 'print', label: 'Print / Save as PDF', icon: 'fa-print', hint: 'Opens your browser’s print dialog', action: () => window.print() },
+  ];
+
   const totalVolume = studySites ? studySites.reduce((s, x) => s + x.meanDailyVolume, 0) : 0;
+  const totalVolumeExclMC = stats ? stats.networkAdt.adtExclMotorcycles : 0;
   const busiest = studySites && stats ? studySites.find(s => s.name === stats.busiestIntersection) : null;
   const highestTricycle = studySites && stats ? studySites.find(s => s.name === stats.highestTricycleShareIntersection) : null;
   const weatherDelta = stats ? stats.weatherTest.pctChange : null;
@@ -153,7 +169,7 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
 
   // Hours are recorded 06:00-21:45 only (field20's sampling window) --
   // sorted numerically so the line reads left-to-right across the day.
-  const hourlyLabels = stats ? Object.keys(stats.hourlyProfile).map(Number).sort((a, b) => a - b) : [];
+  const hourlySeriesData = stats ? hourlySeries(stats.hourlyProfile).map((v) => (v == null ? null : Math.round(v))) : [];
 
   return (
     <div className="apple-overview">
@@ -218,7 +234,7 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         .a-directory-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 6px; }
         .a-directory-card { background: ${C.canvas}; border-radius: 16px; padding: 18px; border-top: 3px solid; }
         .a-directory-name { font-size: 0.95rem; font-weight: 800; color: ${C.ink}; margin: 0 0 6px; }
-        .a-directory-meta { display: flex; gap: 14px; margin-bottom: 8px; }
+        .a-directory-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 10px; margin-bottom: 8px; }
         .a-directory-meta-item { font-size: 0.68rem; color: ${C.faint}; font-weight: 700; text-transform: uppercase; }
         .a-directory-meta-val { font-size: 0.95rem; color: ${C.ink}; font-weight: 800; display: block; margin-top: 2px; text-transform: none; }
         .a-directory-interaction { font-size: 0.76rem; color: ${C.sub}; line-height: 1.5; }
@@ -240,7 +256,7 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         ${searchableSelectCss}
       `}</style>
 
-      <PageControls onBack={goBack} canGoBack={canGoBack} exportLabel="Export Site Data (CSV)" onExport={exportSites} />
+      <PageControls onBack={goBack} canGoBack={canGoBack} exportOptions={overviewExportOptions} />
 
       <div className="apple-overview-inner">
 
@@ -259,6 +275,7 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         <div className="a-kpi-grid">
           <KpiCard icon="fa-location-dot" color={C.blue} label="Study Intersections" value="5" sub="Kampala City road network" />
           <KpiCard icon="fa-car-side" color={C.indigo} label="Combined Daily Volume" value={Math.round(totalVolume).toLocaleString()} sub={`Veh/day · 20-day sample, n = ${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
+          <KpiCard icon="fa-ban" color={C.purple} label="Combined ADT (Excl. Motorcycles)" value={Math.round(totalVolumeExclMC).toLocaleString()} sub="Cars + Tricycles + Minibuses + Heavy Trucks · 20-day sample" />
           <KpiCard icon="fa-gauge-high" color={C.teal} label="Mean PCU (headway-ratio)" value={stats.pcuHeadwayOverall.toFixed(2)} sub={`Range ${Math.min(...studySites.map(s=>s.pcuHeadway)).toFixed(2)}–${Math.max(...studySites.map(s=>s.pcuHeadway)).toFixed(2)} · n = 2,160 intervals`} />
           <KpiCard icon="fa-fire" color={C.orange} label="Busiest Site" value={stats.shortName(busiest.name)} sub={`${Math.round(busiest.meanDailyVolume).toLocaleString()} veh/day mean · 20-day sample`} />
           <KpiCard icon="fa-route" color={C.pink} label="Highest Tricycle Share" value={stats.shortName(highestTricycle.name)} sub={`${highestTricycle.tricycleSharePct.toFixed(1)}% of site volume · 20-day sample`} />
@@ -286,15 +303,31 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
               </div>
             </div>
             <div className="a-map-wrap">
-              <MapContainer bounds={[[0.2981, 32.5469], [0.3458, 32.5761]]} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
-                <TileLayer
-                  url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  maxZoom={19}
-                />
+              <MapContainer bounds={studySites.map((s) => s.coords)} boundsOptions={{ padding: [40, 40] }} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
                 <ScaleControl position="bottomleft" metric imperial />
                 <MapFullscreenControl />
                 <LayersControl position="topright" collapsed={true}>
+                  <LayersControl.BaseLayer checked name="Streets">
+                    <TileLayer
+                      url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      maxZoom={19}
+                    />
+                  </LayersControl.BaseLayer>
+                  <LayersControl.BaseLayer name="Imagery Hybrid">
+                    <LayerGroup>
+                      <TileLayer
+                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                        attribution='Imagery &copy; Esri, Maxar, Earthstar Geographics'
+                        maxZoom={19}
+                      />
+                      <TileLayer
+                        url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                        attribution='Labels &amp; boundaries &copy; Esri'
+                        maxZoom={19}
+                      />
+                    </LayerGroup>
+                  </LayersControl.BaseLayer>
                   <LayersControl.Overlay checked name="Study Site Markers">
                     <LayerGroup>
                       {studySites.map((site, idx) => (
@@ -316,8 +349,6 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                                 <div><b>Tricycle share:</b> {site.tricycleSharePct.toFixed(1)}%</div>
                                 <div><b>Mean daily volume:</b> {Math.round(site.meanDailyVolume).toLocaleString()} veh/day</div>
                                 <div><b>{weatherView} mean (15-min):</b> {chipVolume(site) != null ? Math.round(chipVolume(site)).toLocaleString() : '—'}</div>
-                                <div><b>Dry mean (15-min):</b> {site.meanIntervalVolumeDry != null ? Math.round(site.meanIntervalVolumeDry).toLocaleString() : '—'}</div>
-                                <div><b>Wet mean (15-min):</b> {site.meanIntervalVolumeWet != null ? Math.round(site.meanIntervalVolumeWet).toLocaleString() : '—'}</div>
                                 <div style={{ gridColumn: '1 / -1' }}><b>Coordinates:</b> {site.coords[0].toFixed(4)}, {site.coords[1].toFixed(4)}</div>
                               </div>
                             </div>
@@ -364,6 +395,10 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                   <div className="a-stat-value" style={{ color: C.blue }}>{Math.round(selectedSite.meanDailyVolume).toLocaleString()}</div>
                 </div>
                 <div className="a-stat-box">
+                  <div className="a-stat-label">ADT Excluding Motorcycles (Boda Bodas) — same 20-day sample</div>
+                  <div className="a-stat-value" style={{ color: C.purple }}>{Math.round(selectedSite.meanDailyVolumeExclMC).toLocaleString()}</div>
+                </div>
+                <div className="a-stat-box">
                   <div className="a-stat-label">PCU (headway-ratio method, n = 432 intervals)</div>
                   <div className="a-stat-value" style={{ color: C.indigo }}>{selectedSite.pcuHeadway.toFixed(3)}</div>
                 </div>
@@ -383,6 +418,12 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                     <div className="a-stat-value" style={{ color: C.blue2, fontSize: '1.05rem' }}>
                       {selectedSite.meanIntervalVolumeWet != null ? Math.round(selectedSite.meanIntervalVolumeWet).toLocaleString() : '—'}
                     </div>
+                  </div>
+                </div>
+                <div className="a-stat-box">
+                  <div className="a-stat-label"><i className="fa-solid fa-triangle-exclamation" style={{ marginRight: '5px' }}></i>Traffic Criticality Index</div>
+                  <div className="a-stat-value" style={{ color: C.red, fontSize: '1.05rem' }}>
+                    {selectedSite.criticalityIndex != null ? selectedSite.criticalityIndex.toFixed(1) : '—'} / 100
                   </div>
                 </div>
                 <div className="a-stat-box">
@@ -440,19 +481,40 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* TRAFFIC CRITICALITY RANKING — composite index from real per-site volume/V-C/PCU/tricycle-share figures */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Asset Prioritization" title="Traffic Criticality Ranking" color={C.red}
+              sub="Composite 0–100 index: 35% traffic demand + 35% congestion stress (V/C) + 15% tricycle-induced friction (PCU) + 15% mixed-traffic complexity (tricycle share) — see Methodology below." />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: [...studySites].sort((a, b) => b.criticalityIndex - a.criticalityIndex).map(s => stats.shortName(s.name)),
+                  datasets: [{ label: 'Criticality Index (0–100)', data: [...studySites].sort((a, b) => b.criticalityIndex - a.criticalityIndex).map(s => Number(s.criticalityIndex.toFixed(1))), backgroundColor: C.red, borderRadius: 8 }]
+                }}
+                options={{
+                  indexAxis: 'y', animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { min: 0, max: 100, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* HOURLY PROFILE — new time-of-day view, computed live but not shown anywhere else on the site */}
         <div className="a-grid">
           <div className="a-card s-12">
-            <SectionHeader eyebrow="Temporal Pattern" title="Mean Volume by Hour of Day" color={C.teal} sub={`All 5 sites combined, 06:00–21:45 sampling window · 20-day sample, n = ${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
+            <SectionHeader eyebrow="Temporal Pattern" title="Mean Volume by Hour of Day" color={C.teal} sub={`All 5 sites combined · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero · 20-day sample, n = ${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
             <div className="a-chart-box">
               <Line
                 data={{
-                  labels: hourlyLabels.map((h) => `${String(h).padStart(2, '0')}:00`),
+                  labels: ALL_HOUR_LABELS,
                   datasets: [{
                     label: 'Mean vehicles / 15-min interval',
-                    data: hourlyLabels.map((h) => Math.round(stats.hourlyProfile[h])),
+                    data: hourlySeriesData,
                     borderColor: C.teal, backgroundColor: hex2rgba(C.teal, 0.16), borderWidth: 3, fill: true, tension: 0.35,
-                    pointRadius: 3, pointBackgroundColor: C.teal, pointBorderColor: '#fff', pointBorderWidth: 1.5,
+                    pointRadius: 3, pointBackgroundColor: C.teal, pointBorderColor: '#fff', pointBorderWidth: 1.5, spanGaps: false,
                   }]
                 }}
                 options={{
@@ -469,6 +531,148 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* RADAR: normalized criticality profile per site */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Multi-Factor Comparison" title="Criticality Factor Profile by Site" color={C.purple}
+              sub="Each of the 4 Criticality Index inputs, min-max normalized 0–1 across the 5 sites — see Methodology for the composite formula" />
+            <div className="a-chart-box">
+              <Radar
+                data={{
+                  labels: ['Traffic Demand', 'Congestion Stress (V/C)', 'Tricycle Friction (PCU)', 'Mixed-Traffic Complexity'],
+                  datasets: studySites.map((s, idx) => {
+                    const crit = stats.criticalityByIntersection[s.name];
+                    return {
+                      label: stats.shortName(s.name),
+                      data: [crit.volumeNorm, crit.vcNorm, crit.pcuNorm, crit.triShareNorm],
+                      borderColor: SITE_COLORS[idx], backgroundColor: hex2rgba(SITE_COLORS[idx], 0.12),
+                      pointBackgroundColor: SITE_COLORS[idx], pointBorderColor: '#fff', pointRadius: 3, borderWidth: 2,
+                    };
+                  })
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { r: { min: 0, max: 1, ticks: { display: false }, grid: { color: chartGrid }, angleLines: { color: chartGrid }, pointLabels: { color: chartSub, font: { size: 10 } } } },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Load Distribution" title="Share of Combined Daily Volume" color={C.blue2} sub="Each site's mean daily volume as a % of the 5-site total" />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Doughnut
+                data={{
+                  labels: studySites.map((s) => stats.shortName(s.name)),
+                  datasets: [{
+                    data: studySites.map((s) => Math.round(s.meanDailyVolume)),
+                    backgroundColor: SITE_COLORS, borderColor: '#ffffff', borderWidth: 3, hoverOffset: 8,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false, cutout: '64%',
+                  plugins: {
+                    legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } },
+                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed.toLocaleString()} veh/day (${(ctx.parsed / totalVolume * 100).toFixed(1)}%)` } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* SCATTER + BUBBLE: cross-site relationships */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Site-Level Relationship" title="Daily Volume vs Criticality Index" color={C.orange} sub="One point per study site — does the busiest site also rank most critical?" />
+            <div className="a-chart-box">
+              <Scatter
+                data={{
+                  datasets: [{
+                    label: 'Study site', data: studySites.map((s) => ({ x: Math.round(s.meanDailyVolume), y: Number(s.criticalityIndex.toFixed(1)) })),
+                    backgroundColor: SITE_COLORS, pointRadius: 7, pointHoverRadius: 9,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'Mean daily volume (veh/day)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
+                    y: { title: { display: true, text: 'Criticality Index (0–100)', color: chartSub, font: { size: 10.5 } }, min: 0, max: 100, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }
+                  },
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => studySites[ctx.dataIndex].name } } }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Three-Factor Summary" title="Volume, PCU &amp; Tricycle Share by Site" color={C.pink} sub="Bubble size = tricycle share of site volume (%)" />
+            <div className="a-chart-box">
+              <Bubble
+                data={{
+                  datasets: studySites.map((s, idx) => ({
+                    label: stats.shortName(s.name),
+                    data: [{ x: Math.round(s.meanDailyVolume), y: Number(s.pcuHeadway.toFixed(3)), r: Math.max(6, s.tricycleSharePct * 1.1) }],
+                    backgroundColor: hex2rgba(SITE_COLORS[idx], 0.6), borderColor: SITE_COLORS[idx], borderWidth: 1.5,
+                  }))
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'Mean daily volume (veh/day)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
+                    y: { title: { display: true, text: 'PCU (headway-ratio)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }
+                  },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.dataset.label}: tricycle share ${studySites[ctx.datasetIndex].tricycleSharePct.toFixed(1)}%` } } }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* PIE + POLAR AREA: weather-condition sampling */}
+        <div className="a-grid">
+          <div className="a-card s-5">
+            <SectionHeader eyebrow="Sampling Composition" title="Recorded Intervals by Weather" color={C.teal} sub="Network-wide split of the 6,400 field20 intervals used for the weather-impact test" />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Pie
+                data={{
+                  labels: ['Dry', 'Wet (Rain)'],
+                  datasets: [{ data: [stats.weatherTest.nB, stats.weatherTest.nA], backgroundColor: [C.orange, C.blue2], borderColor: '#ffffff', borderWidth: 3 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } },
+                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed.toLocaleString()} intervals (${(ctx.parsed / (stats.weatherTest.nA + stats.weatherTest.nB) * 100).toFixed(1)}%)` } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-7">
+            <SectionHeader eyebrow="Weather Sensitivity" title="Dry vs Wet Mean Interval Volume by Site" color={C.red} sub="Mean vehicles per 15-min interval, split by recorded weather condition" />
+            <div className="a-chart-box">
+              <PolarArea
+                data={{
+                  labels: studySites.map((s) => `${stats.shortName(s.name)} (Dry)`),
+                  datasets: [{
+                    data: studySites.map((s) => Math.round(s.meanIntervalVolumeDry || 0)),
+                    backgroundColor: SITE_COLORS.map((c) => hex2rgba(c, 0.55)), borderColor: '#ffffff', borderWidth: 2,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { r: { ticks: { color: chartSub, font: { size: 9 }, backdropColor: 'transparent' }, grid: { color: chartGrid } } },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">Wet-weather figures are shown per site in the Site Detail panel above; this chart isolates the Dry baseline by site for comparison.</p>
+          </div>
+        </div>
+
         {/* SITE DIRECTORY */}
         <div className="a-grid">
           <div className="a-card s-12">
@@ -479,8 +683,10 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                   <p className="a-directory-name">{site.name}</p>
                   <div className="a-directory-meta">
                     <div className="a-directory-meta-item">Veh/Day<span className="a-directory-meta-val">{Math.round(site.meanDailyVolume).toLocaleString()}</span></div>
+                    <div className="a-directory-meta-item">ADT Excl. MC<span className="a-directory-meta-val" style={{ color: C.purple }}>{Math.round(site.meanDailyVolumeExclMC).toLocaleString()}</span></div>
                     <div className="a-directory-meta-item">PCU<span className="a-directory-meta-val">{site.pcuHeadway.toFixed(2)}</span></div>
                     <div className="a-directory-meta-item">Tricycle %<span className="a-directory-meta-val">{site.tricycleSharePct.toFixed(1)}</span></div>
+                    <div className="a-directory-meta-item">Criticality<span className="a-directory-meta-val" style={{ color: C.red }}>{site.criticalityIndex.toFixed(1)}</span></div>
                   </div>
                   <p className="a-directory-interaction">{site.interaction}</p>
                 </div>
@@ -491,7 +697,7 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
 
         {/* METHODOLOGY */}
         <div className="a-grid">
-          <MethodologyPanel color={C.blue} keys={['meanDailyVolume', 'compositionPct', 'pcuHeadway', 'weatherTest']} />
+          <MethodologyPanel color={C.blue} keys={['meanDailyVolume', 'compositionPct', 'pcuHeadway', 'weatherTest', 'criticalityIndex', 'adtByIntersection', 'networkAdt']} />
         </div>
         </>
         )}

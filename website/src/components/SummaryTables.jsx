@@ -1,13 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend
+  Chart as ChartJS, CategoryScale, LinearScale, RadialLinearScale, BarElement, PointElement, LineElement, ArcElement, Filler, Tooltip, Legend
 } from 'chart.js';
-import { Bar, Doughnut } from 'react-chartjs-2';
-import PageControls from './PageControls';
+import { Bar, Doughnut, Line, Radar, Scatter, Bubble, Pie, PolarArea } from 'react-chartjs-2';
+import PageControls, { downloadJsonFile, downloadCsvBundle } from './PageControls';
 import MethodologyPanel from './MethodologyPanel';
 import useTrafficStats from '../lib/useTrafficStats';
+import { ALL_HOUR_LABELS, hourlySeries } from '../lib/trafficStats';
+import { JUNCTION_LEG_CONFIG, simulateDirectionalSplit } from '../lib/directionalSplit';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, RadialLinearScale, BarElement, PointElement, LineElement, ArcElement, Filler, Tooltip, Legend);
 
 const COLUMNS = [
   { key: 'junction', label: 'Study Site', type: 'text' },
@@ -36,6 +38,56 @@ function downloadCsv(rows) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// CSV builders for the four breakdown tables below the main peak-hourly
+// table -- each mirrors the columns actually rendered in its <table>, so the
+// downloaded file matches what's on screen exactly, filters aside (the
+// bundle always exports the unfiltered, all-junction version of a table).
+function csvFromAdt(stats) {
+  const header = 'Study Site,Cars,Boda Bodas,Tricycles,Minibuses,Heavy Trucks,ADT (Total),ADT (Excl. Motorcycles)';
+  const lines = Object.entries(stats.adtByIntersection).map(([junction, v]) => [
+    `"${junction}"`, Math.round(v.perClass.Cars), Math.round(v.perClass.Boda_bodas), Math.round(v.perClass.Tricycles),
+    Math.round(v.perClass.Minibuses), Math.round(v.perClass.Heavy_Trucks), Math.round(v.adtTotal), Math.round(v.adtExclMotorcycles),
+  ].join(','));
+  const network = `"Network (sum of 5 sites)",,,,,,${Math.round(stats.networkAdt.adtTotal)},${Math.round(stats.networkAdt.adtExclMotorcycles)}`;
+  return [header, ...lines, network].join('\n');
+}
+function csvFromVehicleClass(stats) {
+  const header = 'Study Site,Vehicle Class,Total Count,ADT,Share of Site Volume (%)';
+  const lines = stats.vehicleClassBreakdown.map((r) =>
+    `"${r.junction}","${r.vehicleClass.replace('_', ' ')}",${Math.round(r.total)},${Math.round(r.adt)},${r.sharePct.toFixed(2)}`);
+  return [header, ...lines].join('\n');
+}
+function csvFromDaily(stats) {
+  const header = 'Study Site,Date,Cars,Boda Bodas,Tricycles,Minibuses,Heavy Trucks,Total,Total (Excl. Motorcycles)';
+  const lines = stats.dailyBreakdown.map((r) =>
+    `"${r.junction}","${r.date}",${Math.round(r.Cars)},${Math.round(r.Boda_bodas)},${Math.round(r.Tricycles)},${Math.round(r.Minibuses)},${Math.round(r.Heavy_Trucks)},${Math.round(r.Total)},${Math.round(r.TotalExclMC)}`);
+  return [header, ...lines].join('\n');
+}
+function csvFromWeekly(stats) {
+  const header = 'Study Site,Week,Date Range,Days,Total,Total (Excl. Motorcycles),Avg Daily Total,Avg Daily (Excl. Motorcycles)';
+  const lines = stats.weeklyBreakdown.map((r) =>
+    `"${r.junction}","${r.week}","${r.dateRange}",${r.daysInWeek},${Math.round(r.Total)},${Math.round(r.TotalExclMC)},${Math.round(r.avgDailyTotal)},${Math.round(r.avgDailyTotalExclMC)}`);
+  return [header, ...lines].join('\n');
+}
+function csvFromMonthly(stats) {
+  const header = 'Study Site,Month,Year,Days Observed,Total,Total (Excl. Motorcycles),ADT,ADT (Excl. Motorcycles)';
+  const lines = stats.monthlyBreakdown.map((m) =>
+    `"${m.junction}","${m.month}",2026,${m.daysObserved},${Math.round(m.Total)},${Math.round(m.TotalExclMC)},${Math.round(m.adt)},${Math.round(m.adtExclMC)}`);
+  return [header, ...lines].join('\n');
+}
+function csvFromDirectionalSplit(stats, skew) {
+  const header = 'Study Site,Junction Type (assumed),Approach Leg,Assumed Share (%),SIMULATED ADT for this Leg,Source / Confidence';
+  const lines = [];
+  Object.entries(JUNCTION_LEG_CONFIG).forEach(([junction, config]) => {
+    const adt = stats.adtByIntersection[junction]?.adtTotal || 0;
+    simulateDirectionalSplit(adt, config, skew).forEach((row) => {
+      lines.push(`"${junction}","${config.type}","${row.leg}",${row.pct.toFixed(1)},${Math.round(row.volume)},"${config.source}"`);
+    });
+  });
+  const note = 'NOTE: this table is a disclosed SIMULATION. The field study recorded no per-direction/turning-movement data (no Direction column in any source file). Only the junction totals (ADT) are real, measured figures; the per-leg split above is modeled from an assumed configuration, adjustable via the skew parameter.';
+  return [header, ...lines, '', `"${note}"`].join('\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +138,10 @@ const KpiCard = ({ icon, color, label, value, sub }) => (
 const SummaryTables = ({ goBack, canGoBack } = {}) => {
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('desc');
+  const [dailyJunction, setDailyJunction] = useState('All');
+  const [weeklyJunction, setWeeklyJunction] = useState('All');
+  const [dirJunction, setDirJunction] = useState(Object.keys(JUNCTION_LEG_CONFIG)[0]);
+  const [dirSkew, setDirSkew] = useState(0.3);
   const stats = useTrafficStats();
 
   const rows = useMemo(() => {
@@ -205,6 +261,20 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
 
         .a-loading { padding: 40px; text-align: center; color: ${C.faint}; font-size: 0.9rem; }
 
+        .a-toggle-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .a-toggle-btn { border: 1px solid rgba(0,0,0,0.08); background: #fff; color: ${C.sub}; font-weight: 600; font-size: 0.82rem; padding: 8px 14px; border-radius: 10px; cursor: pointer; transition: all .15s ease; }
+        .a-toggle-btn.active { background: ${C.ink}; color: #fff; border-color: ${C.ink}; }
+        .a-illustrative-badge { display: inline-block; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.orange}; background: ${hex2rgba(C.orange, 0.12)}; padding: 3px 8px; border-radius: 6px; margin-left: 8px; vertical-align: middle; }
+        .a-slider { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 4px; background: #e5e5ea; }
+        .a-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.06); cursor: pointer; border: 6px solid ${C.orange}; }
+        .a-slider::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #ffffff; border: 6px solid ${C.orange}; cursor: pointer; }
+        .a-slider:focus-visible { outline: 2px solid ${C.orange}; outline-offset: 3px; }
+        .a-slider-head { display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 700; color: ${C.ink}; margin-bottom: 8px; }
+        .a-dir-note { font-size: 0.78rem; color: ${C.sub}; line-height: 1.6; background: ${hex2rgba(C.orange, 0.07)}; border: 1px solid ${hex2rgba(C.orange, 0.22)}; border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
+        .a-dir-source { font-size: 0.72rem; color: ${C.faint}; margin-top: 10px; }
+        .a-toggle-btn:hover:not(.active) { background: #f5f5f7; }
+        .a-mc-cell { color: ${C.purple} !important; }
+
         .a-methodology { margin-top: 4px; }
         .a-methodology-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; font: inherit; font-weight: 700; font-size: 0.92rem; color: ${C.ink}; cursor: pointer; padding: 0; }
         .a-methodology-body { margin-top: 16px; }
@@ -219,7 +289,24 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
         .a-methodology-key { font-family: ui-monospace, monospace; font-size: 0.72rem; }
       `}</style>
 
-      <PageControls onBack={goBack} canGoBack={canGoBack} exportLabel="Export Table (CSV)" onExport={() => downloadCsv(rows)} />
+      <PageControls onBack={goBack} canGoBack={canGoBack} exportOptions={stats ? [
+        { id: 'csv', label: 'Peak-Hourly Table (CSV)', icon: 'fa-file-csv', hint: 'The table above, current sort order', action: () => downloadCsv(rows) },
+        { id: 'bundle', label: 'All 7 Tables Bundled (ZIP)', icon: 'fa-file-zipper', hint: 'ADT, vehicle class, daily, weekly, monthly/yearly, directional split', action: () => downloadCsvBundle('tricycle_pcu_summary_tables.zip', [
+          { name: 'peak_hourly_by_junction.csv', content: (() => {
+            const header = COLUMNS.map((c) => c.label).join(',');
+            const lines = rows.map((r) => COLUMNS.map((c) => (c.type === 'text' ? `"${r[c.key]}"` : Math.round(r[c.key]))).join(','));
+            return [header, ...lines].join('\n');
+          })() },
+          { name: 'adt_by_junction.csv', content: csvFromAdt(stats) },
+          { name: 'vehicle_class_breakdown.csv', content: csvFromVehicleClass(stats) },
+          { name: 'daily_breakdown_all_20_days.csv', content: csvFromDaily(stats) },
+          { name: 'weekly_breakdown.csv', content: csvFromWeekly(stats) },
+          { name: 'monthly_yearly_breakdown.csv', content: csvFromMonthly(stats) },
+          { name: 'simulated_directional_split_MODEL_NOT_MEASURED.csv', content: csvFromDirectionalSplit(stats, dirSkew) },
+        ]) },
+        { id: 'json', label: 'Full Dataset (JSON)', icon: 'fa-file-code', hint: 'All computed network stats, raw', action: () => downloadJsonFile('tricycle_pcu_summary_stats.json', stats) },
+        { id: 'print', label: 'Print / Save as PDF', icon: 'fa-print', hint: 'Opens your browser’s print dialog', action: () => window.print() },
+      ] : null} />
 
       <div className="apple-summary-inner">
 
@@ -241,6 +328,8 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           <KpiCard icon="fa-route" color={C.green} label="Tricycle Share" value={`${tricycleShare.toFixed(1)}%`} sub={`${Math.round(totals.Tricycles).toLocaleString()} veh/hr network-wide · n = 2,000 peak intervals`} />
           <KpiCard icon="fa-fire" color={C.orange} label="Busiest Junction" value={stats.shortName(busiest.junction)} sub={`${Math.round(busiest.Total).toLocaleString()} veh/hr total motorized`} />
           <KpiCard icon="fa-gauge-high" color={C.pink} label="Network PCU (headway-ratio)" value={stats.pcuHeadwayOverall.toFixed(2)} sub="Mean across all 5 sites · n = 2,160 intervals" />
+          <KpiCard icon="fa-calendar-day" color={C.blue2} label="Network ADT (Total)" value={Math.round(stats.networkAdt.adtTotal).toLocaleString()} sub={`All 5 classes · mean of ${stats.networkAdt.daysObserved} real observed days`} />
+          <KpiCard icon="fa-ban" color={C.purple} label="Network ADT (Excl. Motorcycles)" value={Math.round(stats.networkAdt.adtExclMotorcycles).toLocaleString()} sub="Cars + Tricycles + Minibuses + Heavy Trucks only" />
         </div>
 
         {/* STACKED BAR: composition by junction */}
@@ -319,6 +408,148 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* LINE: hourly volume profile by site */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Temporal Pattern, Per Site" title="Hourly Volume Profile by Study Site" color={C.blue2}
+              sub={`Mean Total Volume per 15-min interval by hour of day, computed separately for each site · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero`} />
+            <div className="a-chart-box">
+              <Line
+                data={{
+                  labels: ALL_HOUR_LABELS,
+                  datasets: rows.map((r, idx) => {
+                    const profile = stats.hourlyProfileByIntersection[r.junction];
+                    return {
+                      label: stats.shortName(r.junction), data: hourlySeries(profile).map((v) => (v == null ? null : Math.round(v))),
+                      borderColor: SITE_COLORS[idx], backgroundColor: hex2rgba(SITE_COLORS[idx], 0.08), borderWidth: 2, tension: 0.35,
+                      pointRadius: 2, pointBackgroundColor: SITE_COLORS[idx], spanGaps: false,
+                    };
+                  })
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    y: { title: { display: true, text: 'Veh / 15-min interval (mean)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
+                    x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10 }, maxRotation: 0 } }
+                  },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* RADAR: vehicle-class composition profile by site */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Modal Mix, Per Site" title="Vehicle-Class Composition Profile by Site" color={C.indigo} sub="Each site's class mix (%), all 5 classes on one radar for shape comparison" />
+            <div className="a-chart-box">
+              <Radar
+                data={{
+                  labels: ['Cars', 'Boda Bodas', 'Tricycles', 'Minibuses', 'Heavy Trucks'],
+                  datasets: rows.map((r, idx) => {
+                    const comp = stats.byIntersection[r.junction].compositionPct;
+                    return {
+                      label: stats.shortName(r.junction),
+                      data: [comp.Cars, comp.Boda_bodas, comp.Tricycles, comp.Minibuses, comp.Heavy_Trucks].map((v) => Number(v.toFixed(1))),
+                      borderColor: SITE_COLORS[idx], backgroundColor: hex2rgba(SITE_COLORS[idx], 0.1), pointBackgroundColor: SITE_COLORS[idx], pointBorderColor: '#fff', pointRadius: 3, borderWidth: 2,
+                    };
+                  })
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { r: { min: 0, ticks: { color: chartSub, font: { size: 9 }, backdropColor: 'transparent' }, grid: { color: chartGrid }, angleLines: { color: chartGrid }, pointLabels: { color: chartSub, font: { size: 10 } } } },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.dataset.label} — ${ctx.label}: ${ctx.parsed.r}%` } } }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Interval-Level Relationship" title="PCU Ratio vs V/C Ratio" color={C.orange} sub="Every recorded 7-day baseline interval — does a locally higher tricycle/car headway ratio track with a busier V/C ratio? See Methodology for the correlation." />
+            <div className="a-chart-box">
+              <Scatter
+                data={{
+                  datasets: [{
+                    label: 'Baseline interval', data: stats.pcuVcPairs, backgroundColor: hex2rgba(C.orange, 0.35), pointRadius: 2.5,
+                  }]
+                }}
+                options={{
+                  animation: false, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'PCU ratio (tricycle ÷ car headway)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
+                    y: { title: { display: true, text: 'V/C ratio', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }
+                  },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">r = {stats.pcuVcCorrelation.r.toFixed(3)} (r² = {stats.pcuVcCorrelation.r2Pct.toFixed(1)}%), n = {stats.pcuVcCorrelation.n.toLocaleString()} intervals.</p>
+          </div>
+        </div>
+
+        {/* BUBBLE + PIE/POLAR AREA: day/night mix and incident record */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Diurnal Comparison" title="Day vs Night Tricycle Volume by Site" color={C.green} sub="Bubble size = tricycle share of site volume (%) · 7-day baseline" />
+            <div className="a-chart-box">
+              <Bubble
+                data={{
+                  datasets: rows.map((r, idx) => {
+                    const dn = stats.dayNightByIntersection[r.junction];
+                    return {
+                      label: stats.shortName(r.junction),
+                      data: [{ x: Number(dn.dayMean.toFixed(1)), y: Number(dn.nightMean.toFixed(1)), r: Math.max(6, r.Tricycles / r.Total * 100 * 1.1) }],
+                      backgroundColor: hex2rgba(SITE_COLORS[idx], 0.6), borderColor: SITE_COLORS[idx], borderWidth: 1.5,
+                    };
+                  })
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'Day mean tricycles / interval', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
+                    y: { title: { display: true, text: 'Night mean tricycles / interval', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }
+                  },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-3">
+            <SectionHeader eyebrow="Safety Record" title="Incidents by Severity" color={C.red} sub="840 recorded incidents, network-wide" />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Pie
+                data={{
+                  labels: Object.keys(stats.incidentSeverityTotals),
+                  datasets: [{ data: Object.values(stats.incidentSeverityTotals), backgroundColor: [C.red, C.orange, C.yellow], borderColor: '#ffffff', borderWidth: 3 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed} (${(ctx.parsed / stats.incidentN * 100).toFixed(1)}%)` } } }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-3">
+            <SectionHeader eyebrow="Safety Record" title="Incidents by Type" color={C.purple} sub="840 recorded incidents, network-wide" />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <PolarArea
+                data={{
+                  labels: Object.keys(stats.incidentTotalsByType),
+                  datasets: [{ data: Object.values(stats.incidentTotalsByType), backgroundColor: [C.purple, C.blue, C.teal, C.pink, C.indigo, C.orange].slice(0, Object.keys(stats.incidentTotalsByType).length), borderColor: '#ffffff', borderWidth: 2 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { r: { ticks: { display: false }, grid: { color: chartGrid } } },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 9 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* DATA TABLE */}
         <div className="a-grid">
           <div className="a-card s-12">
@@ -374,9 +605,313 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* TRAFFIC CRITICALITY RANKING */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Asset Prioritization" title="Traffic Criticality Ranking" color={C.red}
+              sub="Composite 0–100 index combining each intersection's traffic demand, congestion stress, tricycle-induced friction and mixed-traffic complexity — see Methodology below for the exact weights." />
+            <div className="a-table-wrap">
+              <table className="a-table">
+                <thead>
+                  <tr>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Rank</span></th>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Study Site</span></th>
+                    <th scope="col"><span className="a-th-btn">Criticality Index</span></th>
+                    <th scope="col"><span className="a-th-btn">Mean Daily Volume</span></th>
+                    <th scope="col"><span className="a-th-btn">V/C Ratio (mean)</span></th>
+                    <th scope="col"><span className="a-th-btn">PCU (headway)</span></th>
+                    <th scope="col"><span className="a-th-btn">Tricycle Share</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.criticalityRanking.map((r) => (
+                    <tr key={r.name}>
+                      <td>#{r.rank}</td>
+                      <td>{r.name}</td>
+                      <td style={{ color: C.red }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ position: 'relative', width: '60px', height: '6px', borderRadius: '4px', background: 'rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+                            <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${r.index}%`, background: C.red, borderRadius: '4px' }}></span>
+                          </span>
+                          {r.index.toFixed(1)}
+                        </span>
+                      </td>
+                      <td>{Math.round(r.meanDailyVolume).toLocaleString()}</td>
+                      <td>{r.vcMean.toFixed(3)}</td>
+                      <td>{r.pcuHeadway.toFixed(3)}</td>
+                      <td>{r.tricycleSharePct.toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* ADT BY JUNCTION -- Total vs Excluding Motorcycles, per vehicle class */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Field Data Aggregation, All 20 Days" title="Average Daily Traffic (ADT) by Junction" color={C.blue2}
+              sub="Mean of the daily totals across all 20 real observed days, per intersection — Total ADT and ADT excluding motorcycles (Boda Bodas) side by side, with the per-class breakdown behind each." />
+            <div className="a-table-wrap">
+              <table className="a-table">
+                <thead>
+                  <tr>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Study Site</span></th>
+                    <th scope="col"><span className="a-th-btn">Cars</span></th>
+                    <th scope="col"><span className="a-th-btn">Boda Bodas</span></th>
+                    <th scope="col"><span className="a-th-btn">Tricycles</span></th>
+                    <th scope="col"><span className="a-th-btn">Minibuses</span></th>
+                    <th scope="col"><span className="a-th-btn">Heavy Trucks</span></th>
+                    <th scope="col"><span className="a-th-btn">ADT (Total)</span></th>
+                    <th scope="col"><span className="a-th-btn">ADT (Excl. Motorcycles)</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(stats.adtByIntersection).map(([junction, v]) => (
+                    <tr key={junction}>
+                      <td>{junction}</td>
+                      <td>{Math.round(v.perClass.Cars).toLocaleString()}</td>
+                      <td>{Math.round(v.perClass.Boda_bodas).toLocaleString()}</td>
+                      <td className="a-tc-cell">{Math.round(v.perClass.Tricycles).toLocaleString()}</td>
+                      <td>{Math.round(v.perClass.Minibuses).toLocaleString()}</td>
+                      <td>{Math.round(v.perClass.Heavy_Trucks).toLocaleString()}</td>
+                      <td style={{ color: C.blue }}>{Math.round(v.adtTotal).toLocaleString()}</td>
+                      <td className="a-mc-cell">{Math.round(v.adtExclMotorcycles).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td>Network (sum of 5 sites)</td>
+                    <td colSpan={5}></td>
+                    <td style={{ color: C.blue }}>{Math.round(stats.networkAdt.adtTotal).toLocaleString()}</td>
+                    <td className="a-mc-cell">{Math.round(stats.networkAdt.adtExclMotorcycles).toLocaleString()}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <p className="a-footnote">ADT = mean(sum of vehicle counts on a calendar day) across the {stats.adtByIntersection[Object.keys(stats.adtByIntersection)[0]].daysObserved} real observed days per site. "Excl. Motorcycles" drops Boda Bodas (the only motorcycle-taxi class in this dataset) from the daily sum before averaging.</p>
+          </div>
+        </div>
+
+        {/* VEHICLE CLASS BREAKDOWN -- per junction x per vehicle class */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Per Junction × Per Vehicle Class" title="Vehicle Class Breakdown by Junction" color={C.indigo}
+              sub="Total count, ADT and % share of that junction's combined volume, for each of the 5 real vehicle classes — 20-day field study." />
+            <div className="a-table-wrap">
+              <table className="a-table">
+                <thead>
+                  <tr>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Study Site</span></th>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Vehicle Class</span></th>
+                    <th scope="col"><span className="a-th-btn">Total Count</span></th>
+                    <th scope="col"><span className="a-th-btn">ADT</span></th>
+                    <th scope="col"><span className="a-th-btn">Share of Site Volume</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.vehicleClassBreakdown.map((r) => (
+                    <tr key={`${r.junction}-${r.vehicleClass}`}>
+                      <td>{r.junction}</td>
+                      <td style={{ textAlign: 'left', fontWeight: 700 }}>{r.vehicleClass.replace('_', ' ')}</td>
+                      <td>{Math.round(r.total).toLocaleString()}</td>
+                      <td>{Math.round(r.adt).toLocaleString()}</td>
+                      <td className={r.vehicleClass === 'Tricycles' ? 'a-tc-cell' : undefined}>{r.sharePct.toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* DAILY BREAKDOWN -- per junction x per day */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Per Junction × Per Day" title="Daily Breakdown, All 20 Observed Days" color={C.green}
+              sub="Every real recorded day, per site — Total and Total-excluding-motorcycles alongside the 5-class count." />
+            <div className="a-toggle-row" role="group" aria-label="Filter daily breakdown by study site" style={{ marginBottom: '14px' }}>
+              {['All', ...Object.keys(stats.adtByIntersection)].map((j) => (
+                <button key={j} type="button" className={`a-toggle-btn ${dailyJunction === j ? 'active' : ''}`} onClick={() => setDailyJunction(j)}>
+                  {j === 'All' ? 'All Junctions' : stats.shortName(j)}
+                </button>
+              ))}
+            </div>
+            <div className="a-table-wrap">
+              <table className="a-table">
+                <thead>
+                  <tr>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Study Site</span></th>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Date</span></th>
+                    <th scope="col"><span className="a-th-btn">Cars</span></th>
+                    <th scope="col"><span className="a-th-btn">Boda Bodas</span></th>
+                    <th scope="col"><span className="a-th-btn">Tricycles</span></th>
+                    <th scope="col"><span className="a-th-btn">Minibuses</span></th>
+                    <th scope="col"><span className="a-th-btn">Heavy Trucks</span></th>
+                    <th scope="col"><span className="a-th-btn">Total</span></th>
+                    <th scope="col"><span className="a-th-btn">Total (Excl. MC)</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.dailyBreakdown.filter((r) => dailyJunction === 'All' || r.junction === dailyJunction).map((r) => (
+                    <tr key={`${r.junction}-${r.date}`}>
+                      <td>{r.junction}</td>
+                      <td style={{ textAlign: 'left', fontWeight: 700 }}>{r.date}</td>
+                      <td>{Math.round(r.Cars).toLocaleString()}</td>
+                      <td>{Math.round(r.Boda_bodas).toLocaleString()}</td>
+                      <td className="a-tc-cell">{Math.round(r.Tricycles).toLocaleString()}</td>
+                      <td>{Math.round(r.Minibuses).toLocaleString()}</td>
+                      <td>{Math.round(r.Heavy_Trucks).toLocaleString()}</td>
+                      <td style={{ color: C.blue }}>{Math.round(r.Total).toLocaleString()}</td>
+                      <td className="a-mc-cell">{Math.round(r.TotalExclMC).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* WEEKLY BREAKDOWN -- per junction x per calendar week */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Per Junction × Per Week" title="Weekly Breakdown" color={C.orange}
+              sub="The 20 real observed days bucketed by calendar week-of-month (1–7, 8–14, 15–20) — Week 3 is a genuine partial 6-day week, not padded." />
+            <div className="a-toggle-row" role="group" aria-label="Filter weekly breakdown by study site" style={{ marginBottom: '14px' }}>
+              {['All', ...Object.keys(stats.adtByIntersection)].map((j) => (
+                <button key={j} type="button" className={`a-toggle-btn ${weeklyJunction === j ? 'active' : ''}`} onClick={() => setWeeklyJunction(j)}>
+                  {j === 'All' ? 'All Junctions' : stats.shortName(j)}
+                </button>
+              ))}
+            </div>
+            <div className="a-table-wrap">
+              <table className="a-table">
+                <thead>
+                  <tr>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Study Site</span></th>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Week</span></th>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Date Range</span></th>
+                    <th scope="col"><span className="a-th-btn">Days</span></th>
+                    <th scope="col"><span className="a-th-btn">Total</span></th>
+                    <th scope="col"><span className="a-th-btn">Total (Excl. MC)</span></th>
+                    <th scope="col"><span className="a-th-btn">Avg Daily Total</span></th>
+                    <th scope="col"><span className="a-th-btn">Avg Daily (Excl. MC)</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.weeklyBreakdown.filter((r) => weeklyJunction === 'All' || r.junction === weeklyJunction).map((r) => (
+                    <tr key={`${r.junction}-${r.week}`}>
+                      <td>{r.junction}</td>
+                      <td style={{ textAlign: 'left', fontWeight: 700 }}>{r.week}</td>
+                      <td style={{ textAlign: 'left' }}>{r.dateRange}</td>
+                      <td>{r.daysInWeek}</td>
+                      <td style={{ color: C.blue }}>{Math.round(r.Total).toLocaleString()}</td>
+                      <td className="a-mc-cell">{Math.round(r.TotalExclMC).toLocaleString()}</td>
+                      <td>{Math.round(r.avgDailyTotal).toLocaleString()}</td>
+                      <td className="a-mc-cell">{Math.round(r.avgDailyTotalExclMC).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* MONTHLY / YEARLY BREAKDOWN -- honestly collapses to the single real period covered */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Per Junction × Per Month / Per Year" title="Monthly &amp; Yearly Breakdown" color={C.red}
+              sub="The field20 survey covers exactly one real calendar month (June 2026) and one real calendar year (2026) — both tables below collapse to that single period per site, rather than fabricating additional months or years to fill a longer series." />
+            <div className="a-table-wrap">
+              <table className="a-table">
+                <thead>
+                  <tr>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Study Site</span></th>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Month</span></th>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Year</span></th>
+                    <th scope="col"><span className="a-th-btn">Days Observed</span></th>
+                    <th scope="col"><span className="a-th-btn">Total</span></th>
+                    <th scope="col"><span className="a-th-btn">Total (Excl. MC)</span></th>
+                    <th scope="col"><span className="a-th-btn">ADT</span></th>
+                    <th scope="col"><span className="a-th-btn">ADT (Excl. MC)</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.monthlyBreakdown.map((m) => (
+                    <tr key={m.junction}>
+                      <td>{m.junction}</td>
+                      <td style={{ textAlign: 'left', fontWeight: 700 }}>{m.month}</td>
+                      <td style={{ textAlign: 'left', fontWeight: 700 }}>2026</td>
+                      <td>{m.daysObserved}</td>
+                      <td style={{ color: C.blue }}>{Math.round(m.Total).toLocaleString()}</td>
+                      <td className="a-mc-cell">{Math.round(m.TotalExclMC).toLocaleString()}</td>
+                      <td>{Math.round(m.adt).toLocaleString()}</td>
+                      <td className="a-mc-cell">{Math.round(m.adtExclMC).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">No field data exists outside June 2026 for this study — the Monthly and Yearly rows are identical by construction, both reflecting the same real 20-day sample, and are shown separately only to satisfy both grouping dimensions.</p>
+          </div>
+        </div>
+
+        {/* DIRECTIONAL SPLIT SIMULATOR -- explicitly modeled, not measured: no source file records vehicle direction/turning movement */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Per Junction × Per Approach Direction" title={<>Simulated Directional Split by Junction<span className="a-illustrative-badge">Model, not measured</span></>} color={C.purple}
+              sub="Neither field dataset recorded which direction a vehicle approached from or turned toward, so no real per-direction volume exists to report. This instead distributes each junction's real ADT across its approach legs using an adjustable, clearly-labeled assumption -- not a measurement." />
+            <div className="a-toggle-row" role="group" aria-label="Choose junction for directional split simulation" style={{ marginBottom: '18px' }}>
+              {Object.keys(JUNCTION_LEG_CONFIG).map((j) => (
+                <button key={j} type="button" className={`a-toggle-btn ${dirJunction === j ? 'active' : ''}`} onClick={() => setDirJunction(j)}>
+                  {stats.shortName ? stats.shortName(j) : j}
+                </button>
+              ))}
+            </div>
+            <div style={{ maxWidth: '420px', marginBottom: '18px' }}>
+              <div className="a-slider-head"><span>Assumed primary-corridor bias</span><span>{Math.round(dirSkew * 100)}%</span></div>
+              <input type="range" min="0" max="0.6" step="0.05" value={dirSkew} onChange={(e) => setDirSkew(parseFloat(e.target.value))} className="a-slider" aria-label="Assumed primary-corridor bias" />
+              <p className="a-footnote" style={{ marginTop: '6px' }}>0% = an even split across every leg (the most neutral assumption possible). Higher values assume the through-corridor legs (marked ★ below) carry proportionally more traffic than the minor legs -- a common real-world pattern, but still an assumption, not something this study measured.</p>
+            </div>
+            <div className="a-table-wrap">
+              <table className="a-table">
+                <thead>
+                  <tr>
+                    <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Approach Leg</span></th>
+                    <th scope="col"><span className="a-th-btn">Assumed Share</span></th>
+                    <th scope="col"><span className="a-th-btn">Simulated ADT for This Leg</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {simulateDirectionalSplit(stats.adtByIntersection[dirJunction]?.adtTotal || 0, JUNCTION_LEG_CONFIG[dirJunction], dirSkew).map((row) => (
+                    <tr key={row.leg}>
+                      <td style={{ textAlign: 'left' }}>{row.isPrimary && '★ '}{row.leg}</td>
+                      <td>{row.pct.toFixed(1)}%</td>
+                      <td style={{ color: C.purple }}>{Math.round(row.volume).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td>Junction total (real, measured ADT)</td>
+                    <td>100%</td>
+                    <td style={{ color: C.blue }}>{Math.round(stats.adtByIntersection[dirJunction]?.adtTotal || 0).toLocaleString()}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <div className="a-dir-note">
+              <b>{JUNCTION_LEG_CONFIG[dirJunction].type}.</b> The junction total above (ADT) is a real, measured figure from the field survey, and the junction type / leg count is confirmed by the study author. What's still simulated rather than measured is (a) the identity of any leg not backed by the public reference cited below -- left as an unconfirmed placeholder rather than an invented street name -- and (b) how much of the junction's real volume each leg actually carries, since no turning-movement/direction data was ever collected.
+            </div>
+            <p className="a-dir-source">Configuration source: {JUNCTION_LEG_CONFIG[dirJunction].source}</p>
+          </div>
+        </div>
+
         {/* METHODOLOGY */}
         <div className="a-grid">
-          <MethodologyPanel color={C.teal} keys={['peakHourly', 'compositionPct', 'pcuHeadway']} />
+          <MethodologyPanel color={C.teal} keys={['peakHourly', 'compositionPct', 'pcuHeadway', 'criticalityIndex', 'hourlyProfileByIntersection', 'pcuVcCorrelation', 'dayNightByIntersection', 'incidentSeverity', 'incidentSeverityTotals', 'adtByIntersection', 'networkAdt', 'dailyBreakdown', 'weeklyBreakdown', 'monthlyYearlyBreakdown', 'vehicleClassBreakdown']} />
         </div>
         </>
         )}

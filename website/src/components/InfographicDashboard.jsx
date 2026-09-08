@@ -4,10 +4,11 @@ import {
   BarElement, ArcElement, Filler, Tooltip, Legend
 } from 'chart.js';
 import { Line, Bar, Doughnut, Scatter, Radar, Pie, PolarArea, Bubble, Chart } from 'react-chartjs-2';
-import PageControls, { downloadTextFile } from './PageControls';
+import PageControls, { downloadTextFile, downloadJsonFile, downloadChartsAsZip } from './PageControls';
 import MethodologyPanel from './MethodologyPanel';
 import SearchableSelect, { searchableSelectCss } from './SearchableSelect';
 import useTrafficStats from '../lib/useTrafficStats';
+import { ALL_HOUR_LABELS, hourlySeries } from '../lib/trafficStats';
 
 ChartJS.register(
   CategoryScale, LinearScale, RadialLinearScale, PointElement, LineElement,
@@ -269,6 +270,13 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
     downloadTextFile('tricycle_volume_by_intersection.csv', [header, ...lines].join('\n'));
   };
 
+  const dashboardExportOptions = [
+    { id: 'csv', label: 'Volume Data (CSV)', icon: 'fa-file-csv', hint: 'Mean tricycle volume per site', action: exportVolumeTable },
+    { id: 'json', label: 'Full Dataset (JSON)', icon: 'fa-file-code', hint: 'All computed network stats, raw', action: () => downloadJsonFile('tricycle_pcu_analytics_stats.json', stats) },
+    { id: 'png', label: 'Charts as Images (ZIP)', icon: 'fa-images', hint: 'Every chart on this page as PNG', action: () => downloadChartsAsZip('tricycle_pcu_analytics_charts.zip') },
+    { id: 'print', label: 'Print / Save as PDF', icon: 'fa-print', hint: 'Opens your browser’s print dialog', action: () => window.print() },
+  ];
+
   // Site is served from the /tricycles/ subpath on GitHub Pages, so plain
   // "/assets/..." src strings 404 in production even though they work under
   // `vite dev` — every asset reference below is prefixed with the real base.
@@ -403,9 +411,9 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
 
         .a-carousel-card { padding: 26px; }
         .a-carousel { position: relative; }
-        .a-carousel-viewport { position: relative; width: 100%; height: 460px; border-radius: 18px; overflow: hidden; background: #0b0b0c; }
+        .a-carousel-viewport { position: relative; width: 100%; aspect-ratio: 16 / 7; min-height: 340px; max-height: 620px; border-radius: 18px; overflow: hidden; background: #0b0b0c; }
         @media (max-width: 720px) {
-          .a-carousel-viewport { height: 360px; }
+          .a-carousel-viewport { aspect-ratio: 4 / 3; min-height: 280px; max-height: 420px; }
           .a-carousel-slide .a-photo-overlay { padding: 20px 20px 24px; }
         }
         .a-carousel-track { display: flex; height: 100%; width: 100%; transition: transform .55s cubic-bezier(.4,0,.2,1); }
@@ -453,7 +461,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         ${searchableSelectCss}
       `}</style>
 
-      <PageControls onBack={goBack} canGoBack={canGoBack} exportLabel="Export Volume Data (CSV)" onExport={exportVolumeTable} />
+      <PageControls onBack={goBack} canGoBack={canGoBack} exportOptions={dashboardExportOptions} />
 
       <div className="apple-dash-inner">
 
@@ -471,6 +479,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         {/* KPI STRIP */}
         <div className="a-kpi-grid">
           <KpiCard icon="fa-car-side" color={C.blue} label="Total Vehicles Recorded" value={stats.totalVehiclesRecorded.toLocaleString()} sub={`All 5 classes · n = ${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
+          <KpiCard icon="fa-ban" color={C.purple} label="Total Recorded (Excl. Motorcycles)" value={stats.totalVehiclesRecordedExclMC.toLocaleString()} sub="Cars + Tricycles + Minibuses + Heavy Trucks only" />
           <KpiCard icon="fa-database" color={C.indigo} label="Sample Size" value={stats.sampleSizeIntervals.toLocaleString()} sub="15-min intervals, 20-day field study" />
           <KpiCard icon="fa-gauge-high" color={C.orange} label="Peak vs Off-Peak Ratio" value={`${stats.peakOffpeakTest.ratio.toFixed(2)}×`} sub={`${Math.round(stats.peakOffpeakTest.meanA)} vs ${Math.round(stats.peakOffpeakTest.meanB)} veh/15-min · n = ${stats.peakOffpeakTest.nA.toLocaleString()}/${stats.peakOffpeakTest.nB.toLocaleString()}`} />
           <KpiCard icon="fa-cloud-showers-heavy" color={C.red} label="Wet-Weather Volume Impact" value={`${stats.weatherTest.pctChange.toFixed(1)}%`} sub={`${pFmt(stats.weatherTest.p)} · n = ${stats.weatherTest.nA.toLocaleString()}/${stats.weatherTest.nB.toLocaleString()}`} />
@@ -919,15 +928,15 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
 
           <div className="a-card s-6">
-            <SectionHeader eyebrow="20-day field dataset · Combo chart" title="Hourly Volume Profile + Cumulative Share" color={C.blue2} sub="Bars = mean volume per interval by hour · line = cumulative % of the daily total" />
+            <SectionHeader eyebrow="20-day field dataset · Combo chart" title="Hourly Volume Profile + Cumulative Share" color={C.blue2} sub="Bars = mean volume per interval by hour · line = cumulative % of the daily total · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero" />
             <div className="a-chart-box">
               <Chart
                 type="bar"
                 data={{
-                  labels: HOURS.map((h) => `${h}:00`),
+                  labels: ALL_HOUR_LABELS,
                   datasets: [
-                    { type: 'bar', label: 'Mean volume / 15-min interval', data: HOURS.map((h) => stats.hourlyProfile[h]), backgroundColor: hex2rgba(C.blue2, 0.55), borderRadius: 5, yAxisID: 'y' },
-                    { type: 'line', label: 'Cumulative % of daily volume', data: (() => { const total = HOURS.reduce((s, h) => s + stats.hourlyProfile[h], 0); let cum = 0; return HOURS.map((h) => { cum += stats.hourlyProfile[h]; return total ? (cum / total) * 100 : null; }); })(), borderColor: C.orange, backgroundColor: 'transparent', borderWidth: 3, tension: 0.3, pointRadius: 2, yAxisID: 'y1' },
+                    { type: 'bar', label: 'Mean volume / 15-min interval', data: hourlySeries(stats.hourlyProfile), backgroundColor: hex2rgba(C.blue2, 0.55), borderRadius: 5, yAxisID: 'y' },
+                    { type: 'line', label: 'Cumulative % of daily volume', data: hourlySeries((() => { const total = HOURS.reduce((s, h) => s + stats.hourlyProfile[h], 0); let cum = 0; const cumByHour = {}; HOURS.forEach((h) => { cum += stats.hourlyProfile[h]; cumByHour[h] = total ? (cum / total) * 100 : null; }); return cumByHour; })()), borderColor: C.orange, backgroundColor: 'transparent', borderWidth: 3, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
                   ]
                 }}
                 options={{
@@ -990,15 +999,15 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         {/* Hourly by site + composition radar */}
         <div className="a-grid">
           <div className="a-card s-6">
-            <SectionHeader eyebrow="20-day field dataset · Line" title="Hourly Traffic Profile by Intersection" color={C.blue2} sub="Mean volume per 15-min interval, by hour of day, one line per site" />
+            <SectionHeader eyebrow="20-day field dataset · Line" title="Hourly Traffic Profile by Intersection" color={C.blue2} sub="Mean volume per 15-min interval, by hour of day, one line per site · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero" />
             <div className="a-chart-box">
               <Line
                 data={{
-                  labels: HOURS.map((h) => `${h}:00`),
+                  labels: ALL_HOUR_LABELS,
                   datasets: siteNames.map((name, i) => ({
                     label: stats.shortName(name),
-                    data: HOURS.map((h) => (stats.hourlyProfileByIntersection[name] && !isBad(stats.hourlyProfileByIntersection[name][h])) ? stats.hourlyProfileByIntersection[name][h] : null),
-                    borderColor: SITE_COLORS[i % SITE_COLORS.length], backgroundColor: 'transparent', borderWidth: 2, tension: 0.35, pointRadius: 1.5, spanGaps: true,
+                    data: hourlySeries(stats.hourlyProfileByIntersection[name] || {}).map((v) => (isBad(v) ? null : v)),
+                    borderColor: SITE_COLORS[i % SITE_COLORS.length], backgroundColor: 'transparent', borderWidth: 2, tension: 0.35, pointRadius: 1.5, spanGaps: false,
                   }))
                 }}
                 options={{
@@ -1298,9 +1307,34 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* ROW: Traffic Criticality Index — composite asset-prioritization score */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Asset Prioritization · composite index" title="Traffic Criticality Index by Intersection" color={C.red}
+              sub="0–100 composite: 35% traffic demand + 35% congestion stress (V/C) + 15% tricycle-induced friction (PCU) + 15% mixed-traffic complexity (tricycle share), each min-max normalized across the 5 sites" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: stats.criticalityRanking.map((r) => stats.shortName(r.name)),
+                  datasets: [{ label: 'Criticality Index (0–100)', data: stats.criticalityRanking.map((r) => Number(r.index.toFixed(1))), backgroundColor: stats.criticalityRanking.map((r) => siteColorOf[r.name]), borderRadius: 8 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { y: { min: 0, max: 100, ticks: { color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 0 } } },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => stats.criticalityRanking[items[0].dataIndex].name, label: (ctx) => `Rank #${stats.criticalityRanking[ctx.dataIndex].rank} · Index ${ctx.parsed.y.toFixed(1)}` } }
+                  }
+                }}
+              />
+            </div>
+            <p className="a-footnote">Ranked #1 most critical: {stats.criticalityRanking[0].name} (index {stats.criticalityRanking[0].index.toFixed(1)}) — the composite index reflects this study's own traffic-load and congestion figures, not a full road-network redundancy/topology analysis.</p>
+          </div>
+        </div>
+
         {/* METHODOLOGY */}
         <div className="a-grid">
-          <MethodologyPanel color={C.indigo} keys={['totalVehiclesRecorded', 'compositionPct', 'peakOffpeakTest', 'weatherTest', 'pcuHeadway', 'dayNightTest', 'headwayTest', 'vcStats', 'volumeVcCorrelation', 'poissonDispersion', 'tricycleAnova', 'incidentSeverity', 'descriptiveStats', 'pcuVcCorrelation', 'hourlyProfileByIntersection', 'dayNightByIntersection', 'compositionByWeather', 'incidentSeverityTotals', 'totalVolumeHistogram']} />
+          <MethodologyPanel color={C.indigo} keys={['totalVehiclesRecorded', 'totalVehiclesRecordedExclMC', 'compositionPct', 'peakOffpeakTest', 'weatherTest', 'pcuHeadway', 'dayNightTest', 'headwayTest', 'vcStats', 'volumeVcCorrelation', 'poissonDispersion', 'tricycleAnova', 'incidentSeverity', 'descriptiveStats', 'pcuVcCorrelation', 'hourlyProfileByIntersection', 'dayNightByIntersection', 'compositionByWeather', 'incidentSeverityTotals', 'totalVolumeHistogram', 'criticalityIndex']} />
         </div>
 
         {/* PHOTO CAROUSEL — all 24 original geotagged field photographs from
