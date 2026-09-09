@@ -109,6 +109,7 @@ const TOC_ITEMS = [
 const ThesisTab = ({ goBack, canGoBack } = {}) => {
   const [active, setActive] = useState('ch1');
   const [progress, setProgress] = useState(0);
+  const [pageThumb, setPageThumb] = useState(null);
   const bodyRef = useRef(null);
   const stats = useTrafficStats();
 
@@ -187,16 +188,42 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     // scrolls, same as every other tab), so measuring card.scrollTop here
     // was a real bug: scrollable was always 0 and the bar stayed at 0%
     // forever regardless of how far the reader had actually scrolled.
+    //
+    // The same page/window scroll also gets its own always-visible custom
+    // thumb (.thesis-page-scrollbar-*), fixed to the right edge of the
+    // viewport, for the same reason the TOC got one: the browser's native
+    // window scrollbar can be an invisible-until-interaction overlay on
+    // some OS/browser combinations, which reads as "there's no scroll bar"
+    // even though the page genuinely scrolls. Drawing it from real
+    // window.scrollY / document.documentElement.scrollHeight geometry
+    // means it's visible the instant the page overflows, with no
+    // dependence on OS scrollbar settings.
     const onScroll = () => {
       const doc = document.documentElement;
       const scrollable = doc.scrollHeight - window.innerHeight;
       setProgress(scrollable > 0 ? Math.min(100, Math.max(0, (window.scrollY / scrollable) * 100)) : 0);
+      if (scrollable > 4) {
+        const sizePct = Math.max(6, (window.innerHeight / doc.scrollHeight) * 100);
+        const startPct = Math.min(100 - sizePct, Math.max(0, (window.scrollY / doc.scrollHeight) * 100));
+        setPageThumb({ topPct: startPct, heightPct: sizePct });
+      } else {
+        setPageThumb(null);
+      }
     };
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
     onScroll();
+    // Chart canvases and images finish laying out after the first paint and
+    // can change document.documentElement.scrollHeight; a body-level
+    // ResizeObserver catches that growth (or shrinkage) and keeps the
+    // custom thumb's size/position accurate without polling.
+    const bodyResizeObserver = new ResizeObserver(() => onScroll());
+    bodyResizeObserver.observe(document.body);
     return () => {
       observer.disconnect();
+      bodyResizeObserver.disconnect();
       window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
     };
   }, []);
 
@@ -345,6 +372,17 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
           position: absolute; left: 0; width: 100%; border-radius: 4px;
           background: rgba(0,0,0,0.45);
         }
+        /* Whole-page scroll indicator, fixed to the browser viewport's own
+           right edge (not a card edge) -- same rationale as the TOC's
+           custom scrollbar above, applied to the page/window scroll. */
+        .thesis-page-scrollbar-track {
+          position: fixed; top: 10px; bottom: 10px; right: 5px; width: 6px;
+          background: rgba(0,0,0,0.08); border-radius: 4px; pointer-events: none; z-index: 40;
+        }
+        .thesis-page-scrollbar-thumb {
+          position: absolute; left: 0; width: 100%; border-radius: 4px;
+          background: rgba(0,0,0,0.45);
+        }
         .thesis-content strong, .thesis-content b { color: #1d1d1f; }
         .thesis-content pre { border-radius: 14px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
         .thesis-card .btn {
@@ -397,6 +435,11 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
           .thesis-doc-title { font-size: 1.25rem !important; }
         }
       `}</style>
+      {pageThumb && (
+        <div className="thesis-page-scrollbar-track" aria-hidden="true">
+          <div className="thesis-page-scrollbar-thumb" style={{ top: `${pageThumb.topPct}%`, height: `${pageThumb.heightPct}%` }}></div>
+        </div>
+      )}
       <div className="thesis-light-inner">
       <PageControls
         onBack={goBack}
