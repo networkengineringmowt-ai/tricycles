@@ -58,11 +58,11 @@ const CLASS_COLORS = { Cars: C.blue, Boda_bodas: C.indigo, Tricycles: C.green, M
 // Digital Twin's "Coordinates" stat traces to the same real lat/lon this
 // site already publishes elsewhere, not a re-typed-from-memory guess.
 const SITE_COORDS = {
-  'Wandegeya Junction': [0.3311, 32.5736],
-  'Kibuye Roundabout': [0.2936, 32.5731],
-  'Bakuli Intersection': [0.3130, 32.5641],
-  'Bwaise Junction': [0.3500, 32.5610],
-  'Natete Junction': [0.2983, 32.5350],
+  'Wandegeya Junction': [0.330107, 32.574089],
+  'Kibuye Roundabout': [0.293537, 32.572884],
+  'Bakuli Intersection': [0.314673, 32.564676],
+  'Bwaise Junction': [0.340550, 32.571661],
+  'Natete Junction': [0.299511, 32.532720],
 };
 
 // Guarded number formatters -- every derived figure passes through one of
@@ -228,6 +228,24 @@ const PhotoCarousel = ({ photos }) => {
 
 const pFmt = (p) => (isBad(p) ? '—' : (p < 0.001 ? 'p < .001' : `p = ${p.toFixed(3)}`));
 
+// Equation text for a correlation's OLS line of best fit (slope/intercept
+// come straight from trafficStats.js's pearson(), fit on the same real
+// paired data as r -- not a separate model).
+const eqFmt = (slope, intercept) => `y = ${slope.toFixed(3)}x ${intercept >= 0 ? '+' : '−'} ${Math.abs(intercept).toFixed(3)}`;
+
+// Builds the Chart.js "line of best fit" dataset overlaid on a scatter plot:
+// two endpoints spanning the real observed x-range, at the OLS slope/intercept.
+const fitLineDataset = (pairs, slope, intercept, color, label = 'Line of best fit') => {
+  const xs = pairs.map((p) => p.x);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  return {
+    type: 'line', label,
+    data: [{ x: xMin, y: slope * xMin + intercept }, { x: xMax, y: slope * xMax + intercept }],
+    borderColor: color, borderWidth: 2.5, borderDash: [6, 4], pointRadius: 0, pointHitRadius: 0,
+    fill: false, tension: 0, order: 0,
+  };
+};
+
 const StatRow = ({ label, value }) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '7px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
     <span style={{ fontSize: '0.8rem', color: C.sub, fontWeight: 600 }}>{label}</span>
@@ -267,11 +285,19 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
   const [roadWidth, setRoadWidth] = useState(7.0);
   const [defaultsApplied, setDefaultsApplied] = useState(false);
   // Toggle for the illustrative 24-hour overnight extension (Task: "simulate
-  // full 24 hour data") -- OFF by default so every hourly chart opens on its
-  // original, fully-honest real-data-only view; switching this on overlays a
-  // second, clearly-dashed/labelled modeled line for the 22:00-05:45 window
-  // no field survey ever sampled. Never replaces the real hourlySeries() gap.
-  const [showModeledOvernight, setShowModeledOvernight] = useState(false);
+  // full 24 hour data" / "hourly charts should show all hourly data") -- ON
+  // by default so every hourly chart opens showing all 24 hours; the
+  // 22:00-05:45 window no field survey ever sampled is always drawn as a
+  // separate, clearly-dashed/labelled modeled line, never blended into or
+  // replacing the real hourlySeries() bars/line. Still switchable off to see
+  // the real-data-only view.
+  const [showModeledOvernight, setShowModeledOvernight] = useState(true);
+  // Shared caption clause for the 4 hourly charts below -- reflects
+  // whichever state showModeledOvernight is actually in, so the caption
+  // never claims a gap is showing when the modeled line is on, or vice versa.
+  const overnightNote = showModeledOvernight
+    ? '22:00–05:45 is a disclosed model, not measured'
+    : '22:00–05:45 shown as a genuine gap, not zero';
 
   // Seed the calculator's modal-share default from the real, dynamically
   // computed network tricycle share the first time stats become available.
@@ -441,9 +467,9 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         .a-kpi-sub { font-size: 0.76rem; color: ${C.faint}; margin-top: -2px; }
 
         .a-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; margin-bottom: 20px; }
-        .s-4 { grid-column: span 4; } .s-5 { grid-column: span 5; } .s-6 { grid-column: span 6; }
+        .s-3 { grid-column: span 3; } .s-4 { grid-column: span 4; } .s-5 { grid-column: span 5; } .s-6 { grid-column: span 6; }
         .s-7 { grid-column: span 7; } .s-8 { grid-column: span 8; } .s-12 { grid-column: span 12; }
-        @media (max-width: 1080px) { .a-grid .s-4, .a-grid .s-5, .a-grid .s-6, .a-grid .s-7, .a-grid .s-8 { grid-column: span 12; } }
+        @media (max-width: 1080px) { .a-grid .s-3, .a-grid .s-4, .a-grid .s-5, .a-grid .s-6, .a-grid .s-7, .a-grid .s-8 { grid-column: span 12; } }
 
         .a-chart-box { flex: 1; min-height: 280px; position: relative; width: 100%; margin-top: 10px; }
 
@@ -742,15 +768,18 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         <div className="a-grid">
           <div className="a-card s-12">
             <SectionHeader eyebrow="Pearson Correlation · 7-day baseline dataset" title="Tricycle Volume vs. V/C Ratio" color={C.green}
-              sub={`Every recorded interval plotted individually · r = ${stats.volumeVcCorrelation.r.toFixed(2)}, ${pFmt(stats.volumeVcCorrelation.p)}, n = ${stats.volumeVcCorrelation.n.toLocaleString()}`} />
+              sub={`Every recorded interval plotted individually · r = ${stats.volumeVcCorrelation.r.toFixed(2)}, ${pFmt(stats.volumeVcCorrelation.p)}, n = ${stats.volumeVcCorrelation.n.toLocaleString()} · ${eqFmt(stats.volumeVcCorrelation.slope, stats.volumeVcCorrelation.intercept)}`} />
             <div className="a-chart-box" style={{ minHeight: '320px' }}>
               <Scatter
                 data={{
-                  datasets: [{
-                    label: 'Interval (Tricycles vs V/C)',
-                    data: stats.volumeVcPairs,
-                    backgroundColor: hex2rgba(C.green, 0.45), pointRadius: 3, pointHoverRadius: 5,
-                  }]
+                  datasets: [
+                    {
+                      label: 'Interval (Tricycles vs V/C)',
+                      data: stats.volumeVcPairs,
+                      backgroundColor: hex2rgba(C.green, 0.45), pointRadius: 3, pointHoverRadius: 5,
+                    },
+                    fitLineDataset(stats.volumeVcPairs, stats.volumeVcCorrelation.slope, stats.volumeVcCorrelation.intercept, C.ink),
+                  ]
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
@@ -760,7 +789,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                   },
                   plugins: {
                     legend: { display: false },
-                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.parsed.x} tricycles · V/C ${ctx.parsed.y.toFixed(2)}` } }
+                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => ctx.dataset.type === 'line' ? eqFmt(stats.volumeVcCorrelation.slope, stats.volumeVcCorrelation.intercept) : `${ctx.parsed.x} tricycles · V/C ${ctx.parsed.y.toFixed(2)}` } }
                   }
                 }}
               />
@@ -1045,7 +1074,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
 
           <div className="a-card s-6">
-            <SectionHeader eyebrow="20-day field dataset · Combo chart" title={<>Hourly Volume Profile + Cumulative Share{showModeledOvernight && <span className="a-illustrative-badge">+ modeled overnight</span>}</>} color={C.blue2} sub="Bars = mean volume per interval by hour · line = cumulative % of the daily total · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero" />
+            <SectionHeader eyebrow="20-day field dataset · Combo chart" title={<>Hourly Volume Profile + Cumulative Share{showModeledOvernight && <span className="a-illustrative-badge">+ modeled overnight</span>}</>} color={C.blue2} sub={`Bars = mean volume per interval by hour · line = cumulative % of the daily total · field surveys only ran 06:00–21:45 · ${overnightNote}`} />
             <div className="a-chart-box">
               <Chart
                 type="bar"
@@ -1117,7 +1146,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         {/* Hourly by site + composition radar */}
         <div className="a-grid">
           <div className="a-card s-6">
-            <SectionHeader eyebrow="20-day field dataset · Line" title={<>Hourly Traffic Profile by Intersection{showModeledOvernight && <span className="a-illustrative-badge">+ modeled overnight</span>}</>} color={C.blue2} sub="Mean volume per 15-min interval, by hour of day, one line per site · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero" />
+            <SectionHeader eyebrow="20-day field dataset · Line" title={<>Hourly Traffic Profile by Intersection{showModeledOvernight && <span className="a-illustrative-badge">+ modeled overnight</span>}</>} color={C.blue2} sub={`Mean volume per 15-min interval, by hour of day, one line per site · field surveys only ran 06:00–21:45 · ${overnightNote}`} />
             <div className="a-chart-box">
               <Line
                 data={{
@@ -1297,17 +1326,22 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
 
           <div className="a-card s-6">
             <SectionHeader eyebrow="Pearson correlation · 7-day baseline dataset" title="PCU Ratio vs. V/C Ratio" color={C.indigo}
-              sub={`r = ${fmt(stats.pcuVcCorrelation.r, 2)}, ${pFmt(stats.pcuVcCorrelation.p)}, n = ${fmtN(stats.pcuVcCorrelation.n)}`} />
+              sub={`r = ${fmt(stats.pcuVcCorrelation.r, 2)}, ${pFmt(stats.pcuVcCorrelation.p)}, n = ${fmtN(stats.pcuVcCorrelation.n)} · ${eqFmt(stats.pcuVcCorrelation.slope, stats.pcuVcCorrelation.intercept)}`} />
             <div className="a-chart-box">
               <Scatter
-                data={{ datasets: [{ label: 'Interval (PCU ratio vs V/C)', data: stats.pcuVcPairs, backgroundColor: hex2rgba(C.indigo, 0.4), pointRadius: 2.5, pointHoverRadius: 4.5 }] }}
+                data={{
+                  datasets: [
+                    { label: 'Interval (PCU ratio vs V/C)', data: stats.pcuVcPairs, backgroundColor: hex2rgba(C.indigo, 0.4), pointRadius: 2.5, pointHoverRadius: 4.5 },
+                    fitLineDataset(stats.pcuVcPairs, stats.pcuVcCorrelation.slope, stats.pcuVcCorrelation.intercept, C.ink),
+                  ]
+                }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
                   scales: {
                     x: { title: { display: true, text: 'PCU ratio (per interval)', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } },
                     y: { title: { display: true, text: 'V/C ratio', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } }
                   },
-                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `PCU ${fmt(ctx.parsed.x, 2)} · V/C ${fmt(ctx.parsed.y, 2)}` } } }
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => ctx.dataset.type === 'line' ? eqFmt(stats.pcuVcCorrelation.slope, stats.pcuVcCorrelation.intercept) : `PCU ${fmt(ctx.parsed.x, 2)} · V/C ${fmt(ctx.parsed.y, 2)}` } } }
                 }}
               />
             </div>
@@ -1465,9 +1499,9 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             throughout this file (via siteNames/siteColorOf above) -- nothing
             here is new or re-typed data. ===================================== */}
         <div className="a-hero" style={{ maxWidth: '820px', marginTop: '8px' }}>
-          <p className="a-hero-eyebrow" style={{ color: C.blue }}>Moved From Overview</p>
+          <p className="a-hero-eyebrow" style={{ color: C.blue }}>Site Comparison</p>
           <h2 className="a-title" style={{ fontSize: '1.9rem' }}>Site-Level Baseline Charts</h2>
-          <p className="a-hero-sub" style={{ fontSize: '0.92rem' }}>Per-site volume, PCU and criticality figures, previously shown on the Overview tab — consolidated here alongside every other chart.</p>
+          <p className="a-hero-sub" style={{ fontSize: '0.92rem' }}>Volume, PCU and criticality ranked across all five junctions from the 20-day field sample.</p>
         </div>
 
         <div className="a-grid">
@@ -1533,7 +1567,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
 
         <div className="a-grid">
           <div className="a-card s-12">
-            <SectionHeader eyebrow="Temporal Pattern" title={<>Mean Volume by Hour of Day{showModeledOvernight && <span className="a-illustrative-badge">+ modeled overnight</span>}</>} color={C.teal} sub={`All 5 sites combined · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero · 20-day sample, n = ${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
+            <SectionHeader eyebrow="Temporal Pattern" title={<>Mean Volume by Hour of Day{showModeledOvernight && <span className="a-illustrative-badge">+ modeled overnight</span>}</>} color={C.teal} sub={`All 5 sites combined · field surveys only ran 06:00–21:45 · ${overnightNote} · 20-day sample, n = ${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
             <div className="a-chart-box">
               <Line
                 data={{
@@ -1712,9 +1746,9 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             derived-data hooks above) -- the only rename needed, since every
             other name below is already unique to this file. ================= */}
         <div className="a-hero" style={{ maxWidth: '820px', marginTop: '8px' }}>
-          <p className="a-hero-eyebrow" style={{ color: C.indigo }}>Moved From Summary Tables</p>
+          <p className="a-hero-eyebrow" style={{ color: C.indigo }}>Composition &amp; Safety</p>
           <h2 className="a-title" style={{ fontSize: '1.9rem' }}>Vehicle-Class &amp; Safety Charts</h2>
-          <p className="a-hero-sub" style={{ fontSize: '0.92rem' }}>Charts previously shown on the Summary Tables tab, computed from the same peak-hourly, composition and incident figures still tabulated there.</p>
+          <p className="a-hero-sub" style={{ fontSize: '0.92rem' }}>Peak-hourly composition and the 840-record incident log, by vehicle class and site.</p>
         </div>
 
         <div className="a-grid">
@@ -1794,7 +1828,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         <div className="a-grid">
           <div className="a-card s-12">
             <SectionHeader eyebrow="Temporal Pattern, Per Site" title={<>Hourly Volume Profile by Study Site{showModeledOvernight && <span className="a-illustrative-badge">+ modeled overnight</span>}</>} color={C.blue2}
-              sub={`Mean Total Volume per 15-min interval by hour of day, computed separately for each site · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero`} />
+              sub={`Mean Total Volume per 15-min interval by hour of day, computed separately for each site · field surveys only ran 06:00–21:45 · ${overnightNote}`} />
             <div className="a-chart-box">
               <Line
                 data={{
@@ -1859,9 +1893,10 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             <div className="a-chart-box">
               <Scatter
                 data={{
-                  datasets: [{
-                    label: 'Baseline interval', data: stats.pcuVcPairs, backgroundColor: hex2rgba(C.orange, 0.35), pointRadius: 2.5,
-                  }]
+                  datasets: [
+                    { label: 'Baseline interval', data: stats.pcuVcPairs, backgroundColor: hex2rgba(C.orange, 0.35), pointRadius: 2.5 },
+                    fitLineDataset(stats.pcuVcPairs, stats.pcuVcCorrelation.slope, stats.pcuVcCorrelation.intercept, C.ink),
+                  ]
                 }}
                 options={{
                   animation: false, maintainAspectRatio: false,
@@ -1869,11 +1904,11 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                     x: { title: { display: true, text: 'PCU ratio (tricycle ÷ car headway)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
                     y: { title: { display: true, text: 'V/C ratio', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }
                   },
-                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => ctx.dataset.type === 'line' ? eqFmt(stats.pcuVcCorrelation.slope, stats.pcuVcCorrelation.intercept) : undefined } } }
                 }}
               />
             </div>
-            <p className="a-footnote">r = {stats.pcuVcCorrelation.r.toFixed(3)} (r² = {stats.pcuVcCorrelation.r2Pct.toFixed(1)}%), n = {stats.pcuVcCorrelation.n.toLocaleString()} intervals.</p>
+            <p className="a-footnote">r = {stats.pcuVcCorrelation.r.toFixed(3)} (r² = {stats.pcuVcCorrelation.r2Pct.toFixed(1)}%), {pFmt(stats.pcuVcCorrelation.p)}, n = {stats.pcuVcCorrelation.n.toLocaleString()} intervals · {eqFmt(stats.pcuVcCorrelation.slope, stats.pcuVcCorrelation.intercept)}.</p>
           </div>
         </div>
 
@@ -1952,7 +1987,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         <div className="a-grid">
           <div className="a-card s-12">
             <SectionHeader eyebrow="Junction Digital Twin" title={<>Live Junction Animation<span className="a-illustrative-badge">Illustrative animation</span></>} color={C.blue}
-              sub="Choose a junction and an assumed corridor-bias skew — the same Directional Split model used on the Summary Tables tab." />
+              sub="Real leg configuration and vehicle-class mix, with an adjustable directional-split assumption." />
             <div className="a-toggle-row" role="group" aria-label="Choose junction for digital twin" style={{ marginBottom: '18px' }}>
               {Object.keys(JUNCTION_LEG_CONFIG).map((j) => (
                 <button key={j} type="button" className={`a-toggle-btn ${twinJunction === j ? 'active' : ''}`} onClick={() => setTwinJunction(j)}>
@@ -1995,7 +2030,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             </div>
 
             <div className="a-dir-note" style={{ marginTop: '18px' }}>
-              <b>Illustrative animation, real underlying data.</b> The moving vehicle icons, their exact paths, speeds and on-screen positions are a schematic illustration only — not to scale, not true bearing, and not a physics simulation of actual traffic. What drives every number and behavior you can read off it is real: the junction type and leg count (author-confirmed), each leg's volume (the same disclosed Directional Split model used on the Summary Tables tab, applied to this junction's real ADT), the vehicle-class mix (real, measured field20 data for this junction), and the mean V/C ratio (real baseline7 data), which sets how congested — and how fast — the animation renders.
+              <b>Illustrative animation, real underlying data.</b> Vehicle icon paths, speeds and positions are a schematic illustration, not to scale and not a physics simulation. Junction type and leg count are author-confirmed; each leg's volume follows the disclosed directional-split allocation applied to this junction's real ADT; vehicle-class mix and the mean V/C ratio (which sets animation speed and congestion color) are measured field data.
             </div>
             <p className="a-dir-source">Configuration source: {JUNCTION_LEG_CONFIG[twinJunction].source}</p>
           </div>

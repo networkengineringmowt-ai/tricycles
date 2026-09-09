@@ -214,7 +214,11 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
 
         .a-chart-box { flex: 1; min-height: 300px; position: relative; width: 100%; margin-top: 10px; }
 
-        .a-table-wrap { overflow-x: auto; margin-top: 6px; position: relative; }
+        .a-table-wrap { overflow-x: auto; margin-top: 6px; position: relative; scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.28) transparent; }
+        .a-table-wrap::-webkit-scrollbar { height: 10px; }
+        .a-table-wrap::-webkit-scrollbar-track { background: transparent; }
+        .a-table-wrap::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.28); border-radius: 8px; border: 2px solid ${C.canvas}; background-clip: padding-box; }
+        .a-table-wrap::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.42); }
         @media (max-width: 860px) {
           .a-table-wrap::after {
             content: ''; position: sticky; float: right; top: 0; right: 0; height: 100%; width: 28px;
@@ -326,7 +330,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
         {/* DATA TABLE */}
         <div className="a-grid">
           <div className="a-card s-12">
-            <SectionHeader eyebrow="Field Data" title="Full Traffic Volume Table" color={C.teal} sub="Click a column header to sort — export the table from the corner control, top right" />
+            <SectionHeader eyebrow="Field Data" title="Full Traffic Volume Table" color={C.teal} sub="Peak-hour categorized counts, all five sites, sortable by column" />
             <div className="a-table-wrap">
               <table className="a-table">
                 <thead>

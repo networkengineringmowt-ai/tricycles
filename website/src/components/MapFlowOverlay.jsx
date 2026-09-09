@@ -27,7 +27,7 @@ import { computeLegBearings } from '../lib/legGeometry';
 // LENGTH and BEARING are schematic, not measured; the per-leg VOLUME shown
 // is `simulateDirectionalSplit()` applied to the selected hour's volume
 // (itself `simulateFullDayProfile()`'s real reading for 06:00-21:45 or a
-// disclosed modeled estimate outside it). Every tooltip/popup below repeats
+// disclosed modeled estimate outside it). Every popup below repeats
 // this inline, plus this junction's own JUNCTION_LEG_CONFIG source citation.
 // ---------------------------------------------------------------------------
 
@@ -123,7 +123,6 @@ export default function MapFlowOverlay({ flowData, accentColor = '#0071e3', mute
             className: 'a-flow-dot',
             interactive: true,
           }).addTo(group);
-          marker.bindTooltip('', { sticky: true, direction: 'top', className: 'a-flow-tooltip', opacity: 1 });
           marker.bindPopup('', { className: 'a-flow-popup' });
           // A dot sits ON TOP of the marker pane so every leg (including a
           // due-north one, colinear with the marker's own icon) stays
@@ -204,8 +203,8 @@ export default function MapFlowOverlay({ flowData, accentColor = '#0071e3', mute
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, accentColor, mutedColor, flowData.length]);
 
-  // Refresh each spoke's tooltip/popup content and static styling whenever
-  // the selected hour's simulated volumes change -- geometry from the effect
+  // Refresh each spoke's popup content and static styling whenever the
+  // selected hour's simulated volumes change -- geometry from the effect
   // above is left completely alone, so this never causes a visual re-mount.
   useEffect(() => {
     (flowData || []).forEach((site) => {
@@ -225,7 +224,6 @@ export default function MapFlowOverlay({ flowData, accentColor = '#0071e3', mute
             <div style="font-size:10px;color:#888;margin-top:6px;line-height:1.4;">Leg identity/count real (author-confirmed). Per-leg split is a disclosed assumption. Source: ${site.source}</div>
           </div>`;
         entry.dots.forEach((dot) => {
-          dot.marker.setTooltipContent(html);
           dot.marker.setPopupContent(html);
           dot.marker.setStyle({
             fillColor: leg.isPrimary ? accentColor : mutedColor,

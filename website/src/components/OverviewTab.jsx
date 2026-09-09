@@ -94,16 +94,16 @@ const MapResetViewControl = ({ bounds, fitOptions }) => {
 // Geographic position + qualitative interaction description only -- every
 // numeric figure (volume, tricycle share, PCU) is computed live from real
 // field data by useTrafficStats() below, never hand-typed here.
-// Coordinates cross-checked against each area's published reference point
-// (OpenStreetMap / Wikipedia geodata for Wandegeya, Kibuye, Bakuli, Bwaise
-// and Nateete) so markers sit on the correct road feature rather than an
-// approximate hand-placed guess.
+// Coordinates are the author's own field-recorded GPS fixes for all 5
+// study sites, superseding the earlier OpenStreetMap/Wikipedia reference
+// points, so markers sit on the exact surveyed location rather than an
+// approximate public-geodata guess.
 const SITE_GEO = [
-  { name: "Wandegeya Junction", coords: [0.3311, 32.5736], interaction: "Tricycle-Boda-boda (Motorcycle Taxi)-Non-Motorized Transport (NMT)" },
-  { name: "Kibuye Roundabout", coords: [0.2936, 32.5731], interaction: "Tricycle-Car (Expressway Exit)" },
-  { name: "Bakuli Intersection", coords: [0.3130, 32.5641], interaction: "Tricycle-Bus (Hub)" },
-  { name: "Bwaise Junction", coords: [0.3500, 32.5610], interaction: "Tricycle-Non-Motorized Transport (NMT) (Flood Zone)" },
-  { name: "Natete Junction", coords: [0.2983, 32.5350], interaction: "Tricycle-Public Service Vehicle (PSV/Minibus) Hub" }
+  { name: "Wandegeya Junction", coords: [0.330107, 32.574089], interaction: "Tricycle-Boda-boda (Motorcycle Taxi)-Non-Motorized Transport (NMT)" },
+  { name: "Kibuye Roundabout", coords: [0.293537, 32.572884], interaction: "Tricycle-Car (Expressway Exit)" },
+  { name: "Bakuli Intersection", coords: [0.314673, 32.564676], interaction: "Tricycle-Bus (Hub)" },
+  { name: "Bwaise Junction", coords: [0.340550, 32.571661], interaction: "Tricycle-Non-Motorized Transport (NMT) (Flood Zone)" },
+  { name: "Natete Junction", coords: [0.299511, 32.532720], interaction: "Tricycle-Public Service Vehicle (PSV/Minibus) Hub" }
 ];
 
 // ---------------------------------------------------------------------------
@@ -261,6 +261,19 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
 
   const chipVolume = (site) => (weatherView === 'Dry' ? site.meanIntervalVolumeDry : site.meanIntervalVolumeWet);
 
+  // Real, weather-conditional figures for the top KPI strip -- so toggling
+  // Dry/Wet visibly changes numbers up top, not just the map popup text.
+  // Both feed off the same real per-site 15-min interval means (field20's
+  // Weather column) already computed by useTrafficStats(); nothing here is
+  // extrapolated into a full-day total, since the field data only supports
+  // an interval-level Dry/Wet split.
+  const weatherSites = studySites ? studySites.filter((s) => chipVolume(s) != null) : [];
+  const combinedIntervalVolume = weatherSites.reduce((sum, s) => sum + chipVolume(s), 0);
+  const busiestUnderWeather = weatherSites.length
+    ? weatherSites.reduce((a, b) => (chipVolume(b) > chipVolume(a) ? b : a))
+    : null;
+  const weatherN = stats ? (weatherView === 'Dry' ? stats.weatherTest.nA : stats.weatherTest.nB) : null;
+
   return (
     <div className="apple-overview">
       <style>{`
@@ -353,8 +366,11 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         .a-hud-top-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
         .a-hud-eyebrow { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: ${C.blue}; margin: 0; }
         .a-hud-title { font-size: 1.02rem; font-weight: 800; margin: 0; color: ${C.ink}; letter-spacing: -0.01em; }
-        .a-hud-kpis { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; }
-        .a-hud-kpis::-webkit-scrollbar { height: 5px; }
+        .a-hud-kpis { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
+        .a-hud-kpis::-webkit-scrollbar { height: 8px; }
+        .a-hud-kpis::-webkit-scrollbar-track { background: transparent; }
+        .a-hud-kpis::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 6px; }
+        .a-hud-kpis::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.45); }
         .a-hud-kpis .a-card.a-kpi { flex: 0 0 auto; min-width: 128px; padding: 9px 11px; gap: 2px; border-radius: 13px; box-shadow: none; border-color: rgba(0,0,0,0.06); background: rgba(255,255,255,0.55); }
         .a-hud-kpis .a-card.a-kpi:hover { transform: none; box-shadow: none; }
         .a-hud-kpis .a-kpi-icon { width: 26px; height: 26px; border-radius: 8px; font-size: 11px; margin-bottom: 1px; }
@@ -362,7 +378,12 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         .a-hud-kpis .a-kpi-label { font-size: 0.58rem; }
         .a-hud-kpis .a-kpi-sub { font-size: 0.6rem; }
 
-        .a-hud-site { top: 16px; right: 16px; width: clamp(272px, 25vw, 344px); max-height: calc(100% - 32px); overflow-y: auto; padding: 20px; }
+        .a-hud-site { top: 16px; right: 16px; width: clamp(272px, 25vw, 344px); max-height: calc(100% - 32px); overflow-y: auto; padding: 20px;
+          scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
+        .a-hud-site::-webkit-scrollbar { width: 8px; }
+        .a-hud-site::-webkit-scrollbar-track { background: transparent; }
+        .a-hud-site::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 6px; }
+        .a-hud-site::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.45); }
 
         /* HUD: Simulated Traffic Flow time-of-day control -- floating
            bottom-center, the one edge of the map stage Leaflet's native
@@ -390,9 +411,8 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         .a-slider-purple::-webkit-slider-thumb { border-color: ${C.purple}; }
         .a-slider-purple::-moz-range-thumb { border-color: ${C.purple}; }
 
-        /* Flow spoke hover/click tooltips + popups -- same visual language
-           as .a-map-label above, sized for the richer per-leg content. */
-        .a-flow-tooltip.leaflet-tooltip { background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 8px 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.18); }
+        /* Flow spoke click popups -- same visual language as .a-map-label
+           above, sized for the richer per-leg content. */
         .a-flow-popup .leaflet-popup-content-wrapper { border-radius: 12px; }
 
         @media (max-width: 980px) {
@@ -591,7 +611,7 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
               <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
             </div>
             <p className="a-footnote" style={{ margin: '8px 0 0' }}>
-              Leg identity/count real (author-confirmed) · this hour's volume is {flowIsRealHour ? 'real, measured' : 'a disclosed model (outside the 06:00–21:45 field sample)'} · the per-leg split shown is always a disclosed assumption — hover or tap any spoke for its citation.
+              Leg identity/count author-confirmed · this hour's volume is {flowIsRealHour ? 'real, measured' : 'a disclosed model outside the 06:00–21:45 field sample'} · per-leg split is a disclosed assumption, cited on tap.
             </p>
           </div>
 
@@ -620,10 +640,10 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
             </div>
             <div className="a-hud-kpis">
               <KpiCard icon="fa-location-dot" color={C.blue} label="Study Intersections" value="5" sub="Kampala City road network" />
-              <KpiCard icon="fa-car-side" color={C.indigo} label="Combined Daily Volume" value={Math.round(totalVolume).toLocaleString()} sub={`Veh/day · n=${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
+              <KpiCard icon="fa-car-side" color={C.indigo} label={`Combined Interval Volume (${weatherView})`} value={Math.round(combinedIntervalVolume).toLocaleString()} sub={`Veh/15-min · n=${(weatherN ?? 0).toLocaleString()} intervals`} />
               <KpiCard icon="fa-ban" color={C.purple} label="Combined ADT (Excl. MC)" value={Math.round(totalVolumeExclMC).toLocaleString()} sub="Cars+Tricycles+Minibus+Trucks" />
               <KpiCard icon="fa-gauge-high" color={C.teal} label="Mean PCU (headway-ratio)" value={stats.pcuHeadwayOverall.toFixed(2)} sub={`Range ${Math.min(...studySites.map(s=>s.pcuHeadway)).toFixed(2)}–${Math.max(...studySites.map(s=>s.pcuHeadway)).toFixed(2)}`} />
-              <KpiCard icon="fa-fire" color={C.orange} label="Busiest Site" value={stats.shortName(busiest.name)} sub={`${Math.round(busiest.meanDailyVolume).toLocaleString()} veh/day mean`} />
+              <KpiCard icon="fa-fire" color={C.orange} label={`Busiest Site (${weatherView})`} value={stats.shortName((busiestUnderWeather || busiest).name)} sub={`${Math.round(chipVolume(busiestUnderWeather || busiest)).toLocaleString()} veh/15-min mean`} />
               <KpiCard icon="fa-route" color={C.pink} label="Highest Tricycle Share" value={stats.shortName(highestTricycle.name)} sub={`${highestTricycle.tricycleSharePct.toFixed(1)}% of site volume`} />
               <KpiCard icon="fa-cloud-showers-heavy" color={C.red} label="Wet-Weather Impact" value={`${weatherDelta.toFixed(1)}%`} sub={`vs Dry · n=${stats.weatherTest.nA.toLocaleString()}/${stats.weatherTest.nB.toLocaleString()}`} />
             </div>
