@@ -226,6 +226,15 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
            explicit color set. */
         .a-table-scrollbar-track { position: relative; height: 5px; margin-top: 7px; border-radius: 3px; background: rgba(0,0,0,0.07); }
         .a-table-scrollbar-thumb { position: absolute; top: 0; height: 100%; border-radius: 3px; background: rgba(0,0,0,0.3); }
+        /* Dark-thumb override for plain overflow-x wrappers on a white
+           .a-card -- the sitewide native scrollbar (index.css) is tuned for
+           the dark app background (light/white thumb), which renders
+           invisible against these white cards. */
+        .a-scroll-x-dark { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
+        .a-scroll-x-dark::-webkit-scrollbar { height: 8px; }
+        .a-scroll-x-dark::-webkit-scrollbar-track { background: transparent; }
+        .a-scroll-x-dark::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 6px; }
+        .a-scroll-x-dark::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.45); }
         @media (max-width: 860px) {
           .a-table-wrap::after {
             content: ''; position: sticky; float: right; top: 0; right: 0; height: 100%; width: 28px;
@@ -447,7 +456,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           <div className="a-card s-12">
             <SectionHeader eyebrow="Composite Indicator · Full Breakdown" title="Traffic Criticality Index — Component Table" color={C.red}
               sub="Every input to the 0–100 Criticality Index, per site: each of the 4 factors is min-max normalized 0–1 across the 5 sites, then weighted 35/35/15/15 — see Methodology below for the full formula" />
-            <div style={{ overflowX: 'auto' }}>
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
               <table className="a-plain-table">
                 <thead>
                   <tr>
@@ -745,7 +754,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           <div className="a-card s-12">
             <SectionHeader eyebrow="Goodness-of-Fit · 7-day baseline dataset" title="Poisson Fit — Wandegeya Junction" color={C.indigo}
               sub={`Observed vs Poisson-expected daytime tricycle-arrival counts per interval, λ = ${stats.wandegeyaLambda.toFixed(2)}, n = ${stats.wandegeyaN.toLocaleString()} — chart version in Analytics`} />
-            <div style={{ overflowX: 'auto' }}>
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
               <table className="a-plain-table">
                 <thead>
                   <tr><th>Arrivals / interval</th><th>Observed</th><th>Poisson-expected</th><th>(O−E)² / E</th></tr>

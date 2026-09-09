@@ -109,7 +109,14 @@ export const searchableSelectCss = `
   .a-ssel-clear, .a-ssel-chev { background: none; border: none; color: #9a9a9e; font-size: 11px; cursor: pointer; flex-shrink: 0; padding: 2px; }
   .a-ssel-chev { transition: transform .15s ease; pointer-events: none; }
   .a-ssel-chev.up { transform: rotate(180deg); }
-  .a-ssel-list { position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; right: 0; max-height: 260px; overflow-y: auto; background: #fff; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.06), 0 16px 36px -10px rgba(0,0,0,0.22); border: 1px solid rgba(0,0,0,0.06); padding: 6px; margin: 0; list-style: none; }
+  .a-ssel-list { position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; right: 0; max-height: 260px; overflow-y: auto; background: #fff; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.06), 0 16px 36px -10px rgba(0,0,0,0.22); border: 1px solid rgba(0,0,0,0.06); padding: 6px; margin: 0; list-style: none; scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
+  /* Dark thumb override -- this dropdown is a white panel, but the sitewide
+     native scrollbar (in index.css) is tuned for the dark app background
+     (a light/white thumb), which renders invisible on this white list. */
+  .a-ssel-list::-webkit-scrollbar { width: 8px; }
+  .a-ssel-list::-webkit-scrollbar-track { background: transparent; }
+  .a-ssel-list::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 6px; }
+  .a-ssel-list::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.45); }
   .a-ssel-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px; border-radius: 9px; font-size: 0.84rem; font-weight: 600; color: #1d1d1f; cursor: pointer; }
   .a-ssel-opt.active { background: #f5f5f7; }
   .a-ssel-opt.selected { background: rgba(0,113,227,0.08); }

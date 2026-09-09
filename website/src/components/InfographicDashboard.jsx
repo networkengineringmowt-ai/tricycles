@@ -472,6 +472,15 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         @media (max-width: 1080px) { .a-grid .s-3, .a-grid .s-4, .a-grid .s-5, .a-grid .s-6, .a-grid .s-7, .a-grid .s-8 { grid-column: span 12; } }
 
         .a-chart-box { flex: 1; min-height: 280px; position: relative; width: 100%; margin-top: 10px; }
+        /* Dark-thumb override for plain overflow-x wrappers on a white
+           .a-card -- the sitewide native scrollbar (index.css) is tuned for
+           the dark app background (light/white thumb), which renders
+           invisible against these white cards. */
+        .a-scroll-x-dark { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
+        .a-scroll-x-dark::-webkit-scrollbar { height: 8px; }
+        .a-scroll-x-dark::-webkit-scrollbar-track { background: transparent; }
+        .a-scroll-x-dark::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 6px; }
+        .a-scroll-x-dark::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.45); }
 
         .a-slider-row { margin-top: 14px; }
         .a-slider-row:first-child { margin-top: 4px; }
@@ -935,7 +944,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         <div className="a-grid">
           <div className="a-card s-4">
             <SectionHeader eyebrow="Predictive Matrix · illustrative model" title="PCU Sensitivity" color={C.indigo} sub="Modal share vs. V/C ratio, anchored to the real field PCU baseline" />
-            <div className="a-chart-box" style={{ minHeight: '240px', overflowX: 'auto' }}>
+            <div className="a-chart-box a-scroll-x-dark" style={{ minHeight: '240px', overflowX: 'auto' }}>
               <table className="a-heat-table">
                 <thead><tr><th>V/C</th>{modalShares.map(ms => <th key={ms}>{ms * 100}%</th>)}</tr></thead>
                 <tbody>
