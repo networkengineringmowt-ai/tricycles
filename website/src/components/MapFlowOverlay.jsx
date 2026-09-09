@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { computeLegBearings } from '../lib/legGeometry';
+import { LEG_ROUTES } from '../lib/legRoutes';
 
 // ---------------------------------------------------------------------------
 // Live per-leg-per-junction simulated flow, drawn directly onto the real
@@ -22,13 +23,26 @@ import { computeLegBearings } from '../lib/legGeometry';
 // empirically against panning/zooming/marker-click/HUD-sync in this task's
 // Playwright pass (see final report) rather than assumed.
 //
-// IMPORTANT -- disclosed model, exactly like directionalSplit.js and
-// legGeometry.js: leg identity/count is real (author-confirmed); the spoke
-// LENGTH and BEARING are schematic, not measured; the per-leg VOLUME shown
-// is `simulateDirectionalSplit()` applied to the selected hour's volume
-// (itself `simulateFullDayProfile()`'s real reading for 06:00-21:45 or a
-// disclosed modeled estimate outside it). Every popup below repeats
-// this inline, plus this junction's own JUNCTION_LEG_CONFIG source citation.
+// IMPORTANT -- disclosed model/measurement mix, exactly in the spirit of
+// directionalSplit.js and legGeometry.js: leg identity/count is real
+// (author-confirmed); the per-leg VOLUME shown is `simulateDirectionalSplit()`
+// applied to the selected hour's volume (itself `simulateFullDayProfile()`'s
+// real reading for 06:00-21:45 or a disclosed modeled estimate outside it) --
+// that part is unchanged and still a disclosed model either way.
+//
+// The LINE ITSELF is now mixed: for every leg listed in legRoutes.js's
+// LEG_ROUTES (13 of the 21 legs across all 5 junctions), the line is a real,
+// road-following polyline lifted point-for-point from an actual GIS
+// road-network dataset (see legRoutes.js's header for the two source
+// datasets and extraction method) -- genuine measured road geometry, not a
+// schematic. For every other leg (Kibuye Roundabout's 5 legs, Bwaise
+// Junction's 4th leg -- neither has a real, locatable direction/road-name
+// match in either source dataset), the line remains exactly what it always
+// was: a schematic, screen-pixel-length spoke at a bearing that is either
+// detected from the leg's compass-word label or, failing that, an evenly
+// spaced placeholder slot with no positional meaning whatsoever. Every popup
+// below states which kind of line this leg has, plus this junction's own
+// JUNCTION_LEG_CONFIG source citation.
 // ---------------------------------------------------------------------------
 
 // Spoke length is expressed in fixed SCREEN pixels, not real-world meters --
@@ -54,6 +68,42 @@ function endLatLngForPixels(map, originLatLng, bearingDeg, pixels) {
   const endPoint = originPoint.add(offset);
   const ll = map.unproject(endPoint, zoom);
   return [ll.lat, ll.lng];
+}
+
+// Real-Earth distance between two [lat,lng] points -- used only to place the
+// animated dots at an even fraction of a real multi-point road route (the
+// route's own points are never moved or resampled, just measured).
+function haversineMeters(a, b) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(b[0] - a[0]);
+  const dLng = toRad(b[1] - a[1]);
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+// Precomputes cumulative distance along a path (2+ points) for even dot
+// placement, then returns a function mapping a 0..1 fraction to a [lat,lng]
+// -- for a real multi-point route this walks the real chain of vertices
+// rather than a single straight interpolation, so a dot travels ON the real
+// road shape (including its actual bends) instead of cutting corners.
+function makePathSampler(path) {
+  const cum = [0];
+  for (let i = 1; i < path.length; i += 1) {
+    cum.push(cum[i - 1] + haversineMeters(path[i - 1], path[i]));
+  }
+  const total = cum[cum.length - 1] || 1;
+  return (frac) => {
+    const target = Math.max(0, Math.min(1, frac)) * total;
+    let seg = 1;
+    while (seg < cum.length - 1 && cum[seg] < target) seg += 1;
+    const segStart = cum[seg - 1];
+    const segLen = cum[seg] - segStart || 1;
+    const segFrac = (target - segStart) / segLen;
+    const a = path[seg - 1];
+    const b = path[seg];
+    return [a[0] + (b[0] - a[0]) * segFrac, a[1] + (b[1] - a[1]) * segFrac];
+  };
 }
 
 export default function MapFlowOverlay({ flowData, accentColor = '#0071e3', mutedColor = 'rgba(110,110,115,0.6)', onLegSelect }) {
@@ -91,23 +141,32 @@ export default function MapFlowOverlay({ flowData, accentColor = '#0071e3', mute
 
     flowData.forEach((site) => {
       const bearings = computeLegBearings({ legs: site.legs.map((l) => l.leg) });
+      const realRoutes = LEG_ROUTES[site.name] || [];
       site.legs.forEach((leg, i) => {
         const bearing = bearings[i];
         const pixels = leg.isPrimary ? SPOKE_PIXELS_PRIMARY : SPOKE_PIXELS_MINOR;
-        const end = endLatLngForPixels(map, site.coords, bearing, pixels);
+        const realRoute = realRoutes[i];
+        // A leg with a real, road-following coordinate chain (legRoutes.js)
+        // uses that chain verbatim, starting from the junction's own real
+        // coordinate outward -- every point is a real GIS vertex. Every
+        // other leg keeps the exact original schematic behaviour: a single
+        // straight, screen-pixel-length line at a detected/fallback bearing.
+        const isReal = !!realRoute;
+        const path = isReal ? [site.coords, ...realRoute.coords] : [site.coords, endLatLngForPixels(map, site.coords, bearing, pixels)];
+        const end = path[path.length - 1];
         const key = `${site.name}__${i}`;
 
-        // The static spoke line is deliberately NON-interactive -- only the
-        // small moving dots below carry hover/click affordance, keeping the
-        // interactive hit-area small and concentrated on the "vehicles"
+        // The static spoke/route line is deliberately NON-interactive -- only
+        // the small moving dots below carry hover/click affordance, keeping
+        // the interactive hit-area small and concentrated on the "vehicles"
         // themselves rather than a full line's length.
-        const line = L.polyline([site.coords, end], {
+        const line = L.polyline(path, {
           pane: 'flowPane',
           color: leg.isPrimary ? accentColor : mutedColor,
           weight: leg.isPrimary ? 4 : 2.5,
           opacity: 0.9,
           dashArray: leg.isPrimary ? null : '2,6',
-          className: 'a-flow-spoke',
+          className: isReal ? 'a-flow-spoke a-flow-spoke-real' : 'a-flow-spoke',
           interactive: false,
         }).addTo(group);
 
@@ -137,19 +196,28 @@ export default function MapFlowOverlay({ flowData, accentColor = '#0071e3', mute
           return { marker, phase: d / dotCount, dir: 1 };
         });
 
-        state[key] = { line, dots, start: site.coords, end, bearing, pixels, siteName: site.name, legIndex: i };
+        state[key] = {
+          line, dots, start: site.coords, end, bearing, pixels, siteName: site.name, legIndex: i,
+          isReal, path, sample: makePathSampler(path),
+        };
       });
     });
     legStateRef.current = state;
 
-    // Re-anchor every spoke's endpoint whenever the zoom level changes, so
-    // the spoke keeps the same on-screen length instead of growing/shrinking
-    // with the map's real-world scale (see comment above SPOKE_PIXELS_*).
+    // Re-anchor every SCHEMATIC spoke's endpoint whenever the zoom level
+    // changes, so it keeps the same on-screen length instead of growing/
+    // shrinking with the map's real-world scale (see comment above
+    // SPOKE_PIXELS_*). A real road-following route is real-world geometry,
+    // not a screen-pixel offset, so it is left completely alone here --
+    // Leaflet already re-projects its fixed lat/lngs on every zoom for free.
     const onZoomEnd = () => {
       Object.values(legStateRef.current).forEach((entry) => {
+        if (entry.isReal) return;
         const end = endLatLngForPixels(map, entry.start, entry.bearing, entry.pixels);
         entry.end = end;
-        entry.line.setLatLngs([entry.start, end]);
+        entry.path = [entry.start, end];
+        entry.sample = makePathSampler(entry.path);
+        entry.line.setLatLngs(entry.path);
       });
     };
     map.on('zoomend', onZoomEnd);
@@ -162,7 +230,7 @@ export default function MapFlowOverlay({ flowData, accentColor = '#0071e3', mute
       const { flowData: fd } = paramsRef.current;
       const siteByName = Object.fromEntries((fd || []).map((s) => [s.name, s]));
 
-      Object.values(legStateRef.current).forEach(({ dots, start, end, siteName, legIndex }) => {
+      Object.values(legStateRef.current).forEach(({ dots, sample, siteName, legIndex }) => {
         const site = siteByName[siteName];
         const leg = site && site.legs[legIndex];
         if (!leg) return;
@@ -177,12 +245,15 @@ export default function MapFlowOverlay({ flowData, accentColor = '#0071e3', mute
           if (dot.phase <= 0) { dot.phase = 0; dot.dir = 1; }
           // Draw within [PHASE_MARGIN, 1-PHASE_MARGIN] rather than the full
           // [0,1] range -- keeps every dot a little clear of both the real
-          // junction marker's own clickable icon at the hub end and the
-          // schematic spoke tip at the far end, so a dot is never exactly
-          // on top of the marker's hit area even at its closest approach.
+          // junction marker's own clickable icon at the hub end and the far
+          // end (schematic spoke tip, or the real route's outer end), so a
+          // dot is never exactly on top of the marker's hit area even at its
+          // closest approach. `sample()` walks the leg's real multi-point
+          // road chain (or the plain 2-point schematic line) by actual
+          // cumulative distance, so a dot on a real route rides its true
+          // bends rather than cutting a straight line across them.
           const drawn = PHASE_MARGIN + dot.phase * (1 - 2 * PHASE_MARGIN);
-          const lat = start[0] + (end[0] - start[0]) * drawn;
-          const lng = start[1] + (end[1] - start[1]) * drawn;
+          const [lat, lng] = sample(drawn);
           dot.marker.setLatLng([lat, lng]);
           // fade + shrink slightly as it nears the hub, so motion reads as
           // "arriving/departing" rather than a rigid metronome tick
@@ -214,6 +285,10 @@ export default function MapFlowOverlay({ flowData, accentColor = '#0071e3', mute
         const modeledNote = site.isModeledHour
           ? '<div style="color:#ff9f0a;font-weight:700;margin-top:3px;">Modeled hour — outside the 06:00–21:45 field sample</div>'
           : '<div style="color:#30d158;font-weight:700;margin-top:3px;">Real sampled hour (06:00–21:45)</div>';
+        const realRoute = (LEG_ROUTES[site.name] || [])[i];
+        const routeNote = realRoute
+          ? `<div style="color:#0071e3;font-weight:700;margin-top:3px;">Real road route · ${realRoute.realMeters}m mapped from GIS road data</div>`
+          : '<div style="color:#888;font-weight:700;margin-top:3px;">Schematic line — direction/length not a real road measurement</div>';
         const html = `
           <div style="min-width:190px;font-family:-apple-system,BlinkMacSystemFont,'Inter',system-ui,sans-serif;">
             <div style="font-weight:800;font-size:12.5px;color:#1d1d1f;">${site.shortName || site.name}</div>
@@ -221,6 +296,7 @@ export default function MapFlowOverlay({ flowData, accentColor = '#0071e3', mute
             <div style="font-size:11.5px;color:#333;margin-top:6px;">${leg.isPrimary ? '★ Primary leg · ' : ''}${leg.pct.toFixed(1)}% assumed share of this hour</div>
             <div style="font-size:13px;font-weight:800;color:#0071e3;margin-top:2px;">${Math.round(leg.volume).toLocaleString()} veh/hr (simulated)</div>
             ${modeledNote}
+            ${routeNote}
             <div style="font-size:10px;color:#888;margin-top:6px;line-height:1.4;">Leg identity/count real (author-confirmed). Per-leg split is a disclosed assumption. Source: ${site.source}</div>
           </div>`;
         entry.dots.forEach((dot) => {
