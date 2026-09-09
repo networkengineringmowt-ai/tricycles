@@ -19,6 +19,7 @@ const C = { blue: '#0071e3', blue2: '#0a84ff', green: '#30d158', orange: '#ff9f0
 const GALLERY_SITES = ['Bakuli Intersection', 'Bwaise Junction', 'Kibuye Roundabout', 'Natete Junction', 'Wandegeya Junction'];
 const GALLERY_SITE_COLORS = { 'Bakuli Intersection': C.teal, 'Bwaise Junction': C.orange, 'Kibuye Roundabout': C.indigo, 'Natete Junction': C.purple, 'Wandegeya Junction': C.blue };
 const CLASS_COLORS = { Cars: C.blue, Boda_bodas: C.indigo, Tricycles: C.green, Minibuses: C.teal, Heavy_Trucks: C.red };
+const vehicleClassLabel = (vc) => (vc === 'Boda_bodas' ? 'Motorcycles' : vc.replace('_', ' '));
 const galleryAnim = { duration: 600, easing: 'easeOutQuart' };
 const galleryTooltip = { backgroundColor: '#1d1d1f', titleColor: '#ffffff', bodyColor: '#f5f5f7', padding: 10, cornerRadius: 10, displayColors: true, boxPadding: 4 };
 const galleryGrid = 'rgba(0,0,0,0.06)';
@@ -503,10 +504,10 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>Right-click and choose "Update Field" (or press Ctrl+A then F9) to generate the table of contents.</p>
 <h3 id="sec1-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.1 Background to the Study</h3>
 <p>Traffic congestion stands out as one of the biggest and most persistent challenges facing Kampala today, a problem whose effects ripple outward to touch nearly every dimension of the city's daily economic and social life. When one looks closely at recent surveys of the road network, it becomes evident that average travel speeds on most major roads drop to about 20 or 30 km/h during the day, a marked deterioration from the speeds that the same corridors would otherwise be capable of sustaining under free-flow conditions. Matters get even worse during the evening peak, usually between 6:30 PM and 8:00 PM, and this deterioration is especially pronounced around the Central Division, where the convergence of commuters, informal transport operators, and pedestrians compounds the underlying problem. Here, in this particularly congested zone, speeds can fall below 10 km/h (Japan International Cooperation Agency [JICA], 2010; Kampala Capital City Authority [KCCA], 2023), a rate of movement that is barely distinguishable from walking pace and that imposes considerable time losses on all classes of road users. Taken as a whole, this level of delay has a serious and far-reaching impact on the city's daily economic activities, eroding productivity, discouraging investment, and undermining the broader efficiency gains that a well-functioning urban transport network would otherwise be expected to deliver.</p>
-<p>A key factor contributing to this problem, and one that deserves particular attention, is the manner in which the overall composition of the traffic mix has been steadily changing. Over the last few years, tricycles (which most people call tuk-tuks) have become very popular as a mode of transport, appealing to commuters who need a quicker and more flexible alternative to conventional taxis. In this respect, they have come to serve as an important middle-ground option for public transport, occupying a niche between the smaller, more nimble boda-boda and the higher-capacity but comparatively rigid matatu. Based on counts by the Kampala Capital City Authority (KCCA) and other recent studies, tricycles have grown rapidly in both number and visibility, and they now make up about 7 to 10% of the daily traffic on busy roads, like the stretch between Wandegeya and Kibuye (KCCA, 2023), a proportion substantial enough to materially influence the operating characteristics of the corridors on which they concentrate.</p>
-<p>Whereas standard passenger cars usually follow their lanes in an orderly and predictable way, tricycles operate quite differently, and this difference in behavior lies at the heart of the problem this study seeks to address. They weave through traffic, make sudden stops to pick up or drop off passengers every few hundred meters, and constantly interact with boda-bodas (motorcycles) and matatus (14-seater taxis) in ways that are difficult to anticipate or model using conventional assumptions. Right now, standard Passenger Car Unit (PCU) values simply don't capture this unique and highly variable behavior, largely because, historically, PCU values were designed for traffic in developed countries, where vehicles stick to their lanes and move in a comparatively predictable, disciplined manner that bears little resemblance to the conditions observed on Kampala's roads.</p>
+<p>A key factor contributing to this problem, and one that deserves particular attention, is the manner in which the overall composition of the traffic mix has been steadily changing. Over the last few years, tricycles (which most people call tuk-tuks) have become very popular as a mode of transport, appealing to commuters who need a quicker and more flexible alternative to conventional taxis. In this respect, they have come to serve as an important middle-ground option for public transport, occupying a niche between the smaller, more nimble motorcycle and the higher-capacity but comparatively rigid matatu. Based on counts by the Kampala Capital City Authority (KCCA) and other recent studies, tricycles have grown rapidly in both number and visibility, and they now make up about 7 to 10% of the daily traffic on busy roads, like the stretch between Wandegeya and Kibuye (KCCA, 2023), a proportion substantial enough to materially influence the operating characteristics of the corridors on which they concentrate.</p>
+<p>Whereas standard passenger cars usually follow their lanes in an orderly and predictable way, tricycles operate quite differently, and this difference in behavior lies at the heart of the problem this study seeks to address. They weave through traffic, make sudden stops to pick up or drop off passengers every few hundred meters, and constantly interact with motorcycles and matatus (14-seater taxis) in ways that are difficult to anticipate or model using conventional assumptions. Right now, standard Passenger Car Unit (PCU) values simply don't capture this unique and highly variable behavior, largely because, historically, PCU values were designed for traffic in developed countries, where vehicles stick to their lanes and move in a comparatively predictable, disciplined manner that bears little resemblance to the conditions observed on Kampala's roads.</p>
 <p>In developed nations, strict rules, well-enforced regulations, and advanced traffic management systems generally work together to keep things orderly and to ensure that traffic streams behave in a relatively homogeneous and predictable fashion. But in many developing countries, and especially in Sub-Saharan Africa, the situation is markedly different, in that the traffic is highly mixed, or "heterogeneous," in composition. This condition arises largely because transport networks in these contexts tend to grow informally and organically rather than according to a coherent master plan, because rules and regulations aren't always enforced strictly or consistently, and because motorized vehicles are frequently compelled to share limited road space with non-motorized transport of various kinds. Moreover, with urban populations expected to grow substantially in the coming decades, this pressure on the transport system is only going to increase further, making the need for locally appropriate traffic engineering tools all the more urgent.</p>
-<p>Because formal public transport, such as large city buses, has consistently failed to meet the scale of demand generated by Kampala's growing population, a variety of informal options have stepped in to fill this gap over time. In Kampala specifically, matatus and boda-bodas have long been the main choices available to the travelling public, and more recently tricycles have joined them as a further alternative. Tricycles are notably affordable and can navigate narrow, poorly maintained, or otherwise difficult roads with relative ease, which makes them especially well suited for short trips within crowded neighborhoods (Porter, 2007). However, precisely because their growth has not been strictly regulated or planned for, they also contribute meaningfully to the traffic jams that plague the city, and in doing so they complicate the task facing engineers who must plan and design the road network.</p>
+<p>Because formal public transport, such as large city buses, has consistently failed to meet the scale of demand generated by Kampala's growing population, a variety of informal options have stepped in to fill this gap over time. In Kampala specifically, matatus and motorcycles have long been the main choices available to the travelling public, and more recently tricycles have joined them as a further alternative. Tricycles are notably affordable and can navigate narrow, poorly maintained, or otherwise difficult roads with relative ease, which makes them especially well suited for short trips within crowded neighborhoods (Porter, 2007). However, precisely because their growth has not been strictly regulated or planned for, they also contribute meaningfully to the traffic jams that plague the city, and in doing so they complicate the task facing engineers who must plan and design the road network.</p>
 <p>Uganda, and Kampala in particular, provides a good and illustrative example of these broader transport challenges that afflict many rapidly urbanizing African cities. The traffic in Kampala includes a chaotic and often unpredictable mix of private cars, old and frequently poorly maintained minibuses, thousands upon thousands of motorcycles, bicycles, pedestrians, and now, increasingly, tuk-tuks as well. Since the overwhelming majority of the population cannot afford to own or operate private cars, they rely heavily, and often out of necessity rather than preference, on these flexible, informal options to meet their daily mobility needs.</p>
 <p>For traffic engineers and urban planners tasked with designing and managing this network, dealing with such a heterogeneous mix of vehicles presents a genuinely difficult analytical challenge. In order to figure out how much traffic a given road can realistically handle, engineers must convert all of these different vehicle types into a single, standardized measure by making use of PCU values. Doing so allows them to see, in relatively straightforward terms, how much additional "space" or delay a motorcycle, a bus, or any other vehicle type causes relative to that caused by a normal passenger car (Khisty & Lall, 2016; Al-Kaisy et al., 2005). In arriving at these equivalence values, engineers typically look closely at the size, speed, and behavioral characteristics of each vehicle type under consideration.</p>
 <p>Consequently, a wide range of essential engineering tasks, including things like designing junctions, setting traffic light timings, and predicting where and when traffic jams are likely to occur, all rely fundamentally on having accurate PCU estimates to work from. However, in Uganda, and more broadly across much of the region, engineers often have no choice but to use PCU values drawn from foreign manuals, simply because locally derived data isn't always available to them. When such static or effectively guessed values are applied to tricycles, whose behavior differs substantially from the vehicle types those foreign values were originally calibrated for, engineers end up seriously miscalculating how much traffic a given road can actually accommodate. This miscalculation, in turn, leads directly to poor road designs and to traffic jams that are worse than they would otherwise need to be. According to the Daily Monitor (2023), congestion is currently costing the city around USD 1.5 million every single day, a figure that underscores just how costly these compounding errors have become.</p>
@@ -515,17 +516,17 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <h3 id="sec1-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.2 Problem Statement</h3>
 <p>Tricycles have, in a comparatively short span of time, quickly become a major and increasingly indispensable part of the public transport landscape in Kampala. They offer commuters a cheap and flexible way to get around the city, and they are especially valuable in covering the "first and last mile" of a journey within busy residential areas that larger vehicles often struggle to reach efficiently. Transport surveys show that tricycles now make up about 7 to 10% of the traffic on key roads, and this number is continuing to go up, largely because they are cheap to run and maintain, and because they can handle Kampala's numerous potholes and uneven road surfaces considerably better than some conventional cars are able to (KCCA, 2023).</p>
 <p>Despite how common and visible tricycles have become on Kampala's roads, the current methods used in Uganda to analyze road capacity basically ignore them altogether, treating them as a marginal or negligible presence rather than as the significant traffic component that field observation shows them to be. The Ministry of Works and Transport (MoWT) guidelines, for instance, classify vehicles into standard groups such as cars, heavy buses, and motorcycles, but they conspicuously lack specific, field-tested PCU values for tricycles as a distinct vehicle category (MoWT, 2010).</p>
-<p>Since PCU values are required, as a basic methodological prerequisite, to turn mixed and heterogeneous traffic into standard, comparable units for use in capacity models (Khisty & Lall, 2016), the absence of this data creates a genuinely significant problem for practicing traffic engineers in Kampala. Without local, empirically grounded PCU values for tricycles, engineers are left with little choice but to either rely on foreign estimates that were derived under entirely different traffic conditions, or else to simply guess at a number somewhere between that of a motorcycle and a car. Such guesses, however well-intentioned, fail to account adequately for local habits and behavioral patterns, such as how aggressively Kampala tuk-tuk drivers tend to weave through traffic, or how they interact with the very large number of boda-bodas that also share the same limited road space.</p>
+<p>Since PCU values are required, as a basic methodological prerequisite, to turn mixed and heterogeneous traffic into standard, comparable units for use in capacity models (Khisty & Lall, 2016), the absence of this data creates a genuinely significant problem for practicing traffic engineers in Kampala. Without local, empirically grounded PCU values for tricycles, engineers are left with little choice but to either rely on foreign estimates that were derived under entirely different traffic conditions, or else to simply guess at a number somewhere between that of a motorcycle and a car. Such guesses, however well-intentioned, fail to account adequately for local habits and behavioral patterns, such as how aggressively Kampala tuk-tuk drivers tend to weave through traffic, or how they interact with the very large number of motorcycles that also share the same limited road space.</p>
 <p>The practical result of this underlying mistake is, in turn, quite severe and directly observable on the ground. At major junctions equipped with traffic lights, the green time allocated to each approach is often given out incorrectly, in ways that fail to reflect actual traffic demand. For example, at the Wandegeya Junction, queues of cars frequently stretch back more than 150 meters during rush hour, a visible symptom of the underlying calibration problem. This happens, fundamentally, because the traffic light timings at such junctions were calculated using flawed PCU estimates that systematically underestimate how much tricycles slow down the overall flow of traffic whenever they weave through gaps and stop unpredictably (JICA, 2022). Until such time as accurate, locally derived PCU values for tricycles are firmly established, any new traffic management systems, including the planned GKMA smart traffic control initiative, will be unable to function as intended, and the city will, in the meantime, continue to lose substantial sums of money to congestion that could otherwise be mitigated.</p>
 <h3 id="sec1-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.3 Main Objective</h3>
 <p>The main goal of this study, stated broadly, is to make use of carefully collected field data in order to determine accurate Passenger Car Unit (PCU) values for tricycles operating within Kampala City. In pursuing this goal, the study aims, more specifically, to help improve the overall accuracy of traffic flow models used in the local context, to calibrate intersection simulations against real-world observations, and thereby to support better, more evidence-based traffic management decisions on the part of the relevant authorities.</p>
 <h3 id="sec1-3-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.3.1 Specific Objectives</h3>
 <p>The first specific objective is to determine static PCU values for both passenger and cargo tricycles at selected busy intersections in Kampala, with the analysis aiming throughout for a precision of ±0.1 PCU so as to yield results of genuine practical usefulness to engineers.</p>
-<p>The second specific objective is to compare these calculated tricycle PCU values, once derived, against local empirical values already established for motorcycles (boda-bodas) and for passenger cars, in order to see clearly their relative impact on traffic flow at the study intersections.</p>
+<p>The second specific objective is to compare these calculated tricycle PCU values, once derived, against local empirical values already established for motorcycles and for passenger cars, in order to see clearly their relative impact on traffic flow at the study intersections.</p>
 <p>The third specific objective is to model how a range of dynamic factors, including how heavy the prevailing congestion is (as captured by the Volume-to-Capacity ratio), the time of day at which observations are made, and whether the road surface is wet or dry, together affect the tricycle PCU estimates, with this relationship examined systematically through the use of statistical regression.</p>
 <h3 id="sec1-4" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.4 Research Questions</h3>
 <p>The first research question this study seeks to answer is: what are the actual field-based PCU values for different types of tricycles, namely passenger and cargo variants, operating at various intersections across Kampala?</p>
-<p>The second research question is: how do the PCU values obtained for tricycles in Kampala compare to those of other common transport modes, such as boda-bodas, passenger cars, and matatus, when all are observed under the same prevailing road conditions?</p>
+<p>The second research question is: how do the PCU values obtained for tricycles in Kampala compare to those of other common transport modes, such as motorcycles, passenger cars, and matatus, when all are observed under the same prevailing road conditions?</p>
 <p>The third research question is: to what extent, and in what manner, do factors such as intersection congestion levels, the time of day, and prevailing weather conditions act to change the PCU values of tricycles as they operate within Kampala's mixed traffic environment?</p>
 <h3 id="sec1-5" style={{ color: '#1d1d1f', marginTop: '16px' }}>1.5 Justification of the Study</h3>
 <p>Calculating accurate PCU values for tricycles represents an urgent and immediate practical need for Kampala, and it should be understood as considerably more than a purely academic exercise undertaken for its own sake. Tricycles have, by this point, become a genuinely permanent fixture of the transport system, helping thousands of commuters as well as small business owners to move both themselves and their goods in areas where formal buses simply don't go (ChinAfrica, 2024). Yet precisely because they behave so differently from both cars and motorcycles in terms of speed, stopping patterns, and lane discipline, they introduce a range of inefficiencies into a transport network that has not, until now, formally planned for their presence or accounted for their distinct operational characteristics.</p>
@@ -558,7 +559,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <h3 id="sec2-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.2 Conceptual Review</h3>
 <h3 id="sec2-2-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.2.1 Traffic Heterogeneity</h3>
 <p>In high-income countries, traffic is generally homogenous in its composition and behaviour, mainly consisting of standard passenger cars that stay obediently within their lanes and move along in comparatively orderly lines. Traffic engineering manuals, such as the Highway Capacity Manual (HCM) used in the United States, were written specifically with these kinds of well-behaved, lane-disciplined conditions in mind (Khisty & Lall, 2016). On the other hand, and in marked contrast, traffic in Sub-Saharan African cities such as Kampala is fundamentally heterogeneous in nature. It involves a massive and constantly shifting mix of vehicle sizes, considerably varying speeds, and driving behaviors that are, by comparison, unpredictable and difficult to model using the same assumptions.</p>
-<p>In this kind of environment, it should be clear that a standard passenger car simply isn't a direct or meaningful equivalent for a crowded matatu that stops suddenly to pick up passengers, nor for a group of boda-bodas riding casually along a pedestrian walkway in defiance of formal lane markings. It is precisely here that the PCU comes in, functioning as a conversion factor that allows such disparate vehicle behaviours to be compared on a common scale. In essence, it measures how much "disruption" or friction a specific vehicle type causes to the surrounding traffic stream relative to that caused by a normal car. Large, slow-moving vehicles such as trucks usually carry high PCUs, in the range of 2.5 or 3.0, whereas small, quick, and highly maneuverable motorcycles carry considerably lower PCUs, typically somewhere around 0.2 to 0.5.</p>
+<p>In this kind of environment, it should be clear that a standard passenger car simply isn't a direct or meaningful equivalent for a crowded matatu that stops suddenly to pick up passengers, nor for a group of motorcycles riding casually along a pedestrian walkway in defiance of formal lane markings. It is precisely here that the PCU comes in, functioning as a conversion factor that allows such disparate vehicle behaviours to be compared on a common scale. In essence, it measures how much "disruption" or friction a specific vehicle type causes to the surrounding traffic stream relative to that caused by a normal car. Large, slow-moving vehicles such as trucks usually carry high PCUs, in the range of 2.5 or 3.0, whereas small, quick, and highly maneuverable motorcycles carry considerably lower PCUs, typically somewhere around 0.2 to 0.5.</p>
 <h3 id="sec2-2-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.2.2 The Tricycle Problem</h3>
 <p>Tricycles, or tuk-tuks, present a genuinely awkward and somewhat unusual problem for conventional traffic modeling, precisely because they occupy an ambiguous middle ground, sitting somewhere between a motorcycle and a car in terms of size, speed, and maneuverability, without corresponding neatly to either category.</p>
 <p>Table 2.1: Physical and Operational Characteristics Comparison</p>
@@ -566,7 +567,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
   <thead>
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Feature</th>
-      <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles (Boda-bodas)</th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles (Motorcycles)</th>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles (Tuk-tuks)</th>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Passenger Cars</th>
     </tr>
@@ -579,7 +580,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr><td style={{ padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Kampala Behavior</td><td style={{ padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Rapid gap acceptance, sidewalk riding</td><td style={{ padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Sudden stops, aggressive merging</td><td style={{ padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Follows queues</td></tr>
   </tbody>
 </table>
-<p>As Table 2.1 shows quite clearly, tricycles exhibit much the same poor lane discipline as boda-bodas do, and yet, crucially, they are nowhere near as small or as agile as boda-bodas, which limits their ability to exploit gaps in the same way. When a tricycle attempts to weave through a busy intersection such as Kibuye Roundabout, its 1.5-meter width usually ends up blocking the passenger cars travelling behind it, forcing those drivers to brake hard and disrupting the smooth flow of the traffic stream as a whole. Most existing PCU models, unfortunately, assume that vehicles either follow the established lane rules, as cars generally do, or else filter cleanly and unobtrusively through the available gaps, as motorcycles are able to do. Consequently, they simply do not have a good or reliable way of measuring this distinctive "blocking friction" that is caused specifically by tricycles.</p>
+<p>As Table 2.1 shows quite clearly, tricycles exhibit much the same poor lane discipline as motorcycles do, and yet, crucially, they are nowhere near as small or as agile as motorcycles, which limits their ability to exploit gaps in the same way. When a tricycle attempts to weave through a busy intersection such as Kibuye Roundabout, its 1.5-meter width usually ends up blocking the passenger cars travelling behind it, forcing those drivers to brake hard and disrupting the smooth flow of the traffic stream as a whole. Most existing PCU models, unfortunately, assume that vehicles either follow the established lane rules, as cars generally do, or else filter cleanly and unobtrusively through the available gaps, as motorcycles are able to do. Consequently, they simply do not have a good or reliable way of measuring this distinctive "blocking friction" that is caused specifically by tricycles.</p>
 <h3 id="sec2-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.3 Empirical Review of PCU Estimation Methods</h3>
 <p>Over the years, researchers working in this field have developed several distinct methods for estimating PCUs, each with its own underlying assumptions and practical strengths. However, the degree to which any of these established methods apply cleanly and appropriately to Kampala's tricycles, given their particular behavioural quirks, remains very much a matter of ongoing debate within the literature.</p>
 <h3 id="sec2-3-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.3.1 Headway Method</h3>
@@ -593,7 +594,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>While tuk-tuks have, admittedly, been a common and long-established sight in South Asia for decades, their massive and rapid growth across Sub-Saharan Africa is a comparatively recent phenomenon. This particular boom has been driven mostly by relatively cheap imports arriving from India, from well-known brands such as Bajaj and TVS, and from China, and, more recently still, by the gradual introduction of locally assembled electric versions that are beginning to enter the market (ChinAfrica, 2024).</p>
 <p>It is worth emphasizing that PCU isn't merely a fixed physical property derived solely from the size or dimensions of a vehicle; rather, it is, in large part, a behavioral property that depends heavily on the local driving culture within which the vehicle operates, and this is a significant part of why static, imported PCU values so often misrepresent how three-wheelers actually behave once placed within a given city's own distinct traffic stream.</p>
 <h3 id="sec2-4-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.4.1 The Kampala Reality</h3>
-<p>In Kampala specifically, tricycles are heavily relied upon both for transporting goods over relatively short distances, such as moving produce from Nakasero market to nearby retail points, and for facilitating passenger transit within the sprawling suburbs that ring the city center. During the 6:30 PM evening rush hour in particular, large numbers of these tricycles converge simultaneously on major bottlenecks such as the Bakuli Intersection, placing considerable strain on the available road space. Their behavior in this setting is uniquely aggressive compared to other vehicle classes; the drivers observed often employ what can only be described as "bullying" tactics against smaller and more vulnerable boda-bodas, while simultaneously cutting off larger matatus in order to secure a favourable position for themselves.</p>
+<p>In Kampala specifically, tricycles are heavily relied upon both for transporting goods over relatively short distances, such as moving produce from Nakasero market to nearby retail points, and for facilitating passenger transit within the sprawling suburbs that ring the city center. During the 6:30 PM evening rush hour in particular, large numbers of these tricycles converge simultaneously on major bottlenecks such as the Bakuli Intersection, placing considerable strain on the available road space. Their behavior in this setting is uniquely aggressive compared to other vehicle classes; the drivers observed often employ what can only be described as "bullying" tactics against smaller and more vulnerable motorcycles, while simultaneously cutting off larger matatus in order to secure a favourable position for themselves.</p>
 <h3 id="sec2-5" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.5 Identified Gaps in the Literature</h3>
 <p>Upon looking closely through the existing body of research on mixed traffic conditions, it becomes apparent that there remain a few genuinely glaring gaps, gaps that this study is specifically designed to fill:</p>
 <p>Lack of Behavioral PCUs for Kampala: There is, quite simply, basically no existing literature that attempts to put a concrete number on the "aggressive weaving" and the random mid-lane stopping behaviors that are so characteristically unique to Kampala's tricycle drivers.</p>
@@ -606,7 +607,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <h3 id="sec2-6-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.6.2 Headway and Poisson Arrival Literature</h3>
 <p>The underlying assumption that vehicle arrivals follow a Poisson process traces its origins back to Adams (1936), who was the first to demonstrate empirically that vehicle counts recorded over fixed time intervals tend to approximate the Poisson distribution reasonably well, at least under conditions of low to moderate traffic flow. Subsequent research in the decades since has, however, repeatedly shown that this convenient assumption breaks down as flow increases, or as vehicles begin travelling in tightly formed clusters rather than as independent, randomly spaced units: Cowan's (1975) M3 bunched-exponential distribution and Wasielewski's (1979) semi-Poisson model were both developed specifically in order to capture this systematic departure from randomness, a departure that is caused by "following" behaviour, in which a leading vehicle effectively constrains the headway of the vehicles travelling behind it. This body of work is directly relevant to, and indeed anticipates, the Poisson goodness-of-fit test conducted in Section 4.9.6 of this study: a rejection of the null hypothesis of Poisson arrivals should not, therefore, be read as an anomaly or a methodological flaw, but rather as the expected and well-documented signature of platooning behaviour that is reported consistently throughout the wider literature on constrained, mixed-traffic streams.</p>
 <h3 id="sec2-6-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.6.3 Kampala- and East-Africa-Specific Studies</h3>
-<p>Recent Kampala-focused research, taken as a whole, continues to focus overwhelmingly on motorcycle taxis, that is, boda-bodas, rather than on tricycles specifically, and this imbalance in the literature only further underscores the specific gap that this thesis has been designed to address. Vermeiren et al. (2012) modelled Kampala's urban growth pattern in some detail and projected the spatial pressure that would be placed on the road network as the city's population continued to expand over time; notably, this earlier projection has since materialised quite directly in the corridor-level congestion that this present study documents empirically. More recently, a 2025 ScienceDirect study examining Kampala's paratransit system found that motorcycle taxis are increasingly competing with, rather than complementing, minibus taxis for the same pool of commuter trips, a dynamic that has served to intensify competition for road space at exactly the junctions studied here, namely Wandegeya, Kibuye, Bakuli, Bwaise, and Natete. In a related vein, a 2025 assessment of the boda-boda industry across the Greater Kampala Metropolitan Area estimated that congestion-related delays cost the metropolitan area over 24,000 lost man-hours and 26,000 lost vehicle-hours annually, a finding that usefully corroborates the economic-loss estimates already cited in Section 1.5.1 of this thesis. None of this recent literature, however, disaggregates tricycles from motorcycles in its analysis, nor does it provide empirically derived PCU values for tricycles specifically, thereby confirming that the gap identified earlier in Section 2.5 remains very much open.</p>
+<p>Recent Kampala-focused research, taken as a whole, continues to focus overwhelmingly on motorcycle taxis rather than on tricycles specifically, and this imbalance in the literature only further underscores the specific gap that this thesis has been designed to address. Vermeiren et al. (2012) modelled Kampala's urban growth pattern in some detail and projected the spatial pressure that would be placed on the road network as the city's population continued to expand over time; notably, this earlier projection has since materialised quite directly in the corridor-level congestion that this present study documents empirically. More recently, a 2025 ScienceDirect study examining Kampala's paratransit system found that motorcycle taxis are increasingly competing with, rather than complementing, minibus taxis for the same pool of commuter trips, a dynamic that has served to intensify competition for road space at exactly the junctions studied here, namely Wandegeya, Kibuye, Bakuli, Bwaise, and Natete. In a related vein, a 2025 assessment of the motorcycle-taxi industry across the Greater Kampala Metropolitan Area estimated that congestion-related delays cost the metropolitan area over 24,000 lost man-hours and 26,000 lost vehicle-hours annually, a finding that usefully corroborates the economic-loss estimates already cited in Section 1.5.1 of this thesis. None of this recent literature, however, disaggregates tricycles from motorcycles in its analysis, nor does it provide empirically derived PCU values for tricycles specifically, thereby confirming that the gap identified earlier in Section 2.5 remains very much open.</p>
 <h3 id="sec2-6-4" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.6.4 Qualitative and Mixed-Methods Research Design</h3>
 <p>The qualitative component of this study, described in detail in Section 3.3.1, follows closely the six-phase thematic analysis process formalised by Braun and Clarke (2006), namely: familiarisation with the transcripts, generation of initial codes, searching for candidate themes, reviewing those themes critically, defining and naming the final themes, and, lastly, producing the final analytic narrative that draws these strands together. This general approach is, in fact, well established within transport research more broadly; Sweet et al. (2022), for instance, argue explicitly for the considerable value of qualitative methods in transport studies, noting in particular that semi-structured interviews and thematic coding are especially well suited to capturing the subjective, context-dependent driving behaviours, such as pothole avoidance and lane-straddling, that purely quantitative count data cannot, on its own, adequately explain. Combining this qualitative layer with the quantitative count and simulation data presented in Sections 3.4 and 4.9 follows, in turn, the concurrent mixed-methods design that is widely recommended for applied transport research, an approach in which numerical and narrative evidence are triangulated against one another rather than being treated as separate, unconnected strands of enquiry.</p>
 <h3 id="sec2-7" style={{ color: '#1d1d1f', marginTop: '16px' }}>2.7 Conclusion</h3>
@@ -616,12 +617,12 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>This chapter sets out, in considerable detail, the research methods that were used in order to figure out the actual Passenger Car Unit (PCU) values applicable to tricycles operating within Kampala City. Because Kampala's traffic is so chaotic and thoroughly mixed in its composition, it was simply not feasible to rely on traditional automated counting machines, such as pneumatic road tubes, in the manner that might be standard practice elsewhere. When vehicles do not stay reliably within their lanes, as is routinely the case in Kampala, those tubes tend to get run over diagonally, or else they miss smaller vehicles entirely, leading in either case to data of very poor quality. Instead, it was decided that a considerably more labor-intensive, yet ultimately far more accurate, approach would be adopted: one that combines high-definition video recording captured from an elevated vantage point with extensive manual counting carried out by carefully trained enumerators, and that then subjects the resulting data to validation using dedicated traffic simulation software.</p>
 <h3 id="sec3-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.2 Study Area and Site Selection</h3>
 <p>The study was, by deliberate design, strictly confined to Kampala City, and within the city it focused specifically on five carefully chosen intersections that are widely known, both formally and informally, for having high volumes of tricycles and consistently terrible daily traffic jams.</p>
-<p>These five locations were chosen for very specific and carefully considered reasons, as follows:1. Wandegeya Junction: This is a major hotspot situated near Makerere University, and the conflict observed here between pedestrians, boda-bodas, and tricycles is genuinely intense, making it an ideal site for close observation.2. Kibuye Roundabout: This is a notoriously complex multi-leg roundabout at which high-speed traffic arriving from Entebbe Road effectively crashes into dense, slow-moving informal transit, producing exactly the kind of friction this study set out to measure.3. Bakuli Intersection: This location acts as a vital artery linking the city center to the western suburbs, and it is well known locally for the aggressive way in which matatus and tricycles park and stage themselves right on the roadside, further constraining available capacity.4. Bwaise Junction: This northern gateway was specifically chosen because it frequently floods during periods of rain, and this feature allowed the study to examine how extreme environmental factors, such as the need to dodge flooded potholes, change the effective tricycle PCU under adverse conditions.5. Natete Junction: This is a large and busy commercial hub at which cargo tricycles are especially common, and its inclusion allowed for a meaningful comparison between passenger and cargo tricycle variations across the study.</p>
+<p>These five locations were chosen for very specific and carefully considered reasons, as follows:1. Wandegeya Junction: This is a major hotspot situated near Makerere University, and the conflict observed here between pedestrians, motorcycles, and tricycles is genuinely intense, making it an ideal site for close observation.2. Kibuye Roundabout: This is a notoriously complex multi-leg roundabout at which high-speed traffic arriving from Entebbe Road effectively crashes into dense, slow-moving informal transit, producing exactly the kind of friction this study set out to measure.3. Bakuli Intersection: This location acts as a vital artery linking the city center to the western suburbs, and it is well known locally for the aggressive way in which matatus and tricycles park and stage themselves right on the roadside, further constraining available capacity.4. Bwaise Junction: This northern gateway was specifically chosen because it frequently floods during periods of rain, and this feature allowed the study to examine how extreme environmental factors, such as the need to dodge flooded potholes, change the effective tricycle PCU under adverse conditions.5. Natete Junction: This is a large and busy commercial hub at which cargo tricycles are especially common, and its inclusion allowed for a meaningful comparison between passenger and cargo tricycle variations across the study.</p>
 <h3 id="sec3-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.3 Data Collection Strategy (Mixed Methods Approach)</h3>
 <p>This study employs a comprehensive mixed-methods approach throughout, one that rigorously combines both quantitative and qualitative testing in order to capture the full spectrum of tricycle operational friction observed across the study sites. In order to achieve this comprehensive coverage, the research draws simultaneously upon both Primary and Secondary data sources, each contributing a distinct and complementary perspective to the overall analysis.</p>
 <h3 id="sec3-3-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.3.1 Primary Data (Quantitative and Qualitative)</h3>
 <p>The primary data collected for this study forms, in a very real sense, the bedrock of its original contribution to the field of traffic engineering in Kampala, and it is this data, more than anything else, that distinguishes the present work from earlier, less locally grounded studies.</p>
-<p>1. Quantitative Primary Data (Manual Classified Counts): Due to the general lack of functioning automated pneumatic tube sensors in Kampala, and the unsuitability of such sensors for the city's lane-indisciplined traffic in any case, manual classified counts (MCC) were conducted across the five study intersections over seven full daytime sessions (07:00-19:00) as well as two full overnight sessions (19:00-07:00). The resulting data was logged carefully in precise 15-minute intervals, and this process ultimately resulted in 2,160 distinct data rows in total, comprising 1,680 daytime records and 480 night-time records. The vehicle classifications tracked throughout this exercise were as follows:- Passenger Cars- Boda-bodas (motorcycles)- Tricycles (Tuk-tuks)- Matatus (14-seater minibuses)- Heavy TrucksThe deliberate day/night structure built into the survey also allows for a direct and statistically rigorous comparison of daytime versus night-time flow regimes, as presented later in Section 4.9.9. This substantial and carefully assembled quantitative dataset is, in turn, used throughout the study to run rigorous inferential probability tests, including, among others, ANOVA and Independent T-Tests.</p>
+<p>1. Quantitative Primary Data (Manual Classified Counts): Due to the general lack of functioning automated pneumatic tube sensors in Kampala, and the unsuitability of such sensors for the city's lane-indisciplined traffic in any case, manual classified counts (MCC) were conducted across the five study intersections over seven full daytime sessions (07:00-19:00) as well as two full overnight sessions (19:00-07:00). The resulting data was logged carefully in precise 15-minute intervals, and this process ultimately resulted in 2,160 distinct data rows in total, comprising 1,680 daytime records and 480 night-time records. The vehicle classifications tracked throughout this exercise were as follows:- Passenger Cars- Motorcycles- Tricycles (Tuk-tuks)- Matatus (14-seater minibuses)- Heavy TrucksThe deliberate day/night structure built into the survey also allows for a direct and statistically rigorous comparison of daytime versus night-time flow regimes, as presented later in Section 4.9.9. This substantial and carefully assembled quantitative dataset is, in turn, used throughout the study to run rigorous inferential probability tests, including, among others, ANOVA and Independent T-Tests.</p>
 <p>2. Qualitative Primary Data (Structured Field Interviews): Traffic engineering as a discipline often, and perhaps unfairly, tends to overlook the human element underlying the numbers it produces. In order to capture the behavioral "blocking friction" generated by tricycle operators, and to give voice to the drivers themselves, structured qualitative interviews were conducted with 50 local tricycle drivers drawn from across the study sites. A Thematic Analysis, following closely the well-established six-phase process of Braun and Clarke (2006), was subsequently applied to the resulting interview transcripts using conceptual coding, in order to identify recurring qualitative themes such as "pothole swerving," "police extortion," and "fatigue-induced lane straddling," each of which shed further light on the behavioural drivers behind the quantitative results.</p>
 <h3 id="sec3-3-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>3.3.2 Secondary Data</h3>
 <p>In order to establish a meaningful historical baseline against which to validate the primary observations gathered in the field, two critical secondary data sources were utilized throughout this study:1. Ministry of Works and Transport (MoWT) Historical Traffic Logs (2021): Historical 2021 intersection volume data was extracted from the MoWT archives for this purpose. This secondary quantitative data serves, in effect, as the baseline against which the exponential geometric growth rate of tricycle imports over the last five years could be calculated with confidence.2. Uganda National Meteorological Authority (UNMA) Rainfall Data: Historical rainfall averages obtained from this source were cross-referenced systematically against the primary count logs collected in the field, in order to validate the statistical significance of the weather-induced capacity drops observed during the survey period.</p>
@@ -646,7 +647,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
       data={{
         labels: Object.keys(stats.byIntersection).map(shortSite),
         datasets: ['Cars', 'Boda_bodas', 'Tricycles', 'Minibuses', 'Heavy_Trucks'].map((c) => ({
-          label: c.replace('_', ' '), backgroundColor: CLASS_COLORS[c],
+          label: vehicleClassLabel(c), backgroundColor: CLASS_COLORS[c],
           data: Object.values(stats.byIntersection).map((v) => Number(v.compositionPct[c].toFixed(1))),
         })),
       }}
@@ -658,7 +659,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     />
   </FigureBox>
 ) : null}
-<p>As can be seen quite clearly in Figure 4.1, passenger cars still make up the largest raw count among the vehicle classes recorded. However, boda-bodas and tricycles, when their volumes are combined, take up a genuinely massive proportion of the overall traffic stream at these sites. Tricycles specifically held between 8.2% and 20.5% modal share across the sites studied, with the two extremes being represented by Wandegeya Junction at the lower end and Natete Junction at the upper end, respectively. This finding proves, quite conclusively, that tricycles are no longer merely a fringe or marginal option within Kampala's transport landscape; rather, they have become a core, permanent, and structurally significant piece of the city's transport system as a whole.</p>
+<p>As can be seen quite clearly in Figure 4.1, passenger cars still make up the largest raw count among the vehicle classes recorded. However, motorcycles and tricycles, when their volumes are combined, take up a genuinely massive proportion of the overall traffic stream at these sites. Tricycles specifically held between 8.2% and 20.5% modal share across the sites studied, with the two extremes being represented by Wandegeya Junction at the lower end and Natete Junction at the upper end, respectively. This finding proves, quite conclusively, that tricycles are no longer merely a fringe or marginal option within Kampala's transport landscape; rather, they have become a core, permanent, and structurally significant piece of the city's transport system as a whole.</p>
 <h3 id="sec4-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.3 Static PCU Estimation Results</h3>
 <p>Using both the Modified Headway Ratio method and the Multiple Linear Regression (MLR) method in parallel, baseline static PCU values for the tricycles were calculated across each of the five study intersections, allowing the two methods to be compared directly against one another.</p>
 <p>Table 4.1: Baseline Static PCU Values by Intersection</p>
@@ -668,7 +669,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Intersection</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycle PCU (Headway Method)</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycle PCU (MLR Method)</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-boda PCU</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycle PCU</th>
     </tr>
   </thead>
   <tbody>
@@ -679,12 +680,12 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr><td style={{ padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Natete (Cargo Heavy)</td><td style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>1.31</td><td style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>0.98</td><td style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>0.50</td></tr>
   </tbody>
 </table>
-<p>Analysis: Looking closely at the data presented above, it becomes clear, and indeed rather striking, that tricycles cause significantly more friction within the traffic stream than boda-bodas do. The Headway Method values, which range from 1.30 to 1.31 across all five intersections studied, are consistently and unambiguously above 1.0, and, notably, at Bwaise and Kibuye the MLR method, which looks more broadly at the turbulence of the entire traffic stream rather than at isolated vehicle pairs, gave PCU values that were close to, or even above, 1.0 as well. This constitutes a genuinely important and somewhat unexpected finding. It means, in practical terms, that in conditions of severe mixed traffic, a single tricycle disrupts the flow of traffic more than a standard passenger car does, and not merely to a comparable degree as one. This occurs, fundamentally, because tricycles weave erratically through the available gaps yet do not possess the engine power required to accelerate quickly out of the bottlenecks they help create.</p>
+<p>Analysis: Looking closely at the data presented above, it becomes clear, and indeed rather striking, that tricycles cause significantly more friction within the traffic stream than motorcycles do. The Headway Method values, which range from 1.30 to 1.31 across all five intersections studied, are consistently and unambiguously above 1.0, and, notably, at Bwaise and Kibuye the MLR method, which looks more broadly at the turbulence of the entire traffic stream rather than at isolated vehicle pairs, gave PCU values that were close to, or even above, 1.0 as well. This constitutes a genuinely important and somewhat unexpected finding. It means, in practical terms, that in conditions of severe mixed traffic, a single tricycle disrupts the flow of traffic more than a standard passenger car does, and not merely to a comparable degree as one. This occurs, fundamentally, because tricycles weave erratically through the available gaps yet do not possess the engine power required to accelerate quickly out of the bottlenecks they help create.</p>
 <h3 id="sec4-4" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.4 Dynamic PCU Modeling: The Impact of Congestion</h3>
 <p>In order to address Objective 3 of this study, a detailed analysis was undertaken of how the tricycle PCU changes depending on how congested the road happens to be at a given time, as captured formally by the Volume-to-Capacity, or V/C, ratio.</p>
 <p>During the mid-morning off-peak hours, when traffic is generally flowing reasonably well (V/C ≈ 0.4), the tricycle PCU hovers around 0.75, a figure broadly in line with expectations for a lightly loaded road. But when the evening rush hour hits, typically around 6:30 PM, and the road reaches a state of total saturation (V/C ≥ 0.95), the tricycle PCU spikes dramatically, rising all the way to 1.15, a shift that illustrates just how sharply tricycle behaviour deteriorates under pressure.</p>
 <h3 id="sec4-4-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.4.1 The "Blocking Friction" Phenomenon</h3>
-<p>Upon reviewing the video footage collected during the survey period, the underlying reason for this dramatic spike became readily apparent. In conditions of complete gridlock, boda-bodas are able to filter through stationary cars by lane-splitting, a manoeuvre that keeps their effective PCU relatively low even under heavy congestion. Tricycles, however, are approximately 1.5 meters wide, and this width means that they simply cannot filter through gaps in the same way that a boda-boda can. Instead, tricycle drivers attempt to weave through the available space, but in practice they usually just end up getting stuck diagonally between lanes, at which point they effectively act as a physical blockade obstructing the vehicles around them. This "blocking friction" causes the intersection's overall capacity to collapse quite completely, and it demonstrates convincingly that the use of static PCU values severely underestimates just how much damage tricycles do to traffic flow specifically during peak hours.</p>
+<p>Upon reviewing the video footage collected during the survey period, the underlying reason for this dramatic spike became readily apparent. In conditions of complete gridlock, motorcycles are able to filter through stationary cars by lane-splitting, a manoeuvre that keeps their effective PCU relatively low even under heavy congestion. Tricycles, however, are approximately 1.5 meters wide, and this width means that they simply cannot filter through gaps in the same way that a motorcycle can. Instead, tricycle drivers attempt to weave through the available space, but in practice they usually just end up getting stuck diagonally between lanes, at which point they effectively act as a physical blockade obstructing the vehicles around them. This "blocking friction" causes the intersection's overall capacity to collapse quite completely, and it demonstrates convincingly that the use of static PCU values severely underestimates just how much damage tricycles do to traffic flow specifically during peak hours.</p>
 <h3 id="sec4-5" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.5 Descriptive and Inferential Statistical Analysis (Quantitative)</h3>
 <p>To ensure the academic validity and general robustness of these findings, the full dataset (N = 2,160 intervals: 1,680 daytime + 480 night-time) was subjected, in its entirety, to a rigorous programme of statistical testing designed to withstand close scrutiny.</p>
 <h3 id="sec4-5-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.5.1 Descriptive Statistics</h3>
@@ -861,7 +862,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 </table>
 <p>Chi-square = 2,472.8, df = 2, p &lt; .001***. On this basis, the null hypothesis of Poisson-distributed, that is, purely random, arrivals is decisively and unambiguously rejected. The variance-to-mean ratio, otherwise known as the index of dispersion, comes out at 6.39, a value far above the value of 1.0 that would be expected under a true Poisson process, and one that indicates strong overdispersion in the data. As in the original analysis, this pattern is understood to be the statistical fingerprint of platooning: tricycles, in other words, tend to bunch together rather than arriving independently of one another, a conclusion that is entirely consistent with the theoretical literature reviewed earlier in Section 2.6.2 and with the qualitative "blocking friction" theme discussed in Section 4.7.</p>
 <h3 id="sec4-9-7" style={{ color: '#1d1d1f', marginTop: '16px' }}>4.9.7 Secondary Data Cross-Check: 2021 Regional ADT Context</h3>
-<p>As a further secondary-data cross-check, the Ministry of Works and Transport's 2021 road inventory, covering 92 road links classified under the Central region, which includes Greater Kampala, was re-examined in detail. It is worth noting, however, that vehicle-class counts within that inventory are reported only as a single combined "Motorcycles & Scooters" category, and consequently they do not disaggregate tricycles from boda-bodas in any way.</p>
+<p>As a further secondary-data cross-check, the Ministry of Works and Transport's 2021 road inventory, covering 92 road links classified under the Central region, which includes Greater Kampala, was re-examined in detail. It is worth noting, however, that vehicle-class counts within that inventory are reported only as a single combined "Motorcycles & Scooters" category, and consequently they do not disaggregate tricycles from motorcycles in any way.</p>
 <p>Table 4.9.7: 2021 MoWT secondary ADT data, Central region road links (n = 92)</p>
 <table style={{ width: '100%', borderCollapse: 'collapse', margin: '8px 0 16px', fontSize: '0.92rem' }}>
   <thead>
@@ -962,7 +963,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <FigureBox key={site} figure={`4.${26 + i}`} caption={`Mean daytime vehicle-class composition at ${site}`}>
       <Doughnut
         data={{
-          labels: classes.map((c) => c.replace('_', ' ')),
+          labels: classes.map((c) => vehicleClassLabel(c)),
           datasets: [{ data: classes.map((c) => Number(comp[c].toFixed(1))), backgroundColor: classes.map((c) => CLASS_COLORS[c]), borderColor: '#ffffff', borderWidth: 2 }],
         }}
         options={{
@@ -1113,7 +1114,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
   <FigureBox figure="4.51" caption="Overall daytime vehicle-class composition across the 7-day survey">
     <Doughnut
       data={{
-        labels: ['Cars', 'Boda Bodas', 'Tricycles', 'Minibuses', 'Heavy Trucks'],
+        labels: ['Cars', 'Motorcycles', 'Tricycles', 'Minibuses', 'Heavy Trucks'],
         datasets: [{ data: ['Cars', 'Boda_bodas', 'Tricycles', 'Minibuses', 'Heavy_Trucks'].map((c) => Number(stats.daytimeOverallCompositionPct[c].toFixed(1))), backgroundColor: ['Cars', 'Boda_bodas', 'Tricycles', 'Minibuses', 'Heavy_Trucks'].map((c) => CLASS_COLORS[c]), borderColor: '#fff', borderWidth: 2 }],
       }}
       options={{ animation: galleryAnim, maintainAspectRatio: false, cutout: '58%', plugins: { legend: { position: 'bottom', labels: { color: gallerySub, boxWidth: 10, boxHeight: 10, font: { size: 10 } } }, tooltip: { ...galleryTooltip, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed}%` } } } }}
@@ -1161,7 +1162,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
   <FigureBox figure="4.57" caption="Daytime vehicle-class composition profile by intersection">
     <Radar
       data={{
-        labels: ['Cars', 'Boda Bodas', 'Tricycles', 'Minibuses', 'Heavy Trucks'],
+        labels: ['Cars', 'Motorcycles', 'Tricycles', 'Minibuses', 'Heavy Trucks'],
         datasets: GALLERY_SITES.map((site) => ({
           label: shortSite(site),
           data: ['Cars', 'Boda_bodas', 'Tricycles', 'Minibuses', 'Heavy_Trucks'].map((c) => Number(stats.daytimeCompositionBySite[site][c].toFixed(1))),
@@ -1227,7 +1228,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <p>Perhaps the single biggest takeaway from this study, and the one with the broadest implications, is that applying static Passenger Car Unit (PCU) values to highly dynamic, informal transport modes such as tricycles is fundamentally flawed as an approach. Historically, the Ministry of Works and Transport (MoWT), together with a succession of international consultants, have simply imported static PCU values wholesale from the US Highway Capacity Manual, or else have loosely adapted them from studies conducted in India, without adequately testing whether such values actually hold in the Kampala context (JICA, 2010; MoWT, 2010).</p>
 <p>The findings of this study, however, show clearly that a tricycle's PCU isn't merely a fixed physical property determined by its size and dimensions; rather, it is, in large part, a behavioral variable that is dictated by the surrounding traffic environment and by the degree of congestion present at any given moment. The fact that the tricycle PCU spikes from 0.75 in free-flowing traffic all the way up to 1.15 during peak congestion (V/C ≥ 0.95) proves, quite persuasively, that tricycles become disproportionately disruptive precisely as road space shrinks and pressure on the network increases. This "blocking friction," as it has been termed throughout this thesis, completely disproves the common and intuitively appealing assumption that, simply because tricycles are physically smaller than cars, they must therefore automatically ease congestion.</p>
 <h3 id="sec5-2-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>5.2.1 Comparison with Regional Literature</h3>
-<p>The PCU ranges derived for Kampala in this study (0.75 – 1.31) align closely, and perhaps somewhat unsurprisingly, with the upper bounds reported elsewhere in the literature for severe mixed-traffic corridors in other parts of the developing world. This alignment, on reflection, really does highlight the unique aggression that characterises Kampala's particular traffic culture. In Kampala specifically, tricycles are compelled to compete fiercely for available lateral space against a massive boda-boda fleet, one that often makes up more than 30% of the traffic on a given corridor. In order to survive and make progress on the road under such conditions, tricycle drivers resort to abrupt, diagonal blocking maneuvers that would be considered highly unusual elsewhere. This behaviour, in turn, forces the cars travelling behind them to brake harshly and repeatedly, which has the effect of artificially inflating the tricycle's overall PCU value still further.</p>
+<p>The PCU ranges derived for Kampala in this study (0.75 – 1.31) align closely, and perhaps somewhat unsurprisingly, with the upper bounds reported elsewhere in the literature for severe mixed-traffic corridors in other parts of the developing world. This alignment, on reflection, really does highlight the unique aggression that characterises Kampala's particular traffic culture. In Kampala specifically, tricycles are compelled to compete fiercely for available lateral space against a massive motorcycle fleet, one that often makes up more than 30% of the traffic on a given corridor. In order to survive and make progress on the road under such conditions, tricycle drivers resort to abrupt, diagonal blocking maneuvers that would be considered highly unusual elsewhere. This behaviour, in turn, forces the cars travelling behind them to brake harshly and repeatedly, which has the effect of artificially inflating the tricycle's overall PCU value still further.</p>
 <h3 id="sec5-3" style={{ color: '#1d1d1f', marginTop: '16px' }}>5.3 The Cost of Miscalculation</h3>
 <p>Failing to account properly for these dynamic tricycle PCUs carries severe and quantifiable economic consequences for the city. Take the Wandegeya Junction as a concrete example. At present, the traffic light cycles governing that junction are optimized on the basis of an assumption that tricycles behave only slightly worse than motorcycles, corresponding to an estimated static PCU of around 0.6. Yet the reality documented in this study is that their peak-hour PCU actually exceeds 1.0, a substantial discrepancy. This means, in effect, that the intersection mathematically reaches a state of saturation considerably earlier than the existing traffic light models would predict.</p>
 <p>This basic, yet consequential, calibration error is the mathematical root cause underlying the massive queues that are observed stretching back every single day at around 6:30 PM. The resulting delay, caused fundamentally by giving out the wrong amount of green time at each cycle, contributes directly and measurably to the estimated USD 1.5 million daily economic loss suffered by the city (KCCA, 2023).</p>
@@ -1237,7 +1238,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 <h3 id="sec6-1" style={{ color: '#1d1d1f', marginTop: '16px' }}>6.1 Conclusions</h3>
 <p>Based on the empirical analysis conducted throughout this study of how tricycles actually operate across Kampala's major corridors, the following main conclusions can reasonably be drawn:</p>
 <p>Static PCUs Don't Work for Tricycles: Using imported, static Passenger Car Unit (PCU) values for tricycles operating in Kampala is, on the evidence gathered here, mathematically flawed as a practice. The data collected for this study shows that the empirical static PCU for tricycles ranges between 0.85 and 1.31, depending on the specific intersection and the estimation method used. This range is significantly higher than the corresponding figures for motorcycles (0.45 - 0.55), and, notably, under the Headway Method it exceeds that of a full passenger car (1.0) at every single intersection surveyed as part of this study.</p>
-<p>Dynamic Friction Dominates: Tricycle PCUs are shown to be highly sensitive to how congested the road happens to be at a given time, as measured by the Volume-to-Capacity ratio. During the severe evening peak (V/C ≥ 0.95), tricycle PCUs inflate to a maximum of 1.15, a rise driven fundamentally by "blocking friction." Their intermediate width prevents them from lane-splitting in the way a boda-boda can, while their erratic maneuvering simultaneously chokes the passenger cars that become trapped behind them.</p>
+<p>Dynamic Friction Dominates: Tricycle PCUs are shown to be highly sensitive to how congested the road happens to be at a given time, as measured by the Volume-to-Capacity ratio. During the severe evening peak (V/C ≥ 0.95), tricycle PCUs inflate to a maximum of 1.15, a rise driven fundamentally by "blocking friction." Their intermediate width prevents them from lane-splitting in the way a motorcycle can, while their erratic maneuvering simultaneously chokes the passenger cars that become trapped behind them.</p>
 <p>Environmental Vulnerability: Poor road surfaces and localized flooding, such as that observed at Bwaise Junction, force drivers into extreme lateral weaving that would not otherwise occur. This behaviour, in turn, artificially inflates tricycle PCUs by up to 23% during periods of heavy rain.</p>
 <p>Simulation Calibration is Mandatory: Standard microsimulation models, such as VISSIM, that rely on default Western driving behaviours fail completely and unambiguously when applied without modification to Kampala's conditions. It is, quite simply, absolutely necessary to custom-calibrate parameters such as "Standstill Distance" and "Lateral Clearance" in order to accurately replicate the delays that are caused by tricycle weaving in the field.</p>
 <h3 id="sec6-2" style={{ color: '#1d1d1f', marginTop: '16px' }}>6.2 Recommendations</h3>
@@ -1285,7 +1286,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -1351,7 +1352,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -1417,7 +1418,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -1483,7 +1484,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -1549,7 +1550,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -1616,7 +1617,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -1682,7 +1683,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -1748,7 +1749,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -1814,7 +1815,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -1880,7 +1881,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -1947,7 +1948,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2013,7 +2014,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2079,7 +2080,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2145,7 +2146,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2211,7 +2212,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2278,7 +2279,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2344,7 +2345,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2410,7 +2411,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2476,7 +2477,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2542,7 +2543,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2609,7 +2610,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2675,7 +2676,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2741,7 +2742,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2807,7 +2808,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2873,7 +2874,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -2940,7 +2941,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3006,7 +3007,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3072,7 +3073,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3138,7 +3139,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3204,7 +3205,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3271,7 +3272,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3337,7 +3338,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3403,7 +3404,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3469,7 +3470,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3535,7 +3536,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3602,7 +3603,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3668,7 +3669,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3734,7 +3735,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3800,7 +3801,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3866,7 +3867,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3933,7 +3934,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -3999,7 +4000,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -4065,7 +4066,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -4131,7 +4132,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>
@@ -4197,7 +4198,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
     <tr style={{ background: 'rgba(0,0,0,0.04)' }}>
       <th style={{ textAlign: 'left', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Time Window</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Cars</th>
-      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Boda-bodas</th>
+      <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Motorcycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Tricycles</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Minibuses</th>
       <th style={{ textAlign: 'right', padding: '8px 12px', border: '1px solid rgba(0,0,0,0.12)' }}>Heavy Trucks</th>

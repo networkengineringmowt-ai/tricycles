@@ -12,7 +12,7 @@ import React, { useEffect, useRef } from 'react';
 //   - the junction type / leg count (author-confirmed)
 //   - each leg's assumed share of the junction's real ADT (the same
 //     Directional Split model computed alongside this component)
-//   - the vehicle-class mix (Cars/Boda-bodas/Tricycles/Minibuses/Heavy
+//   - the vehicle-class mix (Cars/Motorcycles/Tricycles/Minibuses/Heavy
 //     Trucks), which is real, measured field20 data for this junction
 //   - the mean V/C ratio, which sets how congested (slow/dense) the
 //     animation looks, also real field20 data

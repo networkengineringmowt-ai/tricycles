@@ -9,6 +9,7 @@ import MapFlowOverlay from './MapFlowOverlay';
 import useTrafficStats from '../lib/useTrafficStats';
 import { simulateFullDayProfile, OVERNIGHT_TROUGH_FRACTION } from '../lib/trafficStats';
 import { JUNCTION_LEG_CONFIG, simulateDirectionalSplit } from '../lib/directionalSplit';
+import useScrollbarThumb from '../lib/useScrollbarThumb';
 
 // Fix Leaflet default marker icon issue in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -99,7 +100,7 @@ const MapResetViewControl = ({ bounds, fitOptions }) => {
 // points, so markers sit on the exact surveyed location rather than an
 // approximate public-geodata guess.
 const SITE_GEO = [
-  { name: "Wandegeya Junction", coords: [0.330107, 32.574089], interaction: "Tricycle-Boda-boda (Motorcycle Taxi)-Non-Motorized Transport (NMT)" },
+  { name: "Wandegeya Junction", coords: [0.330107, 32.574089], interaction: "Tricycle-Motorcycle Taxi-Non-Motorized Transport (NMT)" },
   { name: "Kibuye Roundabout", coords: [0.293537, 32.572884], interaction: "Tricycle-Car (Expressway Exit)" },
   { name: "Bakuli Intersection", coords: [0.314673, 32.564676], interaction: "Tricycle-Bus (Hub)" },
   { name: "Bwaise Junction", coords: [0.340550, 32.571661], interaction: "Tricycle-Non-Motorized Transport (NMT) (Flood Zone)" },
@@ -145,6 +146,7 @@ const KpiCard = ({ icon, color, label, value, sub }) => (
 // ---------------------------------------------------------------------------
 const OverviewTab = ({ goBack, canGoBack } = {}) => {
   const [selectedSite, setSelectedSite] = useState(null);
+  const [hudSiteRef, hudSiteThumb] = useScrollbarThumb('vertical');
   const [weatherView, setWeatherView] = useState('Dry');
   // Live per-leg-per-junction flow overlay state (Task: "show the simulated
   // traffic flow on the map per direction per leg per junction") -- the
@@ -378,12 +380,14 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         .a-hud-kpis .a-kpi-label { font-size: 0.58rem; }
         .a-hud-kpis .a-kpi-sub { font-size: 0.6rem; }
 
-        .a-hud-site { top: 16px; right: 16px; width: clamp(272px, 25vw, 344px); max-height: calc(100% - 32px); overflow-y: auto; padding: 20px;
-          scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
-        .a-hud-site::-webkit-scrollbar { width: 8px; }
-        .a-hud-site::-webkit-scrollbar-track { background: transparent; }
-        .a-hud-site::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 6px; }
-        .a-hud-site::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.45); }
+        .a-hud-site { top: 16px; right: 16px; width: clamp(272px, 25vw, 344px); max-height: calc(100% - 32px); padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+        .a-hud-site-inner { flex: 1; min-height: 0; overflow-y: auto; padding: 20px; scrollbar-width: none; }
+        .a-hud-site-inner::-webkit-scrollbar { display: none; }
+        /* Custom always-visible scrollbar thumb (see useScrollbarThumb) --
+           native ::-webkit-scrollbar styling can render invisible on some
+           OS/browser combinations even with an explicit color set. */
+        .a-hud-site-scrollbar-track { position: absolute; top: 8px; right: 4px; bottom: 8px; width: 5px; border-radius: 3px; background: rgba(0,0,0,0.07); pointer-events: none; }
+        .a-hud-site-scrollbar-thumb { position: absolute; left: 0; width: 100%; border-radius: 3px; background: rgba(0,0,0,0.32); }
 
         /* HUD: Simulated Traffic Flow time-of-day control -- floating
            bottom-center, the one edge of the map stage Leaflet's native
@@ -651,6 +655,7 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
 
           {/* HUD: Site Detail panel, floating right side of the map */}
           <div className="a-hud a-hud-site">
+          <div className="a-hud-site-inner" ref={hudSiteRef}>
             <SectionHeader eyebrow="Site Detail" title={selectedSite ? selectedSite.name : 'Select a study site'} color={C.indigo} />
             <SearchableSelect
               label="Jump to Study Site"
@@ -683,7 +688,7 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                   <div className="a-stat-value" style={{ color: C.blue }}>{Math.round(selectedSite.meanDailyVolume).toLocaleString()}</div>
                 </div>
                 <div className="a-stat-box">
-                  <div className="a-stat-label">ADT Excluding Motorcycles (Boda Bodas) — same 20-day sample</div>
+                  <div className="a-stat-label">ADT Excluding Motorcycles — same 20-day sample</div>
                   <div className="a-stat-value" style={{ color: C.purple }}>{Math.round(selectedSite.meanDailyVolumeExclMC).toLocaleString()}</div>
                 </div>
                 <div className="a-stat-box">
@@ -724,6 +729,12 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                 </div>
               </div>
             )}
+          </div>
+          {hudSiteThumb && (
+            <div className="a-hud-site-scrollbar-track">
+              <div className="a-hud-site-scrollbar-thumb" style={{ top: `${hudSiteThumb.startPct}%`, height: `${hudSiteThumb.sizePct}%` }} />
+            </div>
+          )}
           </div>
         </div>
 

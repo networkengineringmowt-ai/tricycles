@@ -50,7 +50,7 @@ const legendTheme = { labels: { color: chartSub, boxWidth: 10, boxHeight: 10, pa
 const INCIDENT_COLORS = [C.red, C.orange, C.blue, C.indigo, C.teal, C.purple, C.pink, C.green, C.yellow, '#8e8e93'];
 const SITE_COLORS = [C.blue, C.indigo, C.teal, C.orange, C.purple];
 const VEH_ORDER = ['Cars', 'Boda_bodas', 'Tricycles', 'Minibuses', 'Heavy_Trucks'];
-const VEH_LABELS = { Cars: 'Passenger Cars', Boda_bodas: 'Boda Bodas', Tricycles: 'Tricycles', Minibuses: 'Minibuses', Heavy_Trucks: 'Heavy Trucks' };
+const VEH_LABELS = { Cars: 'Passenger Cars', Boda_bodas: 'Motorcycles', Tricycles: 'Tricycles', Minibuses: 'Minibuses', Heavy_Trucks: 'Heavy Trucks' };
 const CLASS_COLORS = { Cars: C.blue, Boda_bodas: C.indigo, Tricycles: C.green, Minibuses: C.teal, Heavy_Trucks: C.red };
 
 // Real, verbatim coordinates for the 5 study junctions -- copied from
@@ -1827,7 +1827,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                   labels: vehClassRows.map(r => stats.shortName(r.junction)),
                   datasets: [
                     { label: 'Passenger Cars', data: vehClassRows.map(r => Math.round(r.Cars)), backgroundColor: CLASS_COLORS.Cars },
-                    { label: 'Boda Bodas', data: vehClassRows.map(r => Math.round(r.Boda_bodas)), backgroundColor: CLASS_COLORS.Boda_bodas },
+                    { label: 'Motorcycles', data: vehClassRows.map(r => Math.round(r.Boda_bodas)), backgroundColor: CLASS_COLORS.Boda_bodas },
                     { label: 'Tricycles', data: vehClassRows.map(r => Math.round(r.Tricycles)), backgroundColor: CLASS_COLORS.Tricycles },
                     { label: 'Minibuses', data: vehClassRows.map(r => Math.round(r.Minibuses)), backgroundColor: CLASS_COLORS.Minibuses },
                     { label: 'Heavy Trucks', data: vehClassRows.map(r => Math.round(r.Heavy_Trucks)), backgroundColor: CLASS_COLORS.Heavy_Trucks },
@@ -1855,7 +1855,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                   labels: vehClassRows.map(r => stats.shortName(r.junction)),
                   datasets: [
                     { label: 'Passenger Cars', data: vehClassRows.map(r => Math.round(r.Cars)), backgroundColor: CLASS_COLORS.Cars },
-                    { label: 'Boda Bodas', data: vehClassRows.map(r => Math.round(r.Boda_bodas)), backgroundColor: CLASS_COLORS.Boda_bodas },
+                    { label: 'Motorcycles', data: vehClassRows.map(r => Math.round(r.Boda_bodas)), backgroundColor: CLASS_COLORS.Boda_bodas },
                     { label: 'Tricycles', data: vehClassRows.map(r => Math.round(r.Tricycles)), backgroundColor: CLASS_COLORS.Tricycles },
                     { label: 'Minibuses', data: vehClassRows.map(r => Math.round(r.Minibuses)), backgroundColor: CLASS_COLORS.Minibuses },
                     { label: 'Heavy Trucks', data: vehClassRows.map(r => Math.round(r.Heavy_Trucks)), backgroundColor: CLASS_COLORS.Heavy_Trucks },
@@ -1880,7 +1880,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Doughnut
                 data={{
-                  labels: ['Passenger Cars', 'Boda Bodas', 'Tricycles', 'Minibuses', 'Heavy Trucks'],
+                  labels: ['Passenger Cars', 'Motorcycles', 'Tricycles', 'Minibuses', 'Heavy Trucks'],
                   datasets: [{
                     data: [vehClassTotals.Cars, vehClassTotals.Boda_bodas, vehClassTotals.Tricycles, vehClassTotals.Minibuses, vehClassTotals.Heavy_Trucks],
                     backgroundColor: [CLASS_COLORS.Cars, CLASS_COLORS.Boda_bodas, CLASS_COLORS.Tricycles, CLASS_COLORS.Minibuses, CLASS_COLORS.Heavy_Trucks],
@@ -1964,7 +1964,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             <div className="a-chart-box">
               <Radar
                 data={{
-                  labels: ['Cars', 'Boda Bodas', 'Tricycles', 'Minibuses', 'Heavy Trucks'],
+                  labels: ['Cars', 'Motorcycles', 'Tricycles', 'Minibuses', 'Heavy Trucks'],
                   datasets: vehClassRows.map((r, idx) => {
                     const comp = stats.byIntersection[r.junction].compositionPct;
                     return {
@@ -2138,7 +2138,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             sub="All 24 original photographs taken during this study's own traffic data collection at the case-study corridors in Kampala." />
           <PhotoCarousel photos={[
             { src: `${baseUrl}assets/field/field-01.jpg`, eyebrow: 'Kibuye – Natete Road', title: 'Logging Counts Roadside', color: C.blue,
-              text: 'Two enumerators seated on the paved shoulder with clipboards, logging vehicle counts opposite an electronics shopfront as boda-bodas and a tricycle move through the Kibuye–Natete Road junction.' },
+              text: 'Two enumerators seated on the paved shoulder with clipboards, logging vehicle counts opposite an electronics shopfront as motorcycles and a tricycle move through the Kibuye–Natete Road junction.' },
             { src: `${baseUrl}assets/field/field-02.jpg`, eyebrow: 'Kibuye – Natete Road', title: 'Pedestrians Near the Mosque', color: C.blue2,
               text: 'A pedestrian crosses near a combo-meal billboard and a neighbourhood mosque, while two people rest at the roadside during a count interval at the Kibuye–Natete Road site.' },
             { src: `${baseUrl}assets/field/field-03.jpg`, eyebrow: 'Kibuye – Natete Road', title: 'Recording a Count Interval', color: C.teal,
@@ -2146,7 +2146,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             { src: `${baseUrl}assets/field/field-04.jpg`, eyebrow: 'Kibuye – Natete Road', title: 'Passing Commercial Traffic', color: C.indigo,
               text: 'A branded delivery truck passes close to the count point, with motorcycles, an SUV, and roadside advertising boards forming the junction backdrop under an overcast sky.' },
             { src: `${baseUrl}assets/field/field-05.jpg`, eyebrow: 'Wandegeya', title: 'The Junction at Sunrise', color: C.green,
-              text: 'An early-morning view of the signalized Wandegeya junction, with boda-bodas and cars crossing beneath the traffic-signal gantries as the sun rises behind the intersection.' },
+              text: 'An early-morning view of the signalized Wandegeya junction, with motorcycles and cars crossing beneath the traffic-signal gantries as the sun rises behind the intersection.' },
             { src: `${baseUrl}assets/field/field-06.jpg`, eyebrow: 'Entebbe Road', title: 'Beside a Parked Tricycle', color: C.orange,
               text: 'An enumerator records counts beside a parked yellow tricycle while a colleague logs notes nearby, with the Clock Tower visible in the distance along Entebbe Road.' },
             { src: `${baseUrl}assets/field/field-07.jpg`, eyebrow: 'Wandegeya', title: 'The Market Frontage', color: C.pink,
@@ -2178,7 +2178,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             { src: `${baseUrl}assets/field/field-20.jpg`, eyebrow: 'Entebbe Road', title: 'Beside the Clock Tower', color: C.indigo,
               text: 'An enumerator records counts near the Airtel-branded Clock Tower on Entebbe Road, as a man carries sacks past the roundabout.' },
             { src: `${baseUrl}assets/field/field-21.jpg`, eyebrow: 'Kibuye – Natete Road', title: 'The Junction Being Counted', color: C.green,
-              text: 'A wide view of an unpaved roundabout lined with shop signage as enumerators seated on a brick wall log boda-bodas and cars crossing the junction.' },
+              text: 'A wide view of an unpaved roundabout lined with shop signage as enumerators seated on a brick wall log motorcycles and cars crossing the junction.' },
             { src: `${baseUrl}assets/field/field-22.jpg`, eyebrow: 'Bombo Road', title: 'Comparing Notes at the Corner', color: C.orange,
               text: 'The enumerator team gathers at a Bombo Road street corner, comparing tally sheets between count intervals near the roadside shopfronts.' },
             { src: `${baseUrl}assets/field/field-23.jpg`, eyebrow: 'Bombo Road', title: 'Counting Alongside Parked Transit', color: C.pink,

@@ -3,11 +3,12 @@ import PageControls, { downloadJsonFile, downloadCsvBundle } from './PageControl
 import MethodologyPanel from './MethodologyPanel';
 import useTrafficStats from '../lib/useTrafficStats';
 import { JUNCTION_LEG_CONFIG, simulateDirectionalSplit } from '../lib/directionalSplit';
+import ScrollableTableWrap from './ScrollableTableWrap';
 
 const COLUMNS = [
   { key: 'junction', label: 'Study Site', type: 'text' },
   { key: 'Cars', label: 'Passenger Cars' },
-  { key: 'Boda_bodas', label: 'Boda Bodas' },
+  { key: 'Boda_bodas', label: 'Motorcycles' },
   { key: 'Tricycles', label: 'Tricycles' },
   { key: 'Minibuses', label: 'Minibuses' },
   { key: 'Heavy_Trucks', label: 'Heavy Trucks' },
@@ -38,7 +39,7 @@ function downloadCsv(rows) {
 // downloaded file matches what's on screen exactly, filters aside (the
 // bundle always exports the unfiltered, all-junction version of a table).
 function csvFromAdt(stats) {
-  const header = 'Study Site,Cars,Boda Bodas,Tricycles,Minibuses,Heavy Trucks,ADT (Total),ADT (Excl. Motorcycles)';
+  const header = 'Study Site,Cars,Motorcycles,Tricycles,Minibuses,Heavy Trucks,ADT (Total),ADT (Excl. Motorcycles)';
   const lines = Object.entries(stats.adtByIntersection).map(([junction, v]) => [
     `"${junction}"`, Math.round(v.perClass.Cars), Math.round(v.perClass.Boda_bodas), Math.round(v.perClass.Tricycles),
     Math.round(v.perClass.Minibuses), Math.round(v.perClass.Heavy_Trucks), Math.round(v.adtTotal), Math.round(v.adtExclMotorcycles),
@@ -46,14 +47,16 @@ function csvFromAdt(stats) {
   const network = `"Network (sum of 5 sites)",,,,,,${Math.round(stats.networkAdt.adtTotal)},${Math.round(stats.networkAdt.adtExclMotorcycles)}`;
   return [header, ...lines, network].join('\n');
 }
+const vehicleClassLabel = (vc) => (vc === 'Boda_bodas' ? 'Motorcycles' : vc.replace('_', ' '));
+
 function csvFromVehicleClass(stats) {
   const header = 'Study Site,Vehicle Class,Total Count,ADT,Share of Site Volume (%)';
   const lines = stats.vehicleClassBreakdown.map((r) =>
-    `"${r.junction}","${r.vehicleClass.replace('_', ' ')}",${Math.round(r.total)},${Math.round(r.adt)},${r.sharePct.toFixed(2)}`);
+    `"${r.junction}","${vehicleClassLabel(r.vehicleClass)}",${Math.round(r.total)},${Math.round(r.adt)},${r.sharePct.toFixed(2)}`);
   return [header, ...lines].join('\n');
 }
 function csvFromDaily(stats) {
-  const header = 'Study Site,Date,Cars,Boda Bodas,Tricycles,Minibuses,Heavy Trucks,Total,Total (Excl. Motorcycles)';
+  const header = 'Study Site,Date,Cars,Motorcycles,Tricycles,Minibuses,Heavy Trucks,Total,Total (Excl. Motorcycles)';
   const lines = stats.dailyBreakdown.map((r) =>
     `"${r.junction}","${r.date}",${Math.round(r.Cars)},${Math.round(r.Boda_bodas)},${Math.round(r.Tricycles)},${Math.round(r.Minibuses)},${Math.round(r.Heavy_Trucks)},${Math.round(r.Total)},${Math.round(r.TotalExclMC)}`);
   return [header, ...lines].join('\n');
@@ -214,11 +217,15 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
 
         .a-chart-box { flex: 1; min-height: 300px; position: relative; width: 100%; margin-top: 10px; }
 
-        .a-table-wrap { overflow-x: auto; margin-top: 6px; position: relative; scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.28) transparent; }
-        .a-table-wrap::-webkit-scrollbar { height: 10px; }
-        .a-table-wrap::-webkit-scrollbar-track { background: transparent; }
-        .a-table-wrap::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.28); border-radius: 8px; border: 2px solid ${C.canvas}; background-clip: padding-box; }
-        .a-table-wrap::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.42); }
+        .a-table-outer { position: relative; }
+        .a-table-wrap { overflow-x: auto; margin-top: 6px; position: relative; scrollbar-width: none; }
+        .a-table-wrap::-webkit-scrollbar { display: none; }
+        /* Custom always-visible scrollbar thumb (see useScrollbarThumb /
+           ScrollableTableWrap) -- native ::-webkit-scrollbar styling can
+           render invisible on some OS/browser combinations even with an
+           explicit color set. */
+        .a-table-scrollbar-track { position: relative; height: 5px; margin-top: 7px; border-radius: 3px; background: rgba(0,0,0,0.07); }
+        .a-table-scrollbar-thumb { position: absolute; top: 0; height: 100%; border-radius: 3px; background: rgba(0,0,0,0.3); }
         @media (max-width: 860px) {
           .a-table-wrap::after {
             content: ''; position: sticky; float: right; top: 0; right: 0; height: 100%; width: 28px;
@@ -341,7 +348,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
         <div className="a-grid">
           <div className="a-card s-12">
             <SectionHeader eyebrow="Field Data" title="Full Traffic Volume Table" color={C.teal} sub="Peak-hour categorized counts, all five sites, sortable by column" />
-            <div className="a-table-wrap">
+            <ScrollableTableWrap>
               <table className="a-table">
                 <thead>
                   <tr>
@@ -388,7 +395,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                   </tr>
                 </tfoot>
               </table>
-            </div>
+            </ScrollableTableWrap>
           </div>
         </div>
 
@@ -397,7 +404,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           <div className="a-card s-12">
             <SectionHeader eyebrow="Asset Prioritization" title="Traffic Criticality Ranking" color={C.red}
               sub="Composite 0–100 index combining each intersection's traffic demand, congestion stress, tricycle-induced friction and mixed-traffic complexity — see Methodology below for the exact weights." />
-            <div className="a-table-wrap">
+            <ScrollableTableWrap>
               <table className="a-table">
                 <thead>
                   <tr>
@@ -431,7 +438,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTableWrap>
           </div>
         </div>
 
@@ -476,14 +483,14 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
         <div className="a-grid">
           <div className="a-card s-12">
             <SectionHeader eyebrow="Field Data Aggregation, All 20 Days" title="Average Daily Traffic (ADT) by Junction" color={C.blue2}
-              sub="Mean of the daily totals across all 20 real observed days, per intersection — Total ADT and ADT excluding motorcycles (Boda Bodas) side by side, with the per-class breakdown behind each." />
-            <div className="a-table-wrap">
+              sub="Mean of the daily totals across all 20 real observed days, per intersection — Total ADT and ADT excluding motorcycles side by side, with the per-class breakdown behind each." />
+            <ScrollableTableWrap>
               <table className="a-table">
                 <thead>
                   <tr>
                     <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Study Site</span></th>
                     <th scope="col"><span className="a-th-btn">Cars</span></th>
-                    <th scope="col"><span className="a-th-btn">Boda Bodas</span></th>
+                    <th scope="col"><span className="a-th-btn">Motorcycles</span></th>
                     <th scope="col"><span className="a-th-btn">Tricycles</span></th>
                     <th scope="col"><span className="a-th-btn">Minibuses</span></th>
                     <th scope="col"><span className="a-th-btn">Heavy Trucks</span></th>
@@ -514,8 +521,8 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                   </tr>
                 </tfoot>
               </table>
-            </div>
-            <p className="a-footnote">ADT = mean(sum of vehicle counts on a calendar day) across the {stats.adtByIntersection[Object.keys(stats.adtByIntersection)[0]].daysObserved} real observed days per site. "Excl. Motorcycles" drops Boda Bodas (the only motorcycle-taxi class in this dataset) from the daily sum before averaging.</p>
+            </ScrollableTableWrap>
+            <p className="a-footnote">ADT = mean(sum of vehicle counts on a calendar day) across the {stats.adtByIntersection[Object.keys(stats.adtByIntersection)[0]].daysObserved} real observed days per site. "Excl. Motorcycles" drops motorcycles (the only motorized two-wheeler class in this dataset) from the daily sum before averaging.</p>
           </div>
         </div>
 
@@ -524,7 +531,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           <div className="a-card s-12">
             <SectionHeader eyebrow="Per Junction × Per Vehicle Class" title="Vehicle Class Breakdown by Junction" color={C.indigo}
               sub="Total count, ADT and % share of that junction's combined volume, for each of the 5 real vehicle classes — 20-day field study." />
-            <div className="a-table-wrap">
+            <ScrollableTableWrap>
               <table className="a-table">
                 <thead>
                   <tr>
@@ -539,7 +546,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                   {stats.vehicleClassBreakdown.map((r) => (
                     <tr key={`${r.junction}-${r.vehicleClass}`}>
                       <td>{r.junction}</td>
-                      <td style={{ textAlign: 'left', fontWeight: 700 }}>{r.vehicleClass.replace('_', ' ')}</td>
+                      <td style={{ textAlign: 'left', fontWeight: 700 }}>{vehicleClassLabel(r.vehicleClass)}</td>
                       <td>{Math.round(r.total).toLocaleString()}</td>
                       <td>{Math.round(r.adt).toLocaleString()}</td>
                       <td className={r.vehicleClass === 'Tricycles' ? 'a-tc-cell' : undefined}>{r.sharePct.toFixed(1)}%</td>
@@ -547,7 +554,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTableWrap>
           </div>
         </div>
 
@@ -563,14 +570,14 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                 </button>
               ))}
             </div>
-            <div className="a-table-wrap">
+            <ScrollableTableWrap>
               <table className="a-table">
                 <thead>
                   <tr>
                     <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Study Site</span></th>
                     <th scope="col" style={{ textAlign: 'left' }}><span className="a-th-btn">Date</span></th>
                     <th scope="col"><span className="a-th-btn">Cars</span></th>
-                    <th scope="col"><span className="a-th-btn">Boda Bodas</span></th>
+                    <th scope="col"><span className="a-th-btn">Motorcycles</span></th>
                     <th scope="col"><span className="a-th-btn">Tricycles</span></th>
                     <th scope="col"><span className="a-th-btn">Minibuses</span></th>
                     <th scope="col"><span className="a-th-btn">Heavy Trucks</span></th>
@@ -594,7 +601,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTableWrap>
           </div>
         </div>
 
@@ -610,7 +617,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                 </button>
               ))}
             </div>
-            <div className="a-table-wrap">
+            <ScrollableTableWrap>
               <table className="a-table">
                 <thead>
                   <tr>
@@ -639,7 +646,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTableWrap>
           </div>
         </div>
 
@@ -648,7 +655,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           <div className="a-card s-12">
             <SectionHeader eyebrow="Per Junction × Per Month / Per Year" title="Monthly &amp; Yearly Breakdown" color={C.red}
               sub="The field20 survey covers exactly one real calendar month (June 2026) and one real calendar year (2026) — both tables below collapse to that single period per site, rather than fabricating additional months or years to fill a longer series." />
-            <div className="a-table-wrap">
+            <ScrollableTableWrap>
               <table className="a-table">
                 <thead>
                   <tr>
@@ -677,7 +684,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTableWrap>
             <p className="a-footnote">No field data exists outside June 2026 for this study — the Monthly and Yearly rows are identical by construction, both reflecting the same real 20-day sample, and are shown separately only to satisfy both grouping dimensions.</p>
           </div>
         </div>
@@ -699,7 +706,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
               <input type="range" min="0" max="0.6" step="0.05" value={dirSkew} onChange={(e) => setDirSkew(parseFloat(e.target.value))} className="a-slider" aria-label="Assumed primary-corridor bias" />
               <p className="a-footnote" style={{ marginTop: '6px' }}>0% = an even split across every leg (the most neutral assumption possible). Higher values assume the through-corridor legs (marked ★ below) carry proportionally more traffic than the minor legs -- a common real-world pattern, but still an assumption, not something this study measured.</p>
             </div>
-            <div className="a-table-wrap">
+            <ScrollableTableWrap>
               <table className="a-table">
                 <thead>
                   <tr>
@@ -725,7 +732,7 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                   </tr>
                 </tfoot>
               </table>
-            </div>
+            </ScrollableTableWrap>
             <div className="a-dir-note">
               <b>{JUNCTION_LEG_CONFIG[dirJunction].type}.</b> The junction total above (ADT) is a real, measured figure from the field survey, and the junction type / leg count is confirmed by the study author. What's still simulated rather than measured is (a) the identity of any leg not backed by the public reference cited below -- left as an unconfirmed placeholder rather than an invented street name -- and (b) how much of the junction's real volume each leg actually carries, since no turning-movement/direction data was ever collected.
             </div>
