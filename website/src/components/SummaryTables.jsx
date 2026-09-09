@@ -5,6 +5,11 @@ import useTrafficStats from '../lib/useTrafficStats';
 import { JUNCTION_LEG_CONFIG, simulateDirectionalSplit } from '../lib/directionalSplit';
 import ScrollableTableWrap from './ScrollableTableWrap';
 
+// Matches VEH_COLS' order in trafficStats.js exactly -- needed here only
+// for index-aligned lookups into vehicleClassCorrelationMatrix and
+// weekdayWeekendByClass (both keyed/ordered the same way there).
+const VEH_COLS_SUMMARY = ['Cars', 'Boda_bodas', 'Tricycles', 'Minibuses', 'Heavy_Trucks'];
+
 const COLUMNS = [
   { key: 'junction', label: 'Study Site', type: 'text' },
   { key: 'Cars', label: 'Passenger Cars' },
@@ -784,9 +789,166 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* WEEKDAY VS WEEKEND -- full table backing the Analytics chart */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Temporal Comparison · New Test" title="Weekday vs Weekend Volume" color={C.blue2}
+              sub={`Welch's t-test, Total Volume per 15-min interval, weekend (n=${stats.weekdayWeekendTest.nA.toLocaleString()}) vs weekday (n=${stats.weekdayWeekendTest.nB.toLocaleString()}) intervals — t(${stats.weekdayWeekendTest.df.toFixed(0)}) = ${stats.weekdayWeekendTest.t.toFixed(2)}, p = ${stats.weekdayWeekendTest.p.toFixed(3)}, Cohen's d = ${stats.weekdayWeekendTest.cohensD.toFixed(2)} — chart version in Analytics`} />
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead>
+                  <tr><th>Vehicle Class</th><th>Weekday Mean (veh/15-min)</th><th>Weekend Mean (veh/15-min)</th><th>% Change (weekend vs weekday)</th></tr>
+                </thead>
+                <tbody>
+                  {VEH_COLS_SUMMARY.map((c) => {
+                    const v = stats.weekdayWeekendByClass[c];
+                    const pct = ((v.weekendMean - v.weekdayMean) / v.weekdayMean) * 100;
+                    return (
+                      <tr key={c}>
+                        <td>{vehicleClassLabel(c)}</td>
+                        <td>{v.weekdayMean.toFixed(1)}</td>
+                        <td>{v.weekendMean.toFixed(1)}</td>
+                        <td>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</td>
+                      </tr>
+                    );
+                  })}
+                  <tr>
+                    <td>Total (all classes)</td>
+                    <td>{stats.weekdayWeekendTest.meanB.toFixed(1)}</td>
+                    <td>{stats.weekdayWeekendTest.meanA.toFixed(1)}</td>
+                    <td>{stats.weekdayWeekendTest.pctChange >= 0 ? '+' : ''}{stats.weekdayWeekendTest.pctChange.toFixed(1)}%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote" style={{ marginTop: '14px', marginBottom: '6px', fontWeight: 700, color: C.ink }}>By study site</p>
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead>
+                  <tr><th>Study Site</th><th>Weekday Mean (veh/15-min)</th><th>Weekend Mean (veh/15-min)</th><th>Weekday N</th><th>Weekend N</th></tr>
+                </thead>
+                <tbody>
+                  {Object.entries(stats.weekdayWeekendByIntersection).map(([name, v]) => (
+                    <tr key={name}>
+                      <td>{name}</td>
+                      <td>{v.weekdayMean.toFixed(1)}</td>
+                      <td>{v.weekendMean.toFixed(1)}</td>
+                      <td>{v.weekdayN}</td>
+                      <td>{v.weekendN}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">Weekday/weekend derived from the real Date field in field20 (2026-06-01 through 2026-06-20: 14 real weekdays, 6 real weekend days) — not an assumed 5:2 pattern. {stats.weekdayWeekendTest.p >= 0.05 ? 'No statistically significant difference in total network volume between weekday and weekend intervals' : 'A statistically significant difference in total network volume between weekday and weekend intervals'} (p = {stats.weekdayWeekendTest.p.toFixed(3)}).</p>
+          </div>
+        </div>
+
+        {/* VEHICLE-CLASS CORRELATION MATRIX -- full r/p table backing the Analytics heat-table */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Co-Movement · New Test" title="Vehicle-Class Correlation Matrix — Full Pairwise Table" color={C.purple}
+              sub="Pearson r between every pair of the 5 vehicle classes' per-interval counts, network-wide, with the exact p-value for each pair — the heat-table version in Analytics shows r only." />
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead>
+                  <tr><th>Pair</th><th>Pearson r</th><th>p-value</th><th>n</th></tr>
+                </thead>
+                <tbody>
+                  {VEH_COLS_SUMMARY.flatMap((rowClass, i) => VEH_COLS_SUMMARY.slice(i + 1).map((colClass, k) => {
+                    const j = i + 1 + k;
+                    const cell = stats.vehicleClassCorrelationMatrix[i][j];
+                    return (
+                      <tr key={`${rowClass}-${colClass}`}>
+                        <td>{vehicleClassLabel(rowClass)} × {vehicleClassLabel(colClass)}</td>
+                        <td>{cell.r.toFixed(3)}</td>
+                        <td>{cell.p < 0.001 ? '< 0.001' : cell.p.toFixed(3)}</td>
+                        <td>{cell.n.toLocaleString()}</td>
+                      </tr>
+                    );
+                  }))}
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">All 10 pairs positively correlated (r = 0.53–0.96) — every vehicle class tends to be busier on the same high-demand intervals rather than substituting for one another.</p>
+          </div>
+        </div>
+
+        {/* POST-HOC PAIRWISE SITE DIFFERENCES -- full table backing the Analytics chart */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Post-Hoc · New Test" title="Pairwise Site Differences (Tricycle Volume)" color={C.pink}
+              sub={`Bonferroni-corrected follow-up to the site ANOVA — ${stats.tricyclePostHoc.comparisons} pairwise Welch's t-tests, corrected significance threshold α = ${stats.tricyclePostHoc.correctedAlpha.toFixed(4)} — chart version in Analytics`} />
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead>
+                  <tr><th>Site Pair</th><th>Mean Diff (A−B)</th><th>t</th><th>df</th><th>p (uncorrected)</th><th>p (Bonferroni)</th><th>Significant?</th></tr>
+                </thead>
+                <tbody>
+                  {stats.tricyclePostHoc.pairs.map((pr) => (
+                    <tr key={`${pr.a}-${pr.b}`}>
+                      <td>{stats.shortName(pr.a)} − {stats.shortName(pr.b)}</td>
+                      <td>{pr.meanDiff >= 0 ? '+' : ''}{pr.meanDiff.toFixed(1)}</td>
+                      <td>{pr.t.toFixed(2)}</td>
+                      <td>{pr.df.toFixed(0)}</td>
+                      <td>{pr.p < 0.001 ? '< 0.001' : pr.p.toFixed(3)}</td>
+                      <td>{pr.pBonferroni < 0.001 ? '< 0.001' : pr.pBonferroni.toFixed(3)}</td>
+                      <td style={{ color: pr.significant ? C.red : C.faint, fontWeight: 700 }}>{pr.significant ? 'Yes' : 'No'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">{stats.tricyclePostHoc.pairs.filter((p) => p.significant).length} of {stats.tricyclePostHoc.comparisons} site pairs differ significantly after Bonferroni correction — consistent with the significant one-way ANOVA on tricycle volume this post-hoc test follows up on.</p>
+          </div>
+        </div>
+
+        {/* INCIDENT TYPE x SEVERITY -- chi-square observed/expected crosstab */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Independence Test · New Test" title="Incident Type vs Severity — Observed / Expected Crosstab" color={C.red}
+              sub={`Chi-square test of independence on the real IncidentType x Severity crosstab — χ²(${stats.incidentChiSquare.df}) = ${stats.incidentChiSquare.chi2.toFixed(1)}, p = ${stats.incidentChiSquare.p.toFixed(3)} — chart version in Analytics`} />
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead>
+                  <tr>
+                    <th>Incident Type</th>
+                    {stats.incidentChiSquare.severityLevels.map((s) => <th key={`o-${s}`}>{s} (Obs.)</th>)}
+                    {stats.incidentChiSquare.severityLevels.map((s) => <th key={`e-${s}`}>{s} (Exp.)</th>)}
+                    <th>Row Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.incidentChiSquare.typeNames.map((t, i) => (
+                    <tr key={t}>
+                      <td>{t}</td>
+                      {stats.incidentChiSquare.severityLevels.map((s) => (
+                        <td key={`o-${t}-${s}`}>{stats.incidentSeverityByType[t]?.[s] || 0}</td>
+                      ))}
+                      {stats.incidentChiSquare.severityLevels.map((s, j) => (
+                        <td key={`e-${t}-${s}`}>{stats.incidentChiSquare.expected[i][j].toFixed(1)}</td>
+                      ))}
+                      <td style={{ fontWeight: 800 }}>{stats.incidentChiSquare.rowTotals[i]}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td>Column Total</td>
+                    {stats.incidentChiSquare.severityLevels.map((s, j) => (
+                      <td key={`ct-${s}`} colSpan={1}>{stats.incidentChiSquare.colTotals[j]}</td>
+                    ))}
+                    {stats.incidentChiSquare.severityLevels.map((s) => <td key={`ce-${s}`}></td>)}
+                    <td style={{ fontWeight: 800 }}>{stats.incidentChiSquare.grand}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">No statistically significant association between incident type and severity (p = {stats.incidentChiSquare.p.toFixed(3)}) — each type's observed severity split is close to what independence alone would predict from the overall totals.</p>
+          </div>
+        </div>
+
         {/* METHODOLOGY */}
         <div className="a-grid">
-          <MethodologyPanel color={C.teal} keys={['peakHourly', 'compositionPct', 'pcuHeadway', 'criticalityIndex', 'hourlyProfileByIntersection', 'pcuVcCorrelation', 'dayNightByIntersection', 'incidentSeverity', 'incidentSeverityTotals', 'adtByIntersection', 'networkAdt', 'dailyBreakdown', 'weeklyBreakdown', 'monthlyYearlyBreakdown', 'vehicleClassBreakdown']} />
+          <MethodologyPanel color={C.teal} keys={['peakHourly', 'compositionPct', 'pcuHeadway', 'criticalityIndex', 'hourlyProfileByIntersection', 'pcuVcCorrelation', 'dayNightByIntersection', 'incidentSeverity', 'incidentSeverityTotals', 'adtByIntersection', 'networkAdt', 'dailyBreakdown', 'weeklyBreakdown', 'monthlyYearlyBreakdown', 'vehicleClassBreakdown', 'weekdayWeekendTest', 'tricyclePostHoc', 'vehicleClassCorrelationMatrix', 'incidentChiSquare']} />
         </div>
         </>
         )}

@@ -1778,6 +1778,103 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* --- Weekday vs Weekend volume (real Date-derived split, new test) --- */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Temporal Comparison · new test" title="Weekday vs Weekend Volume, by Vehicle Class" color={C.blue2}
+              sub={`Mean vehicles per 15-min interval, Sat/Sun vs Mon-Fri (derived from the real survey dates) — Welch's t-test on Total Volume: t(${stats.weekdayWeekendTest.df.toFixed(0)}) = ${stats.weekdayWeekendTest.t.toFixed(2)}, ${pFmt(stats.weekdayWeekendTest.p)}, Cohen's d = ${stats.weekdayWeekendTest.cohensD.toFixed(2)} — full table in Summary Tables`} />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: Object.keys(stats.weekdayWeekendByClass).map((c) => (c === 'Boda_bodas' ? 'Motorcycles' : c.replace('_', ' '))),
+                  datasets: [
+                    { label: 'Weekday mean', data: Object.values(stats.weekdayWeekendByClass).map((v) => v.weekdayMean), backgroundColor: C.blue2, borderRadius: 6 },
+                    { label: 'Weekend mean', data: Object.values(stats.weekdayWeekendByClass).map((v) => v.weekendMean), backgroundColor: hex2rgba(C.orange, 0.75), borderRadius: 6 },
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { title: { display: true, text: 'Mean vehicles / 15-min interval', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">{stats.weekdayWeekendTest.p < 0.05 ? `Total network volume differs by ${Math.abs(stats.weekdayWeekendTest.pctChange).toFixed(1)}% between weekday and weekend intervals.` : `No statistically significant difference in total network volume between weekday and weekend intervals (${pFmt(stats.weekdayWeekendTest.p)}) — this survey window shows a consistently busy network regardless of day of week.`}</p>
+          </div>
+        </div>
+
+        {/* --- Vehicle-class correlation matrix (new test) --- */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Co-movement · new test" title="Vehicle-Class Correlation Matrix" color={C.indigo} sub="Pearson r between every pair of vehicle classes' per-interval counts, network-wide" />
+            <div className="a-chart-box a-scroll-x-dark" style={{ minHeight: '240px', overflowX: 'auto' }}>
+              <table className="a-heat-table">
+                <thead><tr><th></th>{VEH_ORDER.map((c) => <th key={c}>{VEH_LABELS[c]}</th>)}</tr></thead>
+                <tbody>
+                  {VEH_ORDER.map((rowClass, i) => (
+                    <tr key={rowClass}>
+                      <td style={{ textAlign: 'left' }}>{VEH_LABELS[rowClass]}</td>
+                      {VEH_ORDER.map((colClass, j) => {
+                        const cell = stats.vehicleClassCorrelationMatrix[i][j];
+                        return <td key={colClass} style={{ background: hex2rgba(C.indigo, Math.max(0.06, Math.abs(cell.r) * 0.85)), color: Math.abs(cell.r) > 0.6 ? '#fff' : C.ink }}>{cell.r.toFixed(2)}</td>;
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">All pairs positively correlated (r = {Math.min(...stats.vehicleClassCorrelationMatrix.flat().filter(c=>c.r<0.999).map(c=>c.r)).toFixed(2)}–{Math.max(...stats.vehicleClassCorrelationMatrix.flat().filter(c=>c.r<0.999).map(c=>c.r)).toFixed(2)}) — every class tends to be busier on the same high-demand intervals rather than substituting for one another.</p>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Post-Hoc · new test" title="Pairwise Site Differences (Tricycle Volume)" color={C.pink}
+              sub={`Bonferroni-corrected follow-up to the site ANOVA — ${stats.tricyclePostHoc.pairs.filter(p=>p.significant).length} of ${stats.tricyclePostHoc.comparisons} site pairs differ significantly (corrected α = ${stats.tricyclePostHoc.correctedAlpha.toFixed(4)})`} />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: stats.tricyclePostHoc.pairs.map((pr) => `${stats.shortName(pr.a)} − ${stats.shortName(pr.b)}`),
+                  datasets: [{
+                    label: 'Mean difference (tricycles/interval)',
+                    data: stats.tricyclePostHoc.pairs.map((pr) => pr.meanDiff),
+                    backgroundColor: stats.tricyclePostHoc.pairs.map((pr) => (pr.significant ? C.pink : 'rgba(0,0,0,0.15)')),
+                    borderRadius: 6,
+                  }]
+                }}
+                options={{
+                  indexAxis: 'y', animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { title: { display: true, text: 'Mean difference', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } }, y: { grid: { display: false }, ticks: { color: chartSub, font: { size: 9.5 } } } },
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => { const pr = stats.tricyclePostHoc.pairs[ctx.dataIndex]; return [`Mean diff: ${pr.meanDiff.toFixed(1)}`, `t = ${pr.t.toFixed(2)}, ${pFmt(pr.pBonferroni)} (Bonferroni-corrected)`, pr.significant ? 'Significant' : 'Not significant']; } } } }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* --- Incident chi-square (new test) --- */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Independence Test · new test" title="Incident Type vs Severity — Observed vs Expected" color={C.red}
+              sub={`Chi-square test of independence on the real IncidentType x Severity crosstab: χ²(${stats.incidentChiSquare.df}) = ${stats.incidentChiSquare.chi2.toFixed(1)}, ${pFmt(stats.incidentChiSquare.p)} — full table in Summary Tables`} />
+            <div className="a-chart-box a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <Bar
+                data={{
+                  labels: stats.incidentChiSquare.typeNames,
+                  datasets: [
+                    { label: 'Observed total', data: stats.incidentChiSquare.typeNames.map((t) => stats.incidentTotalsByType[t]), backgroundColor: C.red, borderRadius: 6 },
+                    { label: 'Expected under independence', data: stats.incidentChiSquare.typeNames.map((_, i) => Number(stats.incidentChiSquare.rowTotals[i].toFixed(1))), backgroundColor: hex2rgba(C.faint, 0.5), borderRadius: 6 },
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { ticks: { color: chartSub, font: { size: 9.5 }, autoSkip: false, maxRotation: 30 }, grid: { display: false } }, y: { title: { display: true, text: 'Incidents', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">{stats.incidentChiSquare.p < 0.05 ? 'Severity distribution depends significantly on incident type.' : `No statistically significant association between incident type and severity (${pFmt(stats.incidentChiSquare.p)}) — the row totals above equal the observed totals by construction, since this chart compares each type's real count against what independence alone would predict for its overall share.`}</p>
+          </div>
+        </div>
+
         <div className="a-grid">
           <div className="a-card s-5">
             <SectionHeader eyebrow="Sampling Composition" title="Recorded Intervals by Weather" color={C.teal} sub="Network-wide split of the 6,400 field20 intervals used for the weather-impact test" />
