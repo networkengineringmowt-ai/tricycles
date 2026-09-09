@@ -253,12 +253,18 @@ function oneWayAnova(groups) {
 function pearson(x, y) {
   const mx = mean(x), my = mean(y);
   const cov = sum(x.map((xi, i) => (xi - mx) * (y[i] - my)));
-  const sx = Math.sqrt(sum(x.map((xi) => (xi - mx) ** 2)));
+  const sxx = sum(x.map((xi) => (xi - mx) ** 2));
+  const sx = Math.sqrt(sxx);
   const sy = Math.sqrt(sum(y.map((yi) => (yi - my) ** 2)));
   const r = cov / (sx * sy);
   const n = x.length;
   const t = r * Math.sqrt((n - 2) / (1 - r * r));
-  return { r, r2Pct: r * r * 100, p: pFromZ(t), n };
+  // Ordinary least-squares line of best fit (y = slope*x + intercept),
+  // the standard companion to a Pearson r -- fit on the same real paired
+  // data, not a separately modeled/fabricated trend.
+  const slope = cov / sxx;
+  const intercept = my - slope * mx;
+  return { r, r2Pct: r * r * 100, p: pFromZ(t), n, slope, intercept };
 }
 
 // Poisson dispersion (variance-to-mean ratio) -- VMR >> 1 indicates
