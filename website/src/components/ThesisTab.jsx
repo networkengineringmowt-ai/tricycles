@@ -310,10 +310,12 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
         .thesis-content pre::-webkit-scrollbar { height: 8px; }
         .thesis-content pre::-webkit-scrollbar-track { background: transparent; }
         .thesis-content pre::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 6px; }
-        .thesis-toc { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
-        .thesis-toc::-webkit-scrollbar { width: 8px; }
-        .thesis-toc::-webkit-scrollbar-track { background: transparent; }
-        .thesis-toc::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 6px; }
+        .thesis-toc { scrollbar-width: auto; scrollbar-color: rgba(0,0,0,0.55) rgba(0,0,0,0.06); position: relative; }
+        .thesis-toc::-webkit-scrollbar { width: 11px; }
+        .thesis-toc::-webkit-scrollbar-track { background: rgba(0,0,0,0.06); border-radius: 6px; margin: 4px 0; }
+        .thesis-toc::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.55); border-radius: 6px; border: 2px solid transparent; background-clip: padding-box; }
+        .thesis-toc::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.75); }
+        .thesis-toc-fade { position: sticky; bottom: 0; left: 0; right: 0; height: 28px; margin-top: -28px; background: linear-gradient(to bottom, transparent, #ffffff); pointer-events: none; border-radius: 0 0 14px 14px; }
         .thesis-content strong, .thesis-content b { color: #1d1d1f; }
         .thesis-content pre { border-radius: 14px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
         .thesis-card .btn {
@@ -403,6 +405,7 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
             </li>
           ))}
         </ul>
+        <div className="thesis-toc-fade" aria-hidden="true"></div>
       </div>
 
       {/* THESIS CONTENT */}

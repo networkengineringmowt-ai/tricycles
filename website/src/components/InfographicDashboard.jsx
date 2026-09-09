@@ -508,14 +508,14 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         .a-theme-quote { font-size: 0.78rem; color: ${C.faint}; margin: 6px 0 0; font-style: italic; line-height: 1.5; }
 
         .a-photo { padding: 0; position: relative; overflow: hidden; min-height: 300px; }
-        .a-photo img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 1; }
+        .a-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center; position: absolute; inset: 0; z-index: 1; }
         .a-photo-overlay { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 26px; background: linear-gradient(to top, rgba(10,10,12,0.94) 0%, rgba(10,10,12,0.6) 65%, transparent 100%); }
         .a-photo-title { margin: 2px 0 8px; font-size: 1.2rem; font-weight: 800; color: #ffffff; letter-spacing: -0.01em; }
         .a-photo-text { margin: 0; font-size: 0.86rem; color: rgba(255,255,255,0.88); line-height: 1.55; }
 
-        .a-carousel-card { padding: 26px; }
+        .a-carousel-card { padding: 26px; max-width: 980px; margin: 0 auto; }
         .a-carousel { position: relative; }
-        .a-carousel-viewport { position: relative; width: 100%; aspect-ratio: 16 / 7; min-height: 340px; max-height: 620px; border-radius: 18px; overflow: hidden; background: #0b0b0c; }
+        .a-carousel-viewport { position: relative; width: 100%; aspect-ratio: 3 / 2; min-height: 320px; max-height: 520px; border-radius: 18px; overflow: hidden; background: #0b0b0c; }
         @media (max-width: 720px) {
           .a-carousel-viewport { aspect-ratio: 4 / 3; min-height: 280px; max-height: 420px; }
           .a-carousel-slide .a-photo-overlay { padding: 20px 20px 24px; }
@@ -876,6 +876,29 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
 
           <div className="a-card s-6">
+            <SectionHeader eyebrow={`Clustered version · N = ${stats.incidentN.toLocaleString()} incidents`} title="Incident Severity by Type (Clustered)" color={C.red} sub="Same data as the stacked chart, shown as side-by-side columns per severity level" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: visibleIncidentTypes,
+                  datasets: [
+                    { label: 'Fatal', data: visibleIncidentTypes.map(t => stats.incidentSeverityByType[t]?.Fatal || 0), backgroundColor: C.red },
+                    { label: 'Serious', data: visibleIncidentTypes.map(t => stats.incidentSeverityByType[t]?.Serious || 0), backgroundColor: C.orange },
+                    { label: 'Minor', data: visibleIncidentTypes.map(t => stats.incidentSeverityByType[t]?.Minor || 0), backgroundColor: C.green }
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 9 }, autoSkip: false, maxRotation: 28, minRotation: incidentFocus ? 0 : 28 } }, y: { ticks: { stepSize: 1, color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid } } },
+                  plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-6">
             <SectionHeader eyebrow="One-way ANOVA · 20-day field dataset" title="Tricycle Volume by Intersection" color={C.blue} sub={`Mean vehicles / 15-min interval (n = ${Object.values(stats.tricycleByIntersection)[0].n.toLocaleString()} per site)`} />
             <div className="a-chart-box">
               <Bar
@@ -975,12 +998,10 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             Every remaining angle on the same three real datasets, using
             every chart type react-chartjs-2 ships (Pie, PolarArea, Bubble,
             and a mixed bar+line via the generic Chart component, alongside
-            further Bar / Line / Radar / Scatter / Doughnut panels). ===== */}
-        <div className="a-hero" style={{ maxWidth: '820px', marginTop: '8px' }}>
-          <p className="a-hero-eyebrow" style={{ color: C.indigo }}>Extended Chart Gallery</p>
-          <h2 className="a-title" style={{ fontSize: '1.9rem' }}>Every Angle of the Field Data</h2>
-          <p className="a-hero-sub" style={{ fontSize: '0.92rem' }}>Every remaining panel below is computed live from the same three field datasets above — no additional or hypothetical data.</p>
-        </div>
+            further Bar / Line / Radar / Scatter / Doughnut panels). Section
+            header removed (Task: "remove this double header" / "my page
+            should flow with just charts") -- the charts below simply
+            continue the flow uninterrupted. ===== */}
 
         {/* Descriptive statistics */}
         <div className="a-grid">
@@ -1081,19 +1102,19 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                 data={{
                   labels: ALL_HOUR_LABELS,
                   datasets: [
-                    { type: 'bar', label: 'Mean volume / 15-min interval', data: hourlySeries(stats.hourlyProfile), backgroundColor: hex2rgba(C.blue2, 0.55), borderRadius: 5, yAxisID: 'y' },
+                    { type: 'bar', label: 'Mean volume / 15-min interval', data: hourlySeries(stats.hourlyProfile), backgroundColor: hex2rgba(C.blue2, 0.55), borderRadius: 5, yAxisID: 'y', stack: 'vol' },
+                    ...(showModeledOvernight ? [{ type: 'bar', label: 'Modeled overnight count — not measured', data: networkModeledOvernightSeries, backgroundColor: hex2rgba(C.faint, 0.35), borderColor: C.faint, borderWidth: 1.5, borderDash: [4, 3], borderRadius: 5, yAxisID: 'y', stack: 'vol' }] : []),
                     { type: 'line', label: 'Cumulative % of daily volume', data: hourlySeries((() => { const total = HOURS.reduce((s, h) => s + stats.hourlyProfile[h], 0); let cum = 0; const cumByHour = {}; HOURS.forEach((h) => { cum += stats.hourlyProfile[h]; cumByHour[h] = total ? (cum / total) * 100 : null; }); return cumByHour; })()), borderColor: C.orange, backgroundColor: 'transparent', borderWidth: 3, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
-                    ...(showModeledOvernight ? [{ type: 'line', label: 'Modeled overnight estimate — not measured', data: networkModeledOvernightSeries, borderColor: C.faint, backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 4], tension: 0.35, pointRadius: 0, yAxisID: 'y', spanGaps: false }] : []),
                   ]
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
                   scales: {
                     x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 9 } } },
-                    y: { position: 'left', title: { display: true, text: 'Veh / 15-min interval', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } },
+                    y: { stacked: true, position: 'left', title: { display: true, text: 'Veh / 15-min interval', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 9.5 } } },
                     y1: { position: 'right', min: 0, max: 100, title: { display: true, text: 'Cumulative %', color: chartSub, font: { size: 9.5 } }, grid: { drawOnChartArea: false }, ticks: { color: chartSub, font: { size: 9.5 } } }
                   },
-                  plugins: { legend: { labels: { ...legendTheme.labels, boxWidth: 8, font: { size: 9.5 } } }, tooltip: tooltipTheme }
+                  plugins: { legend: { labels: { ...legendTheme.labels, boxWidth: 8, font: { size: 9.5 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.dataset.label}: ${isBad(ctx.parsed.y) ? '—' : ctx.dataset.yAxisID === 'y1' ? `${fmt(ctx.parsed.y)}%` : fmtN(Math.round(ctx.parsed.y))}` } } }
                 }}
               />
             </div>
@@ -1233,6 +1254,29 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
                   scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { stacked: true, max: 100, title: { display: true, text: '% of volume', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } } },
+                  plugins: { legend: { labels: { ...legendTheme.labels, boxWidth: 8, font: { size: 9.5 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}%` } } }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="20-day field dataset · Clustered version" title="Vehicle-Class Composition by Weather (Clustered)" color={C.orange} sub="Same data as the stacked chart, shown as side-by-side columns per vehicle class" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: ['Dry', 'Wet (Rain)'],
+                  datasets: VEH_ORDER.map((c) => ({
+                    label: VEH_LABELS[c],
+                    data: [stats.compositionByWeather.Dry[c], stats.compositionByWeather.Wet[c]],
+                    backgroundColor: CLASS_COLORS[c],
+                  }))
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { max: 100, title: { display: true, text: '% of volume', color: chartSub, font: { size: 9.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } } },
                   plugins: { legend: { labels: { ...legendTheme.labels, boxWidth: 8, font: { size: 9.5 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}%` } } }
                 }}
               />
@@ -1497,12 +1541,8 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             charts-live-on-Analytics convention. All data below is computed
             from the same useTrafficStats() `stats` object already used
             throughout this file (via siteNames/siteColorOf above) -- nothing
-            here is new or re-typed data. ===================================== */}
-        <div className="a-hero" style={{ maxWidth: '820px', marginTop: '8px' }}>
-          <p className="a-hero-eyebrow" style={{ color: C.blue }}>Site Comparison</p>
-          <h2 className="a-title" style={{ fontSize: '1.9rem' }}>Site-Level Baseline Charts</h2>
-          <p className="a-hero-sub" style={{ fontSize: '0.92rem' }}>Volume, PCU and criticality ranked across all five junctions from the 20-day field sample.</p>
-        </div>
+            here is new or re-typed data. Section header removed so the page
+            flows continuously between charts. ===================================== */}
 
         <div className="a-grid">
           <div className="a-card s-6">
@@ -1744,12 +1784,8 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             CHARTS MOVED FROM THE SUMMARY TABLES TAB
             `rows` in SummaryTables.jsx is renamed `vehClassRows` here (see
             derived-data hooks above) -- the only rename needed, since every
-            other name below is already unique to this file. ================= */}
-        <div className="a-hero" style={{ maxWidth: '820px', marginTop: '8px' }}>
-          <p className="a-hero-eyebrow" style={{ color: C.indigo }}>Composition &amp; Safety</p>
-          <h2 className="a-title" style={{ fontSize: '1.9rem' }}>Vehicle-Class &amp; Safety Charts</h2>
-          <p className="a-hero-sub" style={{ fontSize: '0.92rem' }}>Peak-hourly composition and the 840-record incident log, by vehicle class and site.</p>
-        </div>
+            other name below is already unique to this file. Section header
+            removed so the page flows continuously between charts. ================= */}
 
         <div className="a-grid">
           <div className="a-card s-12">
@@ -1769,6 +1805,34 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
                   scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 45, minRotation: 0 } }, y: { stacked: true, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: {
+                    legend: { labels: legendTheme.labels },
+                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => vehClassRows[items[0].dataIndex].junction } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Empirical Flow Classification · Clustered version" title="Vehicle-Class Volumes by Junction (Clustered)" color={C.indigo} sub="Same data as the stacked chart, shown as side-by-side columns per vehicle class — click a legend item to isolate a class" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: vehClassRows.map(r => stats.shortName(r.junction)),
+                  datasets: [
+                    { label: 'Passenger Cars', data: vehClassRows.map(r => Math.round(r.Cars)), backgroundColor: CLASS_COLORS.Cars },
+                    { label: 'Boda Bodas', data: vehClassRows.map(r => Math.round(r.Boda_bodas)), backgroundColor: CLASS_COLORS.Boda_bodas },
+                    { label: 'Tricycles', data: vehClassRows.map(r => Math.round(r.Tricycles)), backgroundColor: CLASS_COLORS.Tricycles },
+                    { label: 'Minibuses', data: vehClassRows.map(r => Math.round(r.Minibuses)), backgroundColor: CLASS_COLORS.Minibuses },
+                    { label: 'Heavy Trucks', data: vehClassRows.map(r => Math.round(r.Heavy_Trucks)), backgroundColor: CLASS_COLORS.Heavy_Trucks },
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 45, minRotation: 0 } }, y: { grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
                   plugins: {
                     legend: { labels: legendTheme.labels },
                     tooltip: { ...tooltipTheme, callbacks: { title: (items) => vehClassRows[items[0].dataIndex].junction } }
@@ -1978,16 +2042,10 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
             Animated schematic -- disclosed as illustrative below. Every
             number in the legend and details panel traces to a real stats.*
             field, JUNCTION_LEG_CONFIG, or the real SITE_COORDS above. ======= */}
-        <div className="a-hero" style={{ maxWidth: '820px', marginTop: '8px' }}>
-          <p className="a-hero-eyebrow" style={{ color: C.blue }}>Junction Digital Twin</p>
-          <h2 className="a-title" style={{ fontSize: '1.9rem' }}>Animated Junction Schematic</h2>
-          <p className="a-hero-sub" style={{ fontSize: '0.92rem' }}>A schematic animation of one junction's approach legs — vehicle-class mix, leg volumes and V/C-driven congestion coloring are real field data; the moving vehicle icons themselves are an illustration.</p>
-        </div>
-
         <div className="a-grid">
           <div className="a-card s-12">
             <SectionHeader eyebrow="Junction Digital Twin" title={<>Live Junction Animation<span className="a-illustrative-badge">Illustrative animation</span></>} color={C.blue}
-              sub="Real leg configuration and vehicle-class mix, with an adjustable directional-split assumption." />
+              sub="A schematic animation of one junction's approach legs — vehicle-class mix, leg volumes and V/C-driven congestion coloring are real field data; the moving vehicle icons and lane geometry are an illustration. Real leg configuration and vehicle-class mix, with an adjustable directional-split assumption." />
             <div className="a-toggle-row" role="group" aria-label="Choose junction for digital twin" style={{ marginBottom: '18px' }}>
               {Object.keys(JUNCTION_LEG_CONFIG).map((j) => (
                 <button key={j} type="button" className={`a-toggle-btn ${twinJunction === j ? 'active' : ''}`} onClick={() => setTwinJunction(j)}>
@@ -2006,6 +2064,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
               classMix={classMix}
               vcMean={vcMean}
               classColors={CLASS_COLORS}
+              height={680}
             />
 
             <div className="a-twin-legend">

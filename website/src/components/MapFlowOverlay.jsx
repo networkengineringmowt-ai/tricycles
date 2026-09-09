@@ -224,6 +224,13 @@ export default function MapFlowOverlay({ flowData, accentColor = '#0071e3', mute
 
     let raf;
     let last = 0;
+    // Browsers throttle/suspend requestAnimationFrame entirely while a tab is
+    // backgrounded (document.hidden) -- that's expected and not a bug; the
+    // one real risk is a single huge `dt` jump the instant the tab comes
+    // back into view. Resetting `last` on visibilitychange makes that frame
+    // a normal small step instead, so dots never visibly "teleport."
+    const onVisibilityChange = () => { last = 0; };
+    document.addEventListener('visibilitychange', onVisibilityChange);
     const step = (t) => {
       const dt = last ? Math.min((t - last) / 1000, 0.05) : 0.016;
       last = t;
@@ -267,6 +274,7 @@ export default function MapFlowOverlay({ flowData, accentColor = '#0071e3', mute
 
     return () => {
       cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       map.off('zoomend', onZoomEnd);
       group.remove();
       legStateRef.current = {};

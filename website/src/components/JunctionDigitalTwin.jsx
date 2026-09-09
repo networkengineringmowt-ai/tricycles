@@ -21,7 +21,7 @@ import React, { useEffect, useRef } from 'react';
 // study's scope.
 // ---------------------------------------------------------------------------
 
-const VEHICLE_SIZE = { Cars: 4.5, Boda_bodas: 2.8, Tricycles: 3.6, Minibuses: 5.2, Heavy_Trucks: 6 };
+const VEHICLE_SIZE = { Cars: 5.5, Boda_bodas: 3.4, Tricycles: 4.4, Minibuses: 6.4, Heavy_Trucks: 7.4 };
 
 function pickWeighted(classMix, rand) {
   const total = classMix.reduce((a, r) => a + r.sharePct, 0) || 1;
@@ -34,8 +34,8 @@ function pickWeighted(classMix, rand) {
 }
 
 export default function JunctionDigitalTwin({
-  legConfig, legFlows, classMix, vcMean, classColors, hubColor = '#0071e3', laneColor = 'rgba(0,0,0,0.14)',
-  labelColor = '#1d1d1f', subColor = '#6e6e73', height = 420,
+  legConfig, legFlows, classMix, vcMean, classColors, hubColor = '#0071e3', laneColor = 'rgba(0,0,0,0.16)',
+  labelColor = '#1d1d1f', subColor = '#6e6e73', height = 640,
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -87,8 +87,8 @@ export default function JunctionDigitalTwin({
       const h = height;
       const cx = w / 2;
       const cy = h / 2;
-      const outerR = Math.min(w, h) / 2 - 64;
-      const hubR = 20;
+      const outerR = Math.min(w, h) / 2 - 84;
+      const hubR = 30;
       const n = cfg.legs.length;
       const congestion = Math.max(0, Math.min(1, (vc - 0.5) / 0.6)); // 0 free-flow .. 1 saturated
       const speedFactor = 1 - 0.65 * congestion;
@@ -96,32 +96,67 @@ export default function JunctionDigitalTwin({
 
       ctx.clearRect(0, 0, w, h);
 
-      // legs
+      // legs -- drawn as a full carriageway band (not a single thin line), with
+      // a dashed center lane-divider and solid edge lines standing in for real
+      // lane markings, so the roadway itself communicates width/multi-lane
+      // structure. Carriageway width is still schematic (not to scale).
       const angles = cfg.legs.map((_, i) => (Math.PI * 2 * i) / n - Math.PI / 2);
+      const legWidths = cfg.legs.map((_, i) => (flows[i]?.isPrimary ? 46 : 32));
       angles.forEach((ang, i) => {
         const ex = cx + Math.cos(ang) * outerR;
         const ey = cy + Math.sin(ang) * outerR;
+        const legW = legWidths[i];
+        const perp = ang + Math.PI / 2;
+        const px = Math.cos(perp), py = Math.sin(perp);
+
+        // carriageway band
         ctx.strokeStyle = laneColor;
-        ctx.lineWidth = flows[i]?.isPrimary ? 10 : 7;
-        ctx.lineCap = 'round';
+        ctx.lineWidth = legW;
+        ctx.lineCap = 'butt';
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.lineTo(ex, ey);
         ctx.stroke();
 
+        // edge lines (carriageway shoulders)
+        ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+        ctx.lineWidth = 1.5;
+        [-1, 1].forEach((side) => {
+          ctx.beginPath();
+          ctx.moveTo(cx + px * (legW / 2) * side, cy + py * (legW / 2) * side);
+          ctx.lineTo(ex + px * (legW / 2) * side, ey + py * (legW / 2) * side);
+          ctx.stroke();
+        });
+
+        // dashed center lane-divider, separating the two directions of flow
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([10, 10]);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(ex, ey);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
         // leg label
-        const lx = cx + Math.cos(ang) * (outerR + 16);
-        const ly = cy + Math.sin(ang) * (outerR + 16);
+        const lx = cx + Math.cos(ang) * (outerR + 26);
+        const ly = cy + Math.sin(ang) * (outerR + 26);
         ctx.fillStyle = labelColor;
-        ctx.font = '600 11px Inter, system-ui, sans-serif';
+        ctx.font = '600 13px Inter, system-ui, sans-serif';
         ctx.textAlign = Math.cos(ang) > 0.3 ? 'left' : Math.cos(ang) < -0.3 ? 'right' : 'center';
         const shortLeg = cfg.legs[i].split(' — ')[0].split(' (')[0];
         ctx.fillText(`${flows[i]?.isPrimary ? '★ ' : ''}${shortLeg}`, lx, ly);
         ctx.fillStyle = subColor;
-        ctx.font = '500 10px Inter, system-ui, sans-serif';
-        ctx.fillText(`${Math.round(flows[i]?.volume || 0).toLocaleString()} ADT/day`, lx, ly + 13);
+        ctx.font = '500 11.5px Inter, system-ui, sans-serif';
+        ctx.fillText(`${Math.round(flows[i]?.volume || 0).toLocaleString()} ADT/day`, lx, ly + 16);
 
-        // spawn particles proportional to this leg's simulated share of real ADT
+        // spawn particles proportional to this leg's simulated share of real
+        // ADT. Each direction of travel is pinned to its own side of the
+        // center divider (outbound / dir:1 on one lane, inbound / dir:-1 on
+        // the other) so the two-way flow reads as two distinct lanes rather
+        // than randomly-scattered dots.
+        const laneOffset = legW * 0.24;
+        const laneJitter = legW * 0.14;
         const vol = flows[i]?.volume || 0;
         const spawnPerSec = (vol / maxVol) * 9 + 0.4;
         if (rand() < spawnPerSec * dt) {
@@ -129,7 +164,7 @@ export default function JunctionDigitalTwin({
           stateRef.current.particles.push({
             leg: i, t: 0, dir: 1,
             speed: (0.28 + rand() * 0.12) * speedFactor,
-            offset: (rand() - 0.5) * (flows[i]?.isPrimary ? 6 : 4),
+            offset: laneOffset + (rand() - 0.5) * laneJitter,
             cls,
           });
         }
@@ -138,7 +173,7 @@ export default function JunctionDigitalTwin({
           stateRef.current.particles.push({
             leg: i, t: 1, dir: -1,
             speed: (0.28 + rand() * 0.12) * speedFactor,
-            offset: (rand() - 0.5) * (flows[i]?.isPrimary ? 6 : 4),
+            offset: -laneOffset + (rand() - 0.5) * laneJitter,
             cls,
           });
         }
