@@ -39,6 +39,95 @@ export function hourlySeries(profile) {
   return ALL_HOURS.map((h) => (profile && profile[h] != null ? profile[h] : null));
 }
 
+// ---------------------------------------------------------------------------
+// Simulated full 24-hour profile -- an ADDITIVE, clearly-flagged companion to
+// hourlySeries() above, never a replacement for it. hourlySeries() keeps
+// rendering the real 22:00-05:45 gap as null exactly as before; nothing here
+// changes that. This exists only for call sites that explicitly opt in to
+// showing an illustrative estimate for the hours neither field survey
+// sampled, in the same disclosed-model spirit as directionalSplit.js's
+// simulateDirectionalSplit() (a real total, redistributed by a stated
+// assumption) -- here the real per-hour SHAPE is extended by a stated
+// assumption instead.
+//
+// Method: every hour inside the real sampled window keeps its real, measured
+// value verbatim (isModeled: false, untouched). Every hour outside it is
+// built by smoothly blending from the last real evening sample down to an
+// assumed overnight trough and back up to the first real morning sample,
+// using a raised-cosine dip (smooth and touches both real endpoints exactly,
+// unlike a straight-line guess). The trough is expressed as a disclosed
+// FRACTION of this site's own real sampled-hours mean -- a standard
+// low-traffic-overnight illustrative assumption, NOT a cited or measured
+// overnight count. Every UI surface that renders the modeled segment must
+// say so next to it.
+// ---------------------------------------------------------------------------
+export const OVERNIGHT_TROUGH_FRACTION = 0.08;
+
+// Accepts either a site name + the `hourlyProfileByIntersection` lookup
+// (`simulateFullDayProfile('Wandegeya Junction', stats.hourlyProfileByIntersection)`)
+// or a raw {hour: value} profile object directly (e.g.
+// `simulateFullDayProfile(stats.hourlyProfile)` for the network-wide profile)
+// -- both resolve to the same real sparse profile this function extends.
+export function simulateFullDayProfile(profileOrSite, hourlyProfileByIntersection) {
+  const profile = typeof profileOrSite === 'string'
+    ? (hourlyProfileByIntersection && hourlyProfileByIntersection[profileOrSite]) || {}
+    : (profileOrSite || {});
+  const realHours = Object.keys(profile).map(Number).filter((h) => profile[h] != null).sort((a, b) => a - b);
+  if (!realHours.length) {
+    return ALL_HOURS.map((h) => ({ hour: h, volume: null, isModeled: true }));
+  }
+  const realMean = mean(realHours.map((h) => profile[h]));
+  const lastRealHour = realHours[realHours.length - 1];
+  const firstRealHour = realHours[0];
+  const lastRealValue = profile[lastRealHour];
+  const firstRealValue = profile[firstRealHour];
+  const troughValue = realMean * OVERNIGHT_TROUGH_FRACTION;
+
+  // Walk forward from the last real hour, wrapping past midnight, up to (but
+  // not including) the first real hour -- the genuine unsampled overnight
+  // gap, whatever its exact span happens to be for this profile.
+  const gapHours = [];
+  for (let h = (lastRealHour + 1) % 24; h !== firstRealHour; h = (h + 1) % 24) {
+    gapHours.push(h);
+    if (gapHours.length > 24) break; // defensive: never loop forever on a malformed profile
+  }
+  const n = gapHours.length;
+
+  const modeled = {};
+  gapHours.forEach((h, i) => {
+    const t = (i + 1) / (n + 1); // 0 < t < 1 -- position between the two real anchor hours
+    const base = lastRealValue * (1 - t) + firstRealValue * t; // straight-line reference between the two real endpoints
+    const dip = Math.sin(Math.PI * t); // 0 at both real endpoints, 1 at the gap's midpoint -- smooth raised-cosine trough
+    modeled[h] = base - dip * (base - troughValue);
+  });
+
+  return ALL_HOURS.map((h) => (
+    profile[h] != null
+      ? { hour: h, volume: profile[h], isModeled: false }
+      : { hour: h, volume: modeled[h], isModeled: true }
+  ));
+}
+
+// Chart-ready companion to hourlySeries(): a dense 24-slot array holding
+// ONLY the modeled segment, for use as a second Chart.js dataset alongside
+// hourlySeries(profile) (the real segment, unchanged). The two real anchor
+// hours are deliberately repeated in this array (not null) so the dashed
+// "modeled" line visually connects to the solid "real" line at both ends
+// instead of floating disconnected in the middle of the chart -- every hour
+// strictly inside the real sampled window is null here, preserving
+// spanGaps:false's honest separation between what's real and what's modeled.
+export function fullDayProfileSeries(profileOrSite, hourlyProfileByIntersection) {
+  const full = simulateFullDayProfile(profileOrSite, hourlyProfileByIntersection);
+  const realHours = full.filter((e) => !e.isModeled).map((e) => e.hour);
+  const lastRealHour = realHours.length ? Math.max(...realHours) : null;
+  const firstRealHour = realHours.length ? Math.min(...realHours) : null;
+  const modeledOnly = full.map((e) => {
+    if (e.isModeled) return e.volume;
+    return (e.hour === lastRealHour || e.hour === firstRealHour) ? e.volume : null;
+  });
+  return { full, modeledOnly };
+}
+
 // --- tiny CSV parser (data is clean/numeric, no quoted commas) ------------
 export function parseCsv(text) {
   const lines = text.trim().split('\n');
