@@ -245,6 +245,16 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
         .a-tc-cell { color: ${C.green} !important; }
         .a-table tbody td.a-shaded { border-radius: 8px; }
 
+        /* Plain statistical summary tables -- no shading, banding or colour
+           fills on any row/cell, per house style; the only colour is the
+           thin rank-dot already used elsewhere on this page. */
+        .a-plain-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+        .a-plain-table th { text-align: right; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.sub}; padding: 0 10px 10px; border-bottom: 2px solid rgba(0,0,0,0.14); }
+        .a-plain-table th:first-child, .a-plain-table td:first-child { text-align: left; }
+        .a-plain-table td { padding: 10px 10px; border-bottom: 1px solid rgba(0,0,0,0.08); text-align: right; font-feature-settings: "tnum" 1; color: ${C.ink}; }
+        .a-plain-table tr:last-child td { border-bottom: none; }
+        .a-plain-table td:first-child { font-weight: 700; }
+
         .a-loading { padding: 40px; text-align: center; color: ${C.faint}; font-size: 0.9rem; }
 
         .a-toggle-row { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -422,6 +432,43 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+
+        {/* TRAFFIC CRITICALITY INDEX -- COMPONENT BREAKDOWN */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Composite Indicator · Full Breakdown" title="Traffic Criticality Index — Component Table" color={C.red}
+              sub="Every input to the 0–100 Criticality Index, per site: each of the 4 factors is min-max normalized 0–1 across the 5 sites, then weighted 35/35/15/15 — see Methodology below for the full formula" />
+            <div style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead>
+                  <tr>
+                    <th>Site</th>
+                    <th>Traffic Demand (norm.)</th>
+                    <th>Congestion Stress (norm.)</th>
+                    <th>Tricycle Friction (norm.)</th>
+                    <th>Mixed-Traffic Complexity (norm.)</th>
+                    <th>Composite Index (0–100)</th>
+                    <th>Rank</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.criticalityRanking.map((r) => (
+                    <tr key={r.name}>
+                      <td>{stats.shortName(r.name)}</td>
+                      <td>{r.volumeNorm.toFixed(3)}</td>
+                      <td>{r.vcNorm.toFixed(3)}</td>
+                      <td>{r.pcuNorm.toFixed(3)}</td>
+                      <td>{r.triShareNorm.toFixed(3)}</td>
+                      <td>{r.index.toFixed(1)}</td>
+                      <td>#{r.rank}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote" style={{ marginTop: '10px' }}>Composite index, not a directly measured field — it is a derived, disclosed combination of four real per-site statistics already shown elsewhere on this page.</p>
           </div>
         </div>
 
@@ -683,6 +730,41 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
               <b>{JUNCTION_LEG_CONFIG[dirJunction].type}.</b> The junction total above (ADT) is a real, measured figure from the field survey, and the junction type / leg count is confirmed by the study author. What's still simulated rather than measured is (a) the identity of any leg not backed by the public reference cited below -- left as an unconfirmed placeholder rather than an invented street name -- and (b) how much of the junction's real volume each leg actually carries, since no turning-movement/direction data was ever collected.
             </div>
             <p className="a-dir-source">Configuration source: {JUNCTION_LEG_CONFIG[dirJunction].source}</p>
+          </div>
+        </div>
+
+        {/* POISSON GOODNESS-OF-FIT -- WANDEGEYA JUNCTION */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Goodness-of-Fit · 7-day baseline dataset" title="Poisson Fit — Wandegeya Junction" color={C.indigo}
+              sub={`Observed vs Poisson-expected daytime tricycle-arrival counts per interval, λ = ${stats.wandegeyaLambda.toFixed(2)}, n = ${stats.wandegeyaN.toLocaleString()} — chart version in Analytics`} />
+            <div style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead>
+                  <tr><th>Arrivals / interval</th><th>Observed</th><th>Poisson-expected</th><th>(O−E)² / E</th></tr>
+                </thead>
+                <tbody>
+                  {stats.wandegeyaPoissonBins.map((b) => {
+                    const contrib = ((b.observed - b.expected) ** 2) / b.expected;
+                    return (
+                      <tr key={b.label}>
+                        <td>{b.label}</td>
+                        <td>{b.observed}</td>
+                        <td>{b.expected.toFixed(1)}</td>
+                        <td>{contrib.toFixed(2)}</td>
+                      </tr>
+                    );
+                  })}
+                  <tr>
+                    <td>Total</td>
+                    <td>{stats.wandegeyaPoissonBins.reduce((s, b) => s + b.observed, 0)}</td>
+                    <td>{stats.wandegeyaPoissonBins.reduce((s, b) => s + b.expected, 0).toFixed(1)}</td>
+                    <td>χ² = {stats.wandegeyaPoissonChiSq.toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote" style={{ marginTop: '10px' }}>4 bins merged to satisfy Cochran's rule (expected count ≥ 5 per bin); a large χ² relative to observed-vs-expected spread here is the same over-dispersion the Arrival Platooning card reports as a variance-to-mean ratio — tricycle arrivals bunch into platoons rather than following a random Poisson stream.</p>
           </div>
         </div>
 

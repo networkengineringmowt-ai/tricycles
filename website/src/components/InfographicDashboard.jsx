@@ -580,15 +580,6 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         .a-methodology-table td:first-child { border-radius: 10px 0 0 10px; font-weight: 700; }
         .a-methodology-table td:last-child { border-radius: 0 10px 10px 0; white-space: nowrap; }
         .a-methodology-key { font-family: ui-monospace, monospace; font-size: 0.72rem; }
-        /* Plain statistical summary tables -- no shading, banding or colour
-           fills on any row/cell, per house style; the only colour is the
-           thin rank-dot already used elsewhere on this page. */
-        .a-plain-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-        .a-plain-table th { text-align: right; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.sub}; padding: 0 10px 10px; border-bottom: 2px solid rgba(0,0,0,0.14); }
-        .a-plain-table th:first-child, .a-plain-table td:first-child { text-align: left; }
-        .a-plain-table td { padding: 10px 10px; border-bottom: 1px solid rgba(0,0,0,0.08); text-align: right; font-feature-settings: "tnum" 1; color: ${C.ink}; }
-        .a-plain-table tr:last-child td { border-bottom: none; }
-        .a-plain-table td:first-child { font-weight: 700; }
         ${searchableSelectCss}
       `}</style>
 
@@ -1752,79 +1743,13 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
-        {/* --- Additional statistical summary tables (real, already-computed
-            figures -- see trafficStats.js) -- no data here is new; every
-            value below was computed earlier in this file or in
-            trafficStats.js and is simply given its own table view. ------- */}
+        {/* --- Poisson goodness-of-fit chart (real, already-computed figures
+            -- see trafficStats.js). Its companion data table lives in the
+            Summary Tables tab, alongside the other statistical summary
+            tables, per house convention: Analytics stays chart-only. ------- */}
         <div className="a-grid">
           <div className="a-card s-12">
-            <SectionHeader eyebrow="Composite Indicator · Full Breakdown" title="Traffic Criticality Index — Component Table" color={C.red}
-              sub="Every input to the 0–100 Criticality Index, per site: each of the 4 factors is min-max normalized 0–1 across the 5 sites, then weighted 35/35/15/15 — see Methodology for the full formula" />
-            <div style={{ overflowX: 'auto' }}>
-              <table className="a-plain-table">
-                <thead>
-                  <tr>
-                    <th>Site</th>
-                    <th>Traffic Demand (norm.)</th>
-                    <th>Congestion Stress (norm.)</th>
-                    <th>Tricycle Friction (norm.)</th>
-                    <th>Mixed-Traffic Complexity (norm.)</th>
-                    <th>Composite Index (0–100)</th>
-                    <th>Rank</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.criticalityRanking.map((r) => (
-                    <tr key={r.name}>
-                      <td>{stats.shortName(r.name)}</td>
-                      <td>{r.volumeNorm.toFixed(3)}</td>
-                      <td>{r.vcNorm.toFixed(3)}</td>
-                      <td>{r.pcuNorm.toFixed(3)}</td>
-                      <td>{r.triShareNorm.toFixed(3)}</td>
-                      <td>{r.index.toFixed(1)}</td>
-                      <td>#{r.rank}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="a-footnote" style={{ marginTop: '10px' }}>Composite index, not a directly measured field — it is a derived, disclosed combination of four real per-site statistics already shown elsewhere on this page.</p>
-          </div>
-        </div>
-
-        <div className="a-grid">
-          <div className="a-card s-5">
-            <SectionHeader eyebrow="Goodness-of-Fit · 7-day baseline dataset" title="Poisson Fit — Wandegeya Junction" color={C.indigo}
-              sub={`Observed vs Poisson-expected daytime tricycle-arrival counts per interval, λ = ${stats.wandegeyaLambda.toFixed(2)}, n = ${stats.wandegeyaN.toLocaleString()}`} />
-            <table className="a-plain-table">
-              <thead>
-                <tr><th>Arrivals / interval</th><th>Observed</th><th>Poisson-expected</th><th>(O−E)² / E</th></tr>
-              </thead>
-              <tbody>
-                {stats.wandegeyaPoissonBins.map((b) => {
-                  const contrib = ((b.observed - b.expected) ** 2) / b.expected;
-                  return (
-                    <tr key={b.label}>
-                      <td>{b.label}</td>
-                      <td>{b.observed}</td>
-                      <td>{b.expected.toFixed(1)}</td>
-                      <td>{contrib.toFixed(2)}</td>
-                    </tr>
-                  );
-                })}
-                <tr>
-                  <td>Total</td>
-                  <td>{stats.wandegeyaPoissonBins.reduce((s, b) => s + b.observed, 0)}</td>
-                  <td>{stats.wandegeyaPoissonBins.reduce((s, b) => s + b.expected, 0).toFixed(1)}</td>
-                  <td>χ² = {stats.wandegeyaPoissonChiSq.toFixed(2)}</td>
-                </tr>
-              </tbody>
-            </table>
-            <p className="a-footnote" style={{ marginTop: '10px' }}>4 bins merged to satisfy Cochran's rule (expected count ≥ 5 per bin); a large χ² relative to observed-vs-expected spread here is the same over-dispersion the Arrival Platooning card reports as a variance-to-mean ratio — tricycle arrivals bunch into platoons rather than following a random Poisson stream.</p>
-          </div>
-
-          <div className="a-card s-7">
-            <SectionHeader eyebrow="Goodness-of-Fit · Chart" title="Observed vs Poisson-Expected Arrivals" color={C.indigo} sub="Same bins as the table at left, Wandegeya Junction, daytime intervals" />
+            <SectionHeader eyebrow="Goodness-of-Fit · Chart" title="Observed vs Poisson-Expected Arrivals" color={C.indigo} sub={`Wandegeya Junction, daytime intervals, λ = ${stats.wandegeyaLambda.toFixed(2)}, n = ${stats.wandegeyaN.toLocaleString()} — full bin table in Summary Tables`} />
             <div className="a-chart-box">
               <Bar
                 data={{
