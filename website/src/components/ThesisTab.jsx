@@ -6,6 +6,7 @@ import { Bar, Line, Doughnut, Scatter, Radar, Pie, PolarArea, Bubble } from 'rea
 import PageControls, { downloadJsonFile, downloadChartsAsZip } from './PageControls';
 import { ALL_HOUR_LABELS, hourlySeries } from '../lib/trafficStats';
 import useTrafficStats from '../lib/useTrafficStats';
+import useScrollbarThumb from '../lib/useScrollbarThumb';
 
 ChartJS.register(CategoryScale, LinearScale, RadialLinearScale, BarElement, PointElement, LineElement, ArcElement, Filler, Tooltip, Legend);
 
@@ -117,29 +118,16 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
   // exactly the "where are my scrollbars" complaint. Drawing our own thumb
   // from real scroll geometry means it's visible the instant the list
   // overflows, on every platform, with no dependence on OS settings.
-  const tocRef = useRef(null);
-  const [tocThumb, setTocThumb] = useState(null); // null = no overflow, else {topPct, heightPct}
-  useEffect(() => {
-    const el = tocRef.current;
-    if (!el) return undefined;
-    const recompute = () => {
-      const { scrollTop, scrollHeight, clientHeight } = el;
-      if (scrollHeight <= clientHeight + 1) { setTocThumb(null); return; }
-      const heightPct = Math.max((clientHeight / scrollHeight) * 100, 8);
-      const topPct = (scrollTop / (scrollHeight - clientHeight)) * (100 - heightPct);
-      setTocThumb({ topPct, heightPct });
-    };
-    recompute();
-    el.addEventListener('scroll', recompute, { passive: true });
-    const ro = new ResizeObserver(recompute);
-    ro.observe(el);
-    window.addEventListener('resize', recompute);
-    return () => {
-      el.removeEventListener('scroll', recompute);
-      ro.disconnect();
-      window.removeEventListener('resize', recompute);
-    };
-  }, []);
+  const [tocRef, tocThumbRaw] = useScrollbarThumb('vertical');
+  // useScrollbarThumb returns {startPct, sizePct}; keep the existing
+  // topPct/heightPct field names used by the JSX/CSS below so this swap
+  // (ad-hoc useRef+useEffect -> the shared, callback-ref-based hook also
+  // used by the Overview and Summary Tables scrollbars) needs no other
+  // changes. The callback-ref form is the important part: it guarantees
+  // setup runs against the real DOM node regardless of render timing,
+  // where the old useRef+useEffect([]) version could in principle miss a
+  // node that isn't attached yet on the first render.
+  const tocThumb = tocThumbRaw ? { topPct: tocThumbRaw.startPct, heightPct: tocThumbRaw.sizePct } : null;
 
   const scrollTo = (id) => {
     const element = document.getElementById(id);
