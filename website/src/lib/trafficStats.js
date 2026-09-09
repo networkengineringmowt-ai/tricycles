@@ -276,10 +276,74 @@ function poissonDispersion(counts) {
   return { vmr, chi2, df: n - 1, p: pFromChiSquare(chi2, n - 1), n };
 }
 
+// Cohen's d effect size, independent samples (pooled SD) -- the standard
+// companion to a Welch's t-test: t/p say whether a difference is real, d
+// says how large it is in standardized units (0.2/0.5/0.8 ~ small/medium/
+// large, Cohen's own convention).
+function cohensD(a, b) {
+  const na = a.length, nb = b.length;
+  const pooledVar = ((na - 1) * variance(a) + (nb - 1) * variance(b)) / (na + nb - 2);
+  return (mean(a) - mean(b)) / Math.sqrt(pooledVar);
+}
+
+// Cohen's dz, paired samples -- mean difference in units of the *difference
+// scores'* own std dev, the correct effect-size form for a paired t-test
+// (using the pooled-SD formula above on paired data would be wrong, since
+// it ignores the pairing/correlation between the two measurements).
+function cohensDz(a, b) {
+  const diffs = a.map((v, i) => v - b[i]);
+  return mean(diffs) / std(diffs);
+}
+
+// Chi-square test of independence on a rows x cols contingency table of raw
+// counts (e.g. IncidentType x Severity). Returns the statistic, df, p-value
+// (Wilson-Hilferty approximation, same as every other chi-square use in
+// this file), and the full expected-frequency table so a chart/table can
+// show observed vs expected side by side.
+function chiSquareIndependence(table) {
+  const rows = table.length, cols = table[0].length;
+  const rowTotals = table.map((r) => sum(r));
+  const colTotals = Array.from({ length: cols }, (_, j) => sum(table.map((r) => r[j])));
+  const grand = sum(rowTotals);
+  const expected = table.map((r, i) => r.map((_, j) => (rowTotals[i] * colTotals[j]) / grand));
+  let chi2 = 0;
+  table.forEach((r, i) => r.forEach((o, j) => { chi2 += ((o - expected[i][j]) ** 2) / expected[i][j]; }));
+  const df = (rows - 1) * (cols - 1);
+  return { chi2, df, p: pFromChiSquare(chi2, df), expected, rowTotals, colTotals, grand };
+}
+
+// Bonferroni-corrected pairwise Welch's t-tests across every 2-combination
+// of a set of named groups -- the standard, honest follow-up to a
+// significant one-way ANOVA (the ANOVA F-test only says "at least one group
+// differs", not which ones; running all pairwise comparisons and correcting
+// the significance threshold for the number of comparisons, rather than
+// eyeballing the group means, is what keeps this a real post-hoc test
+// rather than data dredging).
+function pairwisePostHoc(groupsByName) {
+  const names = Object.keys(groupsByName);
+  const pairs = [];
+  for (let i = 0; i < names.length; i += 1) {
+    for (let j = i + 1; j < names.length; j += 1) {
+      const a = groupsByName[names[i]], b = groupsByName[names[j]];
+      const test = welchTTest(a, b);
+      pairs.push({ a: names[i], b: names[j], ...test, meanDiff: test.meanA - test.meanB });
+    }
+  }
+  const alpha = 0.05 / pairs.length; // Bonferroni-corrected threshold
+  pairs.forEach((pr) => { pr.pBonferroni = Math.min(1, pr.p * pairs.length); pr.significant = pr.p < alpha; });
+  return { pairs, comparisons: pairs.length, correctedAlpha: alpha };
+}
+
 const groupBy = (rows, key) => rows.reduce((acc, r) => {
   (acc[r[key]] = acc[r[key]] || []).push(r);
   return acc;
 }, {});
+
+// Day-of-week from a 'YYYY-MM-DD' date string -- 0=Sunday..6=Saturday, per
+// JS Date's own convention. Used only to derive weekday/weekend, never to
+// fabricate a longer date range than the field20 survey actually covers.
+const dayOfWeek = (dateStr) => new Date(`${dateStr}T00:00:00Z`).getUTCDay();
+const isWeekendDate = (dateStr) => { const d = dayOfWeek(dateStr); return d === 0 || d === 6; };
 
 const shortName = (n) => n.replace(' Junction', '').replace(' Roundabout', '').replace(' Intersection', '');
 
@@ -360,6 +424,46 @@ export function computeTrafficStats(field20, baseline7, incidents) {
     adtExclMotorcycles: mean(networkDailyTotalsExclMC),
     daysObserved: Object.keys(byDateNetwork).length,
   };
+
+  // ---------------------------------------------------------------------
+  // Weekday vs weekend traffic volume -- the 20 real field20 dates span
+  // Mon 2026-06-01 through Sat 2026-06-20 (2 full weekends, 6 weekend days
+  // and 14 weekdays total), a genuine real-calendar split derived from the
+  // Date field itself, not an assumed 5-2 pattern. Same Welch's t-test +
+  // Cohen's d treatment as every other two-group comparison in this file.
+  // ---------------------------------------------------------------------
+  field20.forEach((r) => { r.IsWeekend = isWeekendDate(r.Date); });
+  const weekdayVol = field20.filter((r) => !r.IsWeekend).map((r) => r.TotalVolume);
+  const weekendVol = field20.filter((r) => r.IsWeekend).map((r) => r.TotalVolume);
+  const weekdayWeekendTest = welchTTest(weekendVol, weekdayVol);
+  weekdayWeekendTest.pctChange = ((weekdayWeekendTest.meanA - weekdayWeekendTest.meanB) / weekdayWeekendTest.meanB) * 100;
+  weekdayWeekendTest.cohensD = cohensD(weekendVol, weekdayVol);
+  const weekdayWeekendByIntersection = {};
+  Object.entries(byIntDate).forEach(([name, rows]) => {
+    const wd = rows.filter((r) => !r.IsWeekend).map((r) => r.TotalVolume);
+    const we = rows.filter((r) => r.IsWeekend).map((r) => r.TotalVolume);
+    weekdayWeekendByIntersection[name] = { weekdayMean: mean(wd), weekendMean: mean(we), weekdayN: wd.length, weekendN: we.length };
+  });
+  const weekdayWeekendByClass = {};
+  VEH_COLS.forEach((c) => {
+    const wd = field20.filter((r) => !r.IsWeekend).map((r) => r[c]);
+    const we = field20.filter((r) => r.IsWeekend).map((r) => r[c]);
+    weekdayWeekendByClass[c] = { weekdayMean: mean(wd), weekendMean: mean(we) };
+  });
+
+  // ---------------------------------------------------------------------
+  // Vehicle-class correlation matrix -- extends the single Tricycles-vs-VC
+  // Pearson correlation already computed above into a full 5x5 matrix
+  // across every pair of the 5 vehicle classes' per-interval counts
+  // (field20, all 6,400 intervals): does a busier interval for one class
+  // tend to be busier for another (shared demand driver), or independent?
+  // ---------------------------------------------------------------------
+  const vehicleClassCorrelationMatrix = VEH_COLS.map((rowClass) => VEH_COLS.map((colClass) => {
+    if (rowClass === colClass) return { r: 1, p: 0, n: field20.length };
+    const res = pearson(field20.map((r) => r[rowClass]), field20.map((r) => r[colClass]));
+    return { r: res.r, p: res.p, n: res.n };
+  }));
+
   // --- peak-hour vehicle-class rate by intersection (field20, Period=Peak) ---
   // mean 15-min count during peak intervals x 4 = an hourly rate, consistent
   // with the site's existing "veh/hr, peak-hour" framing.
@@ -406,21 +510,31 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   const wet = field20.filter((r) => r.Weather === 'Wet (Rain)').map((r) => r.TotalVolume);
   const weatherTest = welchTTest(wet, dry);
   weatherTest.pctChange = ((weatherTest.meanA - weatherTest.meanB) / weatherTest.meanB) * 100;
+  weatherTest.cohensD = cohensD(wet, dry);
 
   // --- peak vs off-peak (field20, recomputed on the correct/full dataset) ---
   const peak = field20.filter((r) => r.Period === 'Peak').map((r) => r.TotalVolume);
   const offpeak = field20.filter((r) => r.Period === 'Off-Peak').map((r) => r.TotalVolume);
   const peakOffpeakTest = welchTTest(peak, offpeak);
   peakOffpeakTest.ratio = peakOffpeakTest.meanA / peakOffpeakTest.meanB;
+  peakOffpeakTest.cohensD = cohensD(peak, offpeak);
 
   // --- tricycle-volume ANOVA across intersections (field20, recomputed) ---
   const triGroups = Object.values(groupBy(field20, 'Intersection')).map((rows) => rows.map((r) => r.Tricycles));
   const tricycleAnova = oneWayAnova(triGroups);
   const tricycleByIntersection = {};
+  const tricycleRawByIntersection = {};
   Object.entries(groupBy(field20, 'Intersection')).forEach(([name, rows]) => {
     const tri = rows.map((r) => r.Tricycles);
     tricycleByIntersection[name] = { mean: mean(tri), std: std(tri), n: tri.length };
+    tricycleRawByIntersection[name] = tri;
   });
+  // --- post-hoc: which specific intersection pairs actually differ? ---
+  // The ANOVA F-test above only tells us at least one of the 5 sites
+  // differs from the others; this is the honest follow-up (all 10
+  // pairwise Welch's t-tests, Bonferroni-corrected for running 10
+  // comparisons rather than judging significance at the uncorrected 0.05).
+  const tricyclePostHoc = pairwisePostHoc(tricycleRawByIntersection);
 
   // --- PCU by headway-ratio method (baseline7 -- has real headway data) ---
   const pcuByIntersection = {};
@@ -445,9 +559,11 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   const dayRows = baseline7.filter((r) => r.Session_Type === 'Day').map((r) => r.Tricycles);
   const nightRows = baseline7.filter((r) => r.Session_Type === 'Night').map((r) => r.Tricycles);
   const dayNightTest = welchTTest(dayRows, nightRows);
+  dayNightTest.cohensD = cohensD(dayRows, nightRows);
 
   // --- headway paired t-test (baseline7) ---
   const headwayTest = pairedTTest(baseline7.map((r) => r.TriHeadway), baseline7.map((r) => r.CarHeadway));
+  headwayTest.cohensDz = cohensDz(baseline7.map((r) => r.TriHeadway), baseline7.map((r) => r.CarHeadway));
 
   // --- Poisson dispersion / platooning (baseline7) ---
   const poissonNetwork = poissonDispersion(baseline7.map((r) => r.Tricycles));
@@ -468,6 +584,16 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   // single network-wide severity Pie
   const incidentSeverityTotals = { Fatal: 0, Serious: 0, Minor: 0 };
   incidents.forEach((r) => { incidentSeverityTotals[r.Severity] = (incidentSeverityTotals[r.Severity] || 0) + 1; });
+
+  // --- chi-square test of independence: is severity distributed the same
+  //     way across every incident type, or does severity depend on type? ---
+  //     Built directly from the real crosstab above, not a re-derived count.
+  const incidentTypeNames = Object.keys(incidentSeverityByType);
+  const severityLevels = ['Fatal', 'Serious', 'Minor'];
+  const incidentChiSquareTable = incidentTypeNames.map((t) => severityLevels.map((s) => incidentSeverityByType[t][s] || 0));
+  const incidentChiSquare = chiSquareIndependence(incidentChiSquareTable);
+  incidentChiSquare.typeNames = incidentTypeNames;
+  incidentChiSquare.severityLevels = severityLevels;
 
   // ---------------------------------------------------------------------
   // Extended aggregates -- support the Analytics tab's extended chart
@@ -793,10 +919,11 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   return {
     byIntersection, peakHourlyByIntersection, busiestIntersection, highestTricycleShareIntersection,
     overallCompositionPct, totalVehiclesRecorded, totalVehiclesRecordedExclMC, sampleSizeIntervals, hourlyProfile,
-    weatherTest, peakOffpeakTest, tricycleAnova, tricycleByIntersection,
+    weatherTest, peakOffpeakTest, tricycleAnova, tricycleByIntersection, tricyclePostHoc,
     pcuByIntersection, pcuHeadwayOverall, vcStats, volumeVcCorrelation, volumeVcPairs, dayNightTest,
     headwayTest, poissonNetwork, poissonByIntersection,
-    incidentSeverityByType, incidentTotalsByType, incidentSeverityTotals, incidentN: incidents.length,
+    incidentSeverityByType, incidentTotalsByType, incidentSeverityTotals, incidentN: incidents.length, incidentChiSquare,
+    weekdayWeekendTest, weekdayWeekendByIntersection, weekdayWeekendByClass, vehicleClassCorrelationMatrix,
     totalVolumeDescribe, pcuRatioDescribe, vcRatioDescribe, totalVolumeHistogram,
     hourlyProfileByIntersection, dayNightByIntersection, vcByIntersection,
     compositionByWeather, peakNetworkComposition, pcuVcCorrelation, pcuVcPairs,
@@ -866,6 +993,12 @@ export const FORMULAS = {
   daytimeHeadwayTest: { formula: 'Paired-samples t-test, Avg Tricycle Headway (s) vs Avg Car Headway (s), Session_Type=Day only, network-wide', source: 'baseline7', n: '1,680 daytime intervals' },
   daytimeHeatmapDayHour: { formula: 'Total Tricycles per (calendar day, hour) cell, summed across all 5 sites, Session_Type=Day only', source: 'baseline7', n: '1,680 daytime intervals' },
   daytimeOverallCompositionPct: { formula: 'class_total ÷ sum(all 5 class totals) × 100, Session_Type=Day only, network-wide (all 5 sites, all 7 days)', source: 'baseline7', n: '1,680 daytime intervals' },
+  weekdayWeekendTest: { formula: "Welch's two-sample t-test, Total Volume per interval, Saturday/Sunday (derived from the real Date field) vs Monday-Friday, plus Cohen's d effect size", source: 'field20', n: '14 weekdays / 6 weekend days' },
+  tricyclePostHoc: { formula: "Post-hoc follow-up to the tricycle-volume ANOVA: all 10 pairwise Welch's t-tests across the 5 intersections, with a Bonferroni-corrected significance threshold (0.05 ÷ 10 comparisons) to control the family-wise error rate", source: 'field20', n: '1,280/site' },
+  vehicleClassCorrelationMatrix: { formula: 'Pearson r for every pair of the 5 vehicle classes’ per-interval counts (5x5 matrix, diagonal = 1 by definition)', source: 'field20', n: '6,400 intervals' },
+  incidentChiSquare: { formula: 'Chi-square test of independence, IncidentType x Severity, on the real crosstab: tests whether severity is distributed the same way across incident types (H0) or depends on type (H1)', source: 'incidents', n: '840' },
+  cohensD: { formula: "Cohen's d effect size for an independent-samples comparison = (meanA - meanB) / pooled standard deviation; 0.2/0.5/0.8 conventionally read as small/medium/large", source: 'field20 / baseline7', n: 'varies -- stated per test' },
+  cohensDz: { formula: "Cohen's dz effect size for a paired comparison = mean(difference scores) / std(difference scores) -- the correct paired-sample effect-size form, distinct from the independent-samples d above", source: 'baseline7', n: 'varies -- stated per test' },
 };
 
 // ---------------------------------------------------------------------------
