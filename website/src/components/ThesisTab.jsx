@@ -28,6 +28,21 @@ const hex2rgbaLocal = (hex, a) => {
   const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${a})`;
 };
+const pFmtLocal = (p) => (p == null || Number.isNaN(p) ? '—' : (p < 0.001 ? 'p < .001' : `p = ${p.toFixed(3)}`));
+// Equation text for a correlation's OLS line of best fit -- slope/intercept
+// come straight from trafficStats.js's pearson(), fit on the same real
+// paired data as r, not a separate model.
+const eqFmtLocal = (slope, intercept) => `y = ${slope.toFixed(3)}x ${intercept >= 0 ? '+' : '−'} ${Math.abs(intercept).toFixed(3)}`;
+const fitLineDatasetLocal = (pairs, slope, intercept, color, label = 'Line of best fit') => {
+  const xs = pairs.map((p) => p.x);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  return {
+    type: 'line', label,
+    data: [{ x: xMin, y: slope * xMin + intercept }, { x: xMax, y: slope * xMax + intercept }],
+    borderColor: color, borderWidth: 2.5, borderDash: [6, 4], pointRadius: 0, pointHitRadius: 0,
+    fill: false, tension: 0, order: 0,
+  };
+};
 
 // One figure = a real Chart.js visualization (or, for the day x hour
 // heatmap, a plain colour-graded grid -- Chart.js has no native heatmap)
@@ -291,6 +306,14 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
         .thesis-content table tbody tr { transition: background 0.15s; }
         .thesis-content table tbody tr:nth-child(even) { background: rgba(0,0,0,0.015); }
         .thesis-content table tbody tr:hover { background: rgba(0,113,227,0.06); }
+        .thesis-content pre { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
+        .thesis-content pre::-webkit-scrollbar { height: 8px; }
+        .thesis-content pre::-webkit-scrollbar-track { background: transparent; }
+        .thesis-content pre::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 6px; }
+        .thesis-toc { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
+        .thesis-toc::-webkit-scrollbar { width: 8px; }
+        .thesis-toc::-webkit-scrollbar-track { background: transparent; }
+        .thesis-toc::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 6px; }
         .thesis-content strong, .thesis-content b { color: #1d1d1f; }
         .thesis-content pre { border-radius: 14px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
         .thesis-card .btn {
@@ -326,7 +349,10 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
           }
           .thesis-body-card { padding: 20px !important; width: 100% !important; box-sizing: border-box; }
           .thesis-doc-title { font-size: 1.5rem !important; margin-bottom: 24px !important; }
-          .thesis-content table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; max-width: 100%; }
+          .thesis-content table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; max-width: 100%; scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
+          .thesis-content table::-webkit-scrollbar { height: 8px; }
+          .thesis-content table::-webkit-scrollbar-track { background: transparent; }
+          .thesis-content table::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 6px; }
           .thesis-content pre { max-width: 100%; box-sizing: border-box; }
         }
         @media (max-width: 480px) {
@@ -949,15 +975,20 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
 
   <FigureBox figure="4.46" caption="Correlation between daytime tricycle volume and V/C ratio, all intersections">
     <Scatter
-      data={{ datasets: [{ label: 'Daytime interval', data: stats.daytimeVolumeVcPairs, backgroundColor: hex2rgbaLocal(C.orange, 0.35), pointRadius: 2.5 }] }}
+      data={{
+        datasets: [
+          { label: 'Daytime interval', data: stats.daytimeVolumeVcPairs, backgroundColor: hex2rgbaLocal(C.orange, 0.35), pointRadius: 2.5 },
+          fitLineDatasetLocal(stats.daytimeVolumeVcPairs, stats.daytimeVolumeVcCorrelation.slope, stats.daytimeVolumeVcCorrelation.intercept, C.ink),
+        ]
+      }}
       options={{
         animation: false, maintainAspectRatio: false,
         scales: { x: { title: { display: true, text: 'Tricycles / interval', color: gallerySub, font: { size: 10.5 } }, grid: { color: galleryGrid }, ticks: { color: gallerySub, font: { size: 10.5 } } }, y: { title: { display: true, text: 'V/C ratio', color: gallerySub, font: { size: 10.5 } }, grid: { color: galleryGrid }, ticks: { color: gallerySub, font: { size: 10.5 } } } },
-        plugins: { legend: { display: false }, tooltip: galleryTooltip },
+        plugins: { legend: { display: false }, tooltip: { ...galleryTooltip, callbacks: { label: (ctx) => ctx.dataset.type === 'line' ? eqFmtLocal(stats.daytimeVolumeVcCorrelation.slope, stats.daytimeVolumeVcCorrelation.intercept) : undefined } } },
       }}
     />
   </FigureBox>
-  <p style={{ fontSize: '0.82rem', color: gallerySub, marginTop: '-12px' }}>r = {stats.daytimeVolumeVcCorrelation.r.toFixed(3)} (r&sup2; = {stats.daytimeVolumeVcCorrelation.r2Pct.toFixed(1)}%), n = {stats.daytimeVolumeVcCorrelation.n.toLocaleString()} daytime intervals -- matches Table 4.9.5.</p>
+  <p style={{ fontSize: '0.82rem', color: gallerySub, marginTop: '-12px' }}>r = {stats.daytimeVolumeVcCorrelation.r.toFixed(3)} (r&sup2; = {stats.daytimeVolumeVcCorrelation.r2Pct.toFixed(1)}%), {pFmtLocal(stats.daytimeVolumeVcCorrelation.p)}, n = {stats.daytimeVolumeVcCorrelation.n.toLocaleString()} daytime intervals -- matches Table 4.9.5. {eqFmtLocal(stats.daytimeVolumeVcCorrelation.slope, stats.daytimeVolumeVcCorrelation.intercept)}.</p>
 
   <FigureBox figure="4.47" caption="Poisson goodness-of-fit: observed vs expected frequencies, Wandegeya Junction (daytime)">
     <Bar
