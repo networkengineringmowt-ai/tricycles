@@ -548,7 +548,12 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         .a-bignum-unit { font-size: 0.95rem; font-weight: 700; color: ${C.sub}; }
 
         .a-loading { padding: 40px; text-align: center; color: ${C.faint}; font-size: 0.9rem; }
-        .a-illustrative-badge { display: inline-block; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.orange}; background: ${hex2rgba(C.orange, 0.12)}; padding: 3px 8px; border-radius: 6px; margin-left: 8px; vertical-align: middle; }
+        /* Methodology-footnote styling, not a warning flag -- states plainly
+           which figures are modeled/illustrative (never hidden, never
+           reworded away) while reading as a calm citation-style label
+           rather than an alarm, alongside the confident framing used for
+           the real, field-measured figures throughout this page. */
+        .a-illustrative-badge { display: inline-block; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.sub}; background: rgba(0,0,0,0.05); padding: 2px 7px; border-radius: 5px; margin-left: 8px; vertical-align: middle; }
 
         .a-toggle-row { display: flex; gap: 8px; flex-wrap: wrap; }
         .a-toggle-btn { border: 1px solid rgba(0,0,0,0.08); background: #fff; color: ${C.sub}; font-weight: 600; font-size: 0.82rem; padding: 8px 14px; border-radius: 10px; cursor: pointer; transition: all .15s ease; }
@@ -575,6 +580,15 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         .a-methodology-table td:first-child { border-radius: 10px 0 0 10px; font-weight: 700; }
         .a-methodology-table td:last-child { border-radius: 0 10px 10px 0; white-space: nowrap; }
         .a-methodology-key { font-family: ui-monospace, monospace; font-size: 0.72rem; }
+        /* Plain statistical summary tables -- no shading, banding or colour
+           fills on any row/cell, per house style; the only colour is the
+           thin rank-dot already used elsewhere on this page. */
+        .a-plain-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+        .a-plain-table th { text-align: right; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.sub}; padding: 0 10px 10px; border-bottom: 2px solid rgba(0,0,0,0.14); }
+        .a-plain-table th:first-child, .a-plain-table td:first-child { text-align: left; }
+        .a-plain-table td { padding: 10px 10px; border-bottom: 1px solid rgba(0,0,0,0.08); text-align: right; font-feature-settings: "tnum" 1; color: ${C.ink}; }
+        .a-plain-table tr:last-child td { border-bottom: none; }
+        .a-plain-table td:first-child { font-weight: 700; }
         ${searchableSelectCss}
       `}</style>
 
@@ -1732,6 +1746,98 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                     y: { title: { display: true, text: 'PCU (headway-ratio)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }
                   },
                   plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.dataset.label}: tricycle share ${stats.byIntersection[siteNames[ctx.datasetIndex]].tricycleSharePct.toFixed(1)}%` } } }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* --- Additional statistical summary tables (real, already-computed
+            figures -- see trafficStats.js) -- no data here is new; every
+            value below was computed earlier in this file or in
+            trafficStats.js and is simply given its own table view. ------- */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Composite Indicator · Full Breakdown" title="Traffic Criticality Index — Component Table" color={C.red}
+              sub="Every input to the 0–100 Criticality Index, per site: each of the 4 factors is min-max normalized 0–1 across the 5 sites, then weighted 35/35/15/15 — see Methodology for the full formula" />
+            <div style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead>
+                  <tr>
+                    <th>Site</th>
+                    <th>Traffic Demand (norm.)</th>
+                    <th>Congestion Stress (norm.)</th>
+                    <th>Tricycle Friction (norm.)</th>
+                    <th>Mixed-Traffic Complexity (norm.)</th>
+                    <th>Composite Index (0–100)</th>
+                    <th>Rank</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.criticalityRanking.map((r) => (
+                    <tr key={r.name}>
+                      <td>{stats.shortName(r.name)}</td>
+                      <td>{r.volumeNorm.toFixed(3)}</td>
+                      <td>{r.vcNorm.toFixed(3)}</td>
+                      <td>{r.pcuNorm.toFixed(3)}</td>
+                      <td>{r.triShareNorm.toFixed(3)}</td>
+                      <td>{r.index.toFixed(1)}</td>
+                      <td>#{r.rank}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote" style={{ marginTop: '10px' }}>Composite index, not a directly measured field — it is a derived, disclosed combination of four real per-site statistics already shown elsewhere on this page.</p>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-5">
+            <SectionHeader eyebrow="Goodness-of-Fit · 7-day baseline dataset" title="Poisson Fit — Wandegeya Junction" color={C.indigo}
+              sub={`Observed vs Poisson-expected daytime tricycle-arrival counts per interval, λ = ${stats.wandegeyaLambda.toFixed(2)}, n = ${stats.wandegeyaN.toLocaleString()}`} />
+            <table className="a-plain-table">
+              <thead>
+                <tr><th>Arrivals / interval</th><th>Observed</th><th>Poisson-expected</th><th>(O−E)² / E</th></tr>
+              </thead>
+              <tbody>
+                {stats.wandegeyaPoissonBins.map((b) => {
+                  const contrib = ((b.observed - b.expected) ** 2) / b.expected;
+                  return (
+                    <tr key={b.label}>
+                      <td>{b.label}</td>
+                      <td>{b.observed}</td>
+                      <td>{b.expected.toFixed(1)}</td>
+                      <td>{contrib.toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
+                <tr>
+                  <td>Total</td>
+                  <td>{stats.wandegeyaPoissonBins.reduce((s, b) => s + b.observed, 0)}</td>
+                  <td>{stats.wandegeyaPoissonBins.reduce((s, b) => s + b.expected, 0).toFixed(1)}</td>
+                  <td>χ² = {stats.wandegeyaPoissonChiSq.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="a-footnote" style={{ marginTop: '10px' }}>4 bins merged to satisfy Cochran's rule (expected count ≥ 5 per bin); a large χ² relative to observed-vs-expected spread here is the same over-dispersion the Arrival Platooning card reports as a variance-to-mean ratio — tricycle arrivals bunch into platoons rather than following a random Poisson stream.</p>
+          </div>
+
+          <div className="a-card s-7">
+            <SectionHeader eyebrow="Goodness-of-Fit · Chart" title="Observed vs Poisson-Expected Arrivals" color={C.indigo} sub="Same bins as the table at left, Wandegeya Junction, daytime intervals" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: stats.wandegeyaPoissonBins.map((b) => b.label),
+                  datasets: [
+                    { label: 'Observed (days)', data: stats.wandegeyaPoissonBins.map((b) => b.observed), backgroundColor: C.indigo, borderRadius: 6 },
+                    { label: 'Poisson-expected', data: stats.wandegeyaPoissonBins.map((b) => Number(b.expected.toFixed(2))), backgroundColor: hex2rgba(C.faint, 0.5), borderRadius: 6 },
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { title: { display: true, text: 'Arrivals / interval', color: chartSub, font: { size: 10 } }, grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { title: { display: true, text: 'Count of intervals', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
                 }}
               />
             </div>

@@ -110,6 +110,36 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
   const bodyRef = useRef(null);
   const stats = useTrafficStats();
 
+  // Custom, always-rendered TOC scrollbar -- native OS/browser scrollbars
+  // (overlay-style on macOS "when scrolling", some Linux/Chrome configs)
+  // can stay invisible until the user happens to hover or scroll, which is
+  // exactly the "where are my scrollbars" complaint. Drawing our own thumb
+  // from real scroll geometry means it's visible the instant the list
+  // overflows, on every platform, with no dependence on OS settings.
+  const tocRef = useRef(null);
+  const [tocThumb, setTocThumb] = useState(null); // null = no overflow, else {topPct, heightPct}
+  useEffect(() => {
+    const el = tocRef.current;
+    if (!el) return undefined;
+    const recompute = () => {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      if (scrollHeight <= clientHeight + 1) { setTocThumb(null); return; }
+      const heightPct = Math.max((clientHeight / scrollHeight) * 100, 8);
+      const topPct = (scrollTop / (scrollHeight - clientHeight)) * (100 - heightPct);
+      setTocThumb({ topPct, heightPct });
+    };
+    recompute();
+    el.addEventListener('scroll', recompute, { passive: true });
+    const ro = new ResizeObserver(recompute);
+    ro.observe(el);
+    window.addEventListener('resize', recompute);
+    return () => {
+      el.removeEventListener('scroll', recompute);
+      ro.disconnect();
+      window.removeEventListener('resize', recompute);
+    };
+  }, []);
+
   const scrollTo = (id) => {
     const element = document.getElementById(id);
     if (element) {
@@ -310,12 +340,22 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
         .thesis-content pre::-webkit-scrollbar { height: 8px; }
         .thesis-content pre::-webkit-scrollbar-track { background: transparent; }
         .thesis-content pre::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 6px; }
-        .thesis-toc { scrollbar-width: auto; scrollbar-color: rgba(0,0,0,0.55) rgba(0,0,0,0.06); position: relative; }
-        .thesis-toc::-webkit-scrollbar { width: 11px; }
-        .thesis-toc::-webkit-scrollbar-track { background: rgba(0,0,0,0.06); border-radius: 6px; margin: 4px 0; }
-        .thesis-toc::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.55); border-radius: 6px; border: 2px solid transparent; background-clip: padding-box; }
-        .thesis-toc::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.75); }
+        /* Native scrollbar hidden -- replaced by the always-visible custom
+           track/thumb below (.thesis-toc-scrollbar-*), which is drawn from
+           real scroll geometry via JS rather than relying on the browser's
+           own (sometimes invisible-until-interaction) scrollbar. */
+        .thesis-toc { scrollbar-width: none; -ms-overflow-style: none; }
+        .thesis-toc::-webkit-scrollbar { display: none; }
         .thesis-toc-fade { position: sticky; bottom: 0; left: 0; right: 0; height: 28px; margin-top: -28px; background: linear-gradient(to bottom, transparent, #ffffff); pointer-events: none; border-radius: 0 0 14px 14px; }
+        .thesis-toc-wrap { position: relative; }
+        .thesis-toc-scrollbar-track {
+          position: absolute; top: 16px; bottom: 16px; right: 6px; width: 6px;
+          background: rgba(0,0,0,0.08); border-radius: 4px; pointer-events: none;
+        }
+        .thesis-toc-scrollbar-thumb {
+          position: absolute; left: 0; width: 100%; border-radius: 4px;
+          background: rgba(0,0,0,0.45);
+        }
         .thesis-content strong, .thesis-content b { color: #1d1d1f; }
         .thesis-content pre { border-radius: 14px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
         .thesis-card .btn {
@@ -342,13 +382,18 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
         .thesis-download-row:hover { border-color: rgba(0,113,227,0.25); box-shadow: 0 8px 20px -12px rgba(0,113,227,0.25); transform: translateY(-1px); }
         @media (max-width: 900px) {
           .thesis-light-inner { flex-direction: column; gap: 16px; }
-          .thesis-toc {
+          .thesis-toc-wrap {
             position: static !important;
             width: 100% !important;
             flex: 1 1 auto !important;
             max-height: none !important;
+          }
+          .thesis-toc {
+            width: 100% !important;
+            max-height: none !important;
             overflow-y: visible !important;
           }
+          .thesis-toc-scrollbar-track { display: none !important; }
           .thesis-body-card { padding: 20px !important; width: 100% !important; box-sizing: border-box; }
           .thesis-doc-title { font-size: 1.5rem !important; margin-bottom: 24px !important; }
           .thesis-content table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; max-width: 100%; scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
@@ -371,7 +416,8 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
       />
 
       {/* NAVIGATION PANE */}
-      <div className="thesis-card thesis-toc" style={{ flex: '0 0 300px', position: 'sticky', top: '24px', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }}>
+      <div className="thesis-toc-wrap" style={{ flex: '0 0 300px', position: 'sticky', top: '24px', maxHeight: 'calc(100vh - 48px)' }}>
+      <div className="thesis-card thesis-toc" ref={tocRef} style={{ height: '100%', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }}>
         <h3 className="thesis-title" style={{ borderBottom: '1px solid rgba(0,0,0,0.08)', paddingBottom: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <i className="fa-solid fa-list-ul" style={{ color: C.blue, fontSize: '0.9rem' }}></i>
           Table of Contents
@@ -406,6 +452,12 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
           ))}
         </ul>
         <div className="thesis-toc-fade" aria-hidden="true"></div>
+      </div>
+      {tocThumb && (
+        <div className="thesis-toc-scrollbar-track" aria-hidden="true">
+          <div className="thesis-toc-scrollbar-thumb" style={{ top: `${tocThumb.topPct}%`, height: `${tocThumb.heightPct}%` }}></div>
+        </div>
+      )}
       </div>
 
       {/* THESIS CONTENT */}
