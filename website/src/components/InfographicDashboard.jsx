@@ -8,7 +8,9 @@ import PageControls, { downloadTextFile, downloadJsonFile, downloadChartsAsZip }
 import MethodologyPanel from './MethodologyPanel';
 import SearchableSelect, { searchableSelectCss } from './SearchableSelect';
 import useTrafficStats from '../lib/useTrafficStats';
-import { ALL_HOUR_LABELS, hourlySeries } from '../lib/trafficStats';
+import { ALL_HOUR_LABELS, hourlySeries, fullDayProfileSeries, OVERNIGHT_TROUGH_FRACTION } from '../lib/trafficStats';
+import { JUNCTION_LEG_CONFIG, simulateDirectionalSplit } from '../lib/directionalSplit';
+import JunctionDigitalTwin from './JunctionDigitalTwin';
 
 ChartJS.register(
   CategoryScale, LinearScale, RadialLinearScale, PointElement, LineElement,
@@ -50,6 +52,18 @@ const SITE_COLORS = [C.blue, C.indigo, C.teal, C.orange, C.purple];
 const VEH_ORDER = ['Cars', 'Boda_bodas', 'Tricycles', 'Minibuses', 'Heavy_Trucks'];
 const VEH_LABELS = { Cars: 'Passenger Cars', Boda_bodas: 'Boda Bodas', Tricycles: 'Tricycles', Minibuses: 'Minibuses', Heavy_Trucks: 'Heavy Trucks' };
 const CLASS_COLORS = { Cars: C.blue, Boda_bodas: C.indigo, Tricycles: C.green, Minibuses: C.teal, Heavy_Trucks: C.red };
+
+// Real, verbatim coordinates for the 5 study junctions -- copied from
+// OverviewTab.jsx's SITE_GEO (the Overview tab's map data source) so the
+// Digital Twin's "Coordinates" stat traces to the same real lat/lon this
+// site already publishes elsewhere, not a re-typed-from-memory guess.
+const SITE_COORDS = {
+  'Wandegeya Junction': [0.3311, 32.5736],
+  'Kibuye Roundabout': [0.2936, 32.5731],
+  'Bakuli Intersection': [0.3130, 32.5641],
+  'Bwaise Junction': [0.3500, 32.5610],
+  'Natete Junction': [0.2983, 32.5350],
+};
 
 // Guarded number formatters -- every derived figure passes through one of
 // these before it reaches the DOM, so a null/undefined/NaN (e.g. an empty
@@ -252,6 +266,12 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
   const [modalShare, setModalShare] = useState(13);
   const [roadWidth, setRoadWidth] = useState(7.0);
   const [defaultsApplied, setDefaultsApplied] = useState(false);
+  // Toggle for the illustrative 24-hour overnight extension (Task: "simulate
+  // full 24 hour data") -- OFF by default so every hourly chart opens on its
+  // original, fully-honest real-data-only view; switching this on overlays a
+  // second, clearly-dashed/labelled modeled line for the 22:00-05:45 window
+  // no field survey ever sampled. Never replaces the real hourlySeries() gap.
+  const [showModeledOvernight, setShowModeledOvernight] = useState(false);
 
   // Seed the calculator's modal-share default from the real, dynamically
   // computed network tricycle share the first time stats become available.
@@ -335,6 +355,64 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
     const vals = Object.values(stats.byIntersection).map((v) => v.stdDailyVolume).filter((v) => !isBad(v));
     return vals.length ? Math.max(...vals) || 1 : 1;
   }, [stats]);
+
+  // --- derived data for charts MOVED FROM OverviewTab.jsx -----------------
+  // Same real per-site figures the Overview tab's charts used to read from
+  // its own `studySites` array -- recomputed here from the same stats
+  // object (siteNames/siteColorOf above already give the same 5 real site
+  // names and colors Overview used), so nothing is invented.
+  const overviewHourlySeries = useMemo(() => {
+    if (!stats) return [];
+    return hourlySeries(stats.hourlyProfile).map((v) => (v == null ? null : Math.round(v)));
+  }, [stats]);
+
+  // --- illustrative overnight-extension overlay (Task: "simulate full 24
+  //     hour data") -- one dense 24-slot "modeled hours only" series for the
+  //     network-wide profile, plus one per study site, computed once here so
+  //     every hourly chart below reuses the same numbers rather than
+  //     re-deriving them per chart. Real data (hourlySeries/overviewHourlySeries
+  //     above) is completely untouched by this.
+  const networkModeledOvernightSeries = useMemo(() => {
+    if (!stats) return [];
+    return fullDayProfileSeries(stats.hourlyProfile).modeledOnly.map((v) => (v == null ? null : Math.round(v)));
+  }, [stats]);
+  const perSiteModeledOvernightSeries = useMemo(() => {
+    if (!stats) return {};
+    const out = {};
+    Object.keys(stats.hourlyProfileByIntersection).forEach((name) => {
+      out[name] = fullDayProfileSeries(name, stats.hourlyProfileByIntersection).modeledOnly;
+    });
+    return out;
+  }, [stats]);
+
+  const overviewTotalVolume = useMemo(() => {
+    if (!stats) return 0;
+    return siteNames.reduce((s, n) => s + stats.byIntersection[n].meanDailyVolume, 0);
+  }, [stats, siteNames]);
+
+  // --- derived data for charts MOVED FROM SummaryTables.jsx ----------------
+  // `rows` in SummaryTables.jsx is renamed `vehClassRows` here to avoid any
+  // ambiguity against the many other derived arrays already in this file.
+  const vehClassRows = useMemo(() => {
+    if (!stats) return [];
+    return Object.entries(stats.peakHourlyByIntersection).map(([junction, v]) => ({ junction, ...v }));
+  }, [stats]);
+
+  const vehClassTotals = useMemo(() => {
+    const cols = ['Cars', 'Boda_bodas', 'Tricycles', 'Minibuses', 'Heavy_Trucks', 'Total'];
+    return cols.reduce((acc, c) => { acc[c] = vehClassRows.reduce((sum, r) => sum + r[c], 0); return acc; }, {});
+  }, [vehClassRows]);
+
+  // --- Junction Digital Twin: local UI state + real-data derivation --------
+  // Mirrors the Summary Tables "Simulated Directional Split" section's own
+  // local state (dirJunction/dirSkew there) -- duplicated rather than
+  // shared, since Analytics and Summary Tables are mutually-exclusive tabs
+  // in a switch and are never mounted at the same time.
+  const [twinJunction, setTwinJunction] = useState(Object.keys(JUNCTION_LEG_CONFIG)[0]);
+  const [twinSkew, setTwinSkew] = useState(0.3);
+  const legFlows = stats ? simulateDirectionalSplit(stats.adtByIntersection[twinJunction]?.adtTotal || 0, JUNCTION_LEG_CONFIG[twinJunction], twinSkew) : [];
+  const classMix = stats ? stats.vehicleClassBreakdown.filter((r) => r.junction === twinJunction) : [];
+  const vcMean = stats ? (stats.vcByIntersection[twinJunction]?.mean || 0) : 0;
 
   return (
     <div className="apple-dash">
@@ -446,6 +524,19 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         .a-loading { padding: 40px; text-align: center; color: ${C.faint}; font-size: 0.9rem; }
         .a-illustrative-badge { display: inline-block; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.orange}; background: ${hex2rgba(C.orange, 0.12)}; padding: 3px 8px; border-radius: 6px; margin-left: 8px; vertical-align: middle; }
 
+        .a-toggle-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .a-toggle-btn { border: 1px solid rgba(0,0,0,0.08); background: #fff; color: ${C.sub}; font-weight: 600; font-size: 0.82rem; padding: 8px 14px; border-radius: 10px; cursor: pointer; transition: all .15s ease; }
+        .a-toggle-btn.active { background: ${C.ink}; color: #fff; border-color: ${C.ink}; }
+        .a-toggle-btn:hover:not(.active) { background: #f5f5f7; }
+        .a-stat-box { background: ${C.canvas}; border-radius: 14px; padding: 14px 16px; }
+        .a-stat-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.faint}; margin-bottom: 4px; }
+        .a-stat-value { font-size: 1.3rem; font-weight: 800; color: ${C.ink}; font-feature-settings: "tnum" 1; }
+        .a-dir-note { font-size: 0.78rem; color: ${C.sub}; line-height: 1.6; background: ${hex2rgba(C.orange, 0.07)}; border: 1px solid ${hex2rgba(C.orange, 0.22)}; border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
+        .a-dir-source { font-size: 0.72rem; color: ${C.faint}; margin-top: 10px; }
+        .a-twin-legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 14px; }
+        .a-twin-legend-item { display: flex; align-items: center; gap: 7px; font-size: 0.8rem; font-weight: 600; color: ${C.ink}; }
+        .a-twin-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
         .a-methodology { margin-top: 4px; }
         .a-methodology-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; font: inherit; font-weight: 700; font-size: 0.92rem; color: ${C.ink}; cursor: pointer; padding: 0; }
         .a-methodology-body { margin-top: 16px; }
@@ -486,6 +577,32 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           <KpiCard icon="fa-route" color={C.teal} label="Network Tricycle Share" value={`${stats.overallCompositionPct.Tricycles.toFixed(1)}%`} sub={`Of all recorded volume · n = ${stats.sampleSizeIntervals.toLocaleString()}`} />
           <KpiCard icon="fa-sack-dollar" color={C.purple} label="Economic Delay Cost" value="$1.5M" sub="External estimate (cited), Greater Kampala — not derived from this study's sample" />
           <KpiCard icon="fa-chart-line" color={C.green} label="Tricycles ↔ V/C Correlation" value={`r = ${stats.volumeVcCorrelation.r.toFixed(2)}`} sub={`${stats.volumeVcCorrelation.r2Pct.toFixed(0)}% of variance · n = ${stats.volumeVcCorrelation.n.toLocaleString()}`} />
+        </div>
+
+        {/* MODELED-OVERNIGHT OVERLAY TOGGLE -- applies to every hourly-profile
+            chart below that otherwise renders the real 22:00-05:45 gap as a
+            genuine null (spanGaps:false). OFF by default; switching it on
+            adds a second, dashed, distinctly-colored "modeled" dataset to
+            those charts only -- it never edits or removes the real line. */}
+        <div className="a-grid">
+          <div className="a-card s-12" style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: '16px', padding: '18px 26px' }}>
+            <div style={{ flex: '1 1 320px' }}>
+              <span style={{ fontWeight: 800, fontSize: '0.92rem', color: C.ink }}>Show simulated overnight profile</span>
+              <span className="a-illustrative-badge">Modeled, not measured</span>
+              <p className="a-footnote" style={{ margin: '6px 0 0' }}>
+                Neither field survey sampled 22:00–05:45. Turning this on adds a dashed, illustrative estimate for those hours only — a smooth interpolation from each site's last real evening reading down to an assumed low of {Math.round(OVERNIGHT_TROUGH_FRACTION * 100)}% of that site's real daytime mean, and back up to the first real morning reading. The real 06:00–21:45 line is never altered.
+              </p>
+            </div>
+            <button
+              type="button"
+              className={`a-toggle-btn ${showModeledOvernight ? 'active' : ''}`}
+              aria-pressed={showModeledOvernight}
+              onClick={() => setShowModeledOvernight((v) => !v)}
+            >
+              <i className={`fa-solid ${showModeledOvernight ? 'fa-toggle-on' : 'fa-toggle-off'}`} style={{ marginRight: '8px' }}></i>
+              {showModeledOvernight ? 'Showing modeled overnight' : 'Real hours only'}
+            </button>
+          </div>
         </div>
 
         {/* ROW: Fleet composition + Interactive simulator + Delay by profile */}
@@ -928,7 +1045,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
 
           <div className="a-card s-6">
-            <SectionHeader eyebrow="20-day field dataset · Combo chart" title="Hourly Volume Profile + Cumulative Share" color={C.blue2} sub="Bars = mean volume per interval by hour · line = cumulative % of the daily total · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero" />
+            <SectionHeader eyebrow="20-day field dataset · Combo chart" title={<>Hourly Volume Profile + Cumulative Share{showModeledOvernight && <span className="a-illustrative-badge">+ modeled overnight</span>}</>} color={C.blue2} sub="Bars = mean volume per interval by hour · line = cumulative % of the daily total · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero" />
             <div className="a-chart-box">
               <Chart
                 type="bar"
@@ -937,6 +1054,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                   datasets: [
                     { type: 'bar', label: 'Mean volume / 15-min interval', data: hourlySeries(stats.hourlyProfile), backgroundColor: hex2rgba(C.blue2, 0.55), borderRadius: 5, yAxisID: 'y' },
                     { type: 'line', label: 'Cumulative % of daily volume', data: hourlySeries((() => { const total = HOURS.reduce((s, h) => s + stats.hourlyProfile[h], 0); let cum = 0; const cumByHour = {}; HOURS.forEach((h) => { cum += stats.hourlyProfile[h]; cumByHour[h] = total ? (cum / total) * 100 : null; }); return cumByHour; })()), borderColor: C.orange, backgroundColor: 'transparent', borderWidth: 3, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
+                    ...(showModeledOvernight ? [{ type: 'line', label: 'Modeled overnight estimate — not measured', data: networkModeledOvernightSeries, borderColor: C.faint, backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 4], tension: 0.35, pointRadius: 0, yAxisID: 'y', spanGaps: false }] : []),
                   ]
                 }}
                 options={{
@@ -999,16 +1117,23 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         {/* Hourly by site + composition radar */}
         <div className="a-grid">
           <div className="a-card s-6">
-            <SectionHeader eyebrow="20-day field dataset · Line" title="Hourly Traffic Profile by Intersection" color={C.blue2} sub="Mean volume per 15-min interval, by hour of day, one line per site · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero" />
+            <SectionHeader eyebrow="20-day field dataset · Line" title={<>Hourly Traffic Profile by Intersection{showModeledOvernight && <span className="a-illustrative-badge">+ modeled overnight</span>}</>} color={C.blue2} sub="Mean volume per 15-min interval, by hour of day, one line per site · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero" />
             <div className="a-chart-box">
               <Line
                 data={{
                   labels: ALL_HOUR_LABELS,
-                  datasets: siteNames.map((name, i) => ({
-                    label: stats.shortName(name),
-                    data: hourlySeries(stats.hourlyProfileByIntersection[name] || {}).map((v) => (isBad(v) ? null : v)),
-                    borderColor: SITE_COLORS[i % SITE_COLORS.length], backgroundColor: 'transparent', borderWidth: 2, tension: 0.35, pointRadius: 1.5, spanGaps: false,
-                  }))
+                  datasets: [
+                    ...siteNames.map((name, i) => ({
+                      label: stats.shortName(name),
+                      data: hourlySeries(stats.hourlyProfileByIntersection[name] || {}).map((v) => (isBad(v) ? null : v)),
+                      borderColor: SITE_COLORS[i % SITE_COLORS.length], backgroundColor: 'transparent', borderWidth: 2, tension: 0.35, pointRadius: 1.5, spanGaps: false,
+                    })),
+                    ...(showModeledOvernight ? siteNames.map((name, i) => ({
+                      label: `${stats.shortName(name)} — modeled overnight`,
+                      data: perSiteModeledOvernightSeries[name] || [],
+                      borderColor: hex2rgba(SITE_COLORS[i % SITE_COLORS.length], 0.65), backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4, 3], tension: 0.35, pointRadius: 0, spanGaps: false,
+                    })) : []),
+                  ]
                 }}
                 options={{
                   animation: animConfig, maintainAspectRatio: false,
@@ -1329,6 +1454,550 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
               />
             </div>
             <p className="a-footnote">Ranked #1 most critical: {stats.criticalityRanking[0].name} (index {stats.criticalityRanking[0].index.toFixed(1)}) — the composite index reflects this study's own traffic-load and congestion figures, not a full road-network redundancy/topology analysis.</p>
+          </div>
+        </div>
+
+        {/* ===================================================================
+            CHARTS MOVED FROM THE OVERVIEW TAB
+            Originally shown on Overview; relocated here per the site's
+            charts-live-on-Analytics convention. All data below is computed
+            from the same useTrafficStats() `stats` object already used
+            throughout this file (via siteNames/siteColorOf above) -- nothing
+            here is new or re-typed data. ===================================== */}
+        <div className="a-hero" style={{ maxWidth: '820px', marginTop: '8px' }}>
+          <p className="a-hero-eyebrow" style={{ color: C.blue }}>Moved From Overview</p>
+          <h2 className="a-title" style={{ fontSize: '1.9rem' }}>Site-Level Baseline Charts</h2>
+          <p className="a-hero-sub" style={{ fontSize: '0.92rem' }}>Per-site volume, PCU and criticality figures, previously shown on the Overview tab — consolidated here alongside every other chart.</p>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Baseline Volume" title="Mean Daily Volume by Study Site" color={C.blue} sub="20-day field sample, 2026 (veh/day)" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: siteNames.map((n) => stats.shortName(n)),
+                  datasets: [{ label: 'Mean daily volume (veh/day)', data: siteNames.map((n) => Math.round(stats.byIntersection[n].meanDailyVolume)), backgroundColor: siteNames.map((n) => siteColorOf[n]), borderRadius: 8 }]
+                }}
+                options={{
+                  indexAxis: 'y', animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Field Results" title="PCU by Study Site (headway-ratio)" color={C.indigo} sub="PCU = mean tricycle headway ÷ mean car headway · 7-day baseline, n = 432 intervals/site" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: siteNames.map((n) => stats.shortName(n)),
+                  datasets: [{ label: 'PCU (headway-ratio)', data: siteNames.map((n) => Number(stats.pcuByIntersection[n].pcuHeadway.toFixed(3))), backgroundColor: siteNames.map((n) => siteColorOf[n]), borderRadius: 8 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    y: { min: 1.2, max: 1.4, ticks: { stepSize: 0.05, color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid } },
+                    x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10 }, autoSkip: false, maxRotation: 0 } }
+                  },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => siteNames[items[0].dataIndex] } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Asset Prioritization" title="Traffic Criticality Ranking" color={C.red}
+              sub="Composite 0–100 index: 35% traffic demand + 35% congestion stress (V/C) + 15% tricycle-induced friction (PCU) + 15% mixed-traffic complexity (tricycle share) — see Methodology below." />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: stats.criticalityRanking.map((r) => stats.shortName(r.name)),
+                  datasets: [{ label: 'Criticality Index (0–100)', data: stats.criticalityRanking.map((r) => Number(r.index.toFixed(1))), backgroundColor: C.red, borderRadius: 8 }]
+                }}
+                options={{
+                  indexAxis: 'y', animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { min: 0, max: 100, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Temporal Pattern" title={<>Mean Volume by Hour of Day{showModeledOvernight && <span className="a-illustrative-badge">+ modeled overnight</span>}</>} color={C.teal} sub={`All 5 sites combined · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero · 20-day sample, n = ${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
+            <div className="a-chart-box">
+              <Line
+                data={{
+                  labels: ALL_HOUR_LABELS,
+                  datasets: [
+                    {
+                      label: 'Mean vehicles / 15-min interval (real)',
+                      data: overviewHourlySeries,
+                      borderColor: C.teal, backgroundColor: hex2rgba(C.teal, 0.16), borderWidth: 3, fill: true, tension: 0.35,
+                      pointRadius: 3, pointBackgroundColor: C.teal, pointBorderColor: '#fff', pointBorderWidth: 1.5, spanGaps: false,
+                    },
+                    ...(showModeledOvernight ? [{
+                      label: 'Modeled overnight estimate — not measured',
+                      data: networkModeledOvernightSeries,
+                      borderColor: C.faint, backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 4], tension: 0.35,
+                      pointRadius: 0, fill: false, spanGaps: false,
+                    }] : []),
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    y: { title: { display: true, text: 'Veh / 15-min interval (mean, all sites)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
+                    x: { title: { display: true, text: 'Hour of day', color: chartSub, font: { size: 10.5 } }, grid: { display: false }, ticks: { color: chartSub, font: { size: 10 }, maxRotation: 0 } }
+                  },
+                  plugins: { legend: { display: showModeledOvernight, labels: { ...legendTheme.labels, boxWidth: 8, font: { size: 9.5 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">Peaks align with the 07-09h and 16-19h peak-period definition used throughout this study.</p>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Multi-Factor Comparison" title="Criticality Factor Profile by Site" color={C.purple}
+              sub="Each of the 4 Criticality Index inputs, min-max normalized 0–1 across the 5 sites — see Methodology for the composite formula" />
+            <div className="a-chart-box">
+              <Radar
+                data={{
+                  labels: ['Traffic Demand', 'Congestion Stress (V/C)', 'Tricycle Friction (PCU)', 'Mixed-Traffic Complexity'],
+                  datasets: siteNames.map((n) => {
+                    const crit = stats.criticalityByIntersection[n];
+                    return {
+                      label: stats.shortName(n),
+                      data: [crit.volumeNorm, crit.vcNorm, crit.pcuNorm, crit.triShareNorm],
+                      borderColor: siteColorOf[n], backgroundColor: hex2rgba(siteColorOf[n], 0.12),
+                      pointBackgroundColor: siteColorOf[n], pointBorderColor: '#fff', pointRadius: 3, borderWidth: 2,
+                    };
+                  })
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { r: { min: 0, max: 1, ticks: { display: false }, grid: { color: chartGrid }, angleLines: { color: chartGrid }, pointLabels: { color: chartSub, font: { size: 10 } } } },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Load Distribution" title="Share of Combined Daily Volume" color={C.blue2} sub="Each site's mean daily volume as a % of the 5-site total" />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Doughnut
+                data={{
+                  labels: siteNames.map((n) => stats.shortName(n)),
+                  datasets: [{
+                    data: siteNames.map((n) => Math.round(stats.byIntersection[n].meanDailyVolume)),
+                    backgroundColor: siteNames.map((n) => siteColorOf[n]), borderColor: '#ffffff', borderWidth: 3, hoverOffset: 8,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false, cutout: '64%',
+                  plugins: {
+                    legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } },
+                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed.toLocaleString()} veh/day (${(ctx.parsed / overviewTotalVolume * 100).toFixed(1)}%)` } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Site-Level Relationship" title="Daily Volume vs Criticality Index" color={C.orange} sub="One point per study site — does the busiest site also rank most critical?" />
+            <div className="a-chart-box">
+              <Scatter
+                data={{
+                  datasets: [{
+                    label: 'Study site', data: siteNames.map((n) => ({ x: Math.round(stats.byIntersection[n].meanDailyVolume), y: Number(stats.criticalityByIntersection[n].index.toFixed(1)) })),
+                    backgroundColor: siteNames.map((n) => siteColorOf[n]), pointRadius: 7, pointHoverRadius: 9,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'Mean daily volume (veh/day)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
+                    y: { title: { display: true, text: 'Criticality Index (0–100)', color: chartSub, font: { size: 10.5 } }, min: 0, max: 100, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }
+                  },
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => siteNames[ctx.dataIndex] } } }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Three-Factor Summary" title="Volume, PCU &amp; Tricycle Share by Site" color={C.pink} sub="Bubble size = tricycle share of site volume (%)" />
+            <div className="a-chart-box">
+              <Bubble
+                data={{
+                  datasets: siteNames.map((n) => ({
+                    label: stats.shortName(n),
+                    data: [{ x: Math.round(stats.byIntersection[n].meanDailyVolume), y: Number(stats.pcuByIntersection[n].pcuHeadway.toFixed(3)), r: Math.max(6, stats.byIntersection[n].tricycleSharePct * 1.1) }],
+                    backgroundColor: hex2rgba(siteColorOf[n], 0.6), borderColor: siteColorOf[n], borderWidth: 1.5,
+                  }))
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'Mean daily volume (veh/day)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
+                    y: { title: { display: true, text: 'PCU (headway-ratio)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }
+                  },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.dataset.label}: tricycle share ${stats.byIntersection[siteNames[ctx.datasetIndex]].tricycleSharePct.toFixed(1)}%` } } }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-5">
+            <SectionHeader eyebrow="Sampling Composition" title="Recorded Intervals by Weather" color={C.teal} sub="Network-wide split of the 6,400 field20 intervals used for the weather-impact test" />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Pie
+                data={{
+                  labels: ['Dry', 'Wet (Rain)'],
+                  datasets: [{ data: [stats.weatherTest.nB, stats.weatherTest.nA], backgroundColor: [C.orange, C.blue2], borderColor: '#ffffff', borderWidth: 3 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } },
+                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed.toLocaleString()} intervals (${(ctx.parsed / (stats.weatherTest.nA + stats.weatherTest.nB) * 100).toFixed(1)}%)` } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-7">
+            <SectionHeader eyebrow="Weather Sensitivity" title="Dry vs Wet Mean Interval Volume by Site" color={C.red} sub="Mean vehicles per 15-min interval, split by recorded weather condition" />
+            <div className="a-chart-box">
+              <PolarArea
+                data={{
+                  labels: siteNames.map((n) => `${stats.shortName(n)} (Dry)`),
+                  datasets: [{
+                    data: siteNames.map((n) => Math.round(stats.byIntersection[n].meanIntervalVolumeDry || 0)),
+                    backgroundColor: siteNames.map((n) => hex2rgba(siteColorOf[n], 0.55)), borderColor: '#ffffff', borderWidth: 2,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { r: { ticks: { color: chartSub, font: { size: 9 }, backdropColor: 'transparent' }, grid: { color: chartGrid } } },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">Wet-weather figures are shown per site in the Overview tab's Site Detail panel; this chart isolates the Dry baseline by site for comparison.</p>
+          </div>
+        </div>
+
+        {/* ===================================================================
+            CHARTS MOVED FROM THE SUMMARY TABLES TAB
+            `rows` in SummaryTables.jsx is renamed `vehClassRows` here (see
+            derived-data hooks above) -- the only rename needed, since every
+            other name below is already unique to this file. ================= */}
+        <div className="a-hero" style={{ maxWidth: '820px', marginTop: '8px' }}>
+          <p className="a-hero-eyebrow" style={{ color: C.indigo }}>Moved From Summary Tables</p>
+          <h2 className="a-title" style={{ fontSize: '1.9rem' }}>Vehicle-Class &amp; Safety Charts</h2>
+          <p className="a-hero-sub" style={{ fontSize: '0.92rem' }}>Charts previously shown on the Summary Tables tab, computed from the same peak-hourly, composition and incident figures still tabulated there.</p>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Empirical Flow Classification" title="Vehicle-Class Volumes by Junction" color={C.indigo} sub="Peak-hour categorized counts (veh/hr) — click a legend item to isolate a class" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: vehClassRows.map(r => stats.shortName(r.junction)),
+                  datasets: [
+                    { label: 'Passenger Cars', data: vehClassRows.map(r => Math.round(r.Cars)), backgroundColor: CLASS_COLORS.Cars },
+                    { label: 'Boda Bodas', data: vehClassRows.map(r => Math.round(r.Boda_bodas)), backgroundColor: CLASS_COLORS.Boda_bodas },
+                    { label: 'Tricycles', data: vehClassRows.map(r => Math.round(r.Tricycles)), backgroundColor: CLASS_COLORS.Tricycles },
+                    { label: 'Minibuses', data: vehClassRows.map(r => Math.round(r.Minibuses)), backgroundColor: CLASS_COLORS.Minibuses },
+                    { label: 'Heavy Trucks', data: vehClassRows.map(r => Math.round(r.Heavy_Trucks)), backgroundColor: CLASS_COLORS.Heavy_Trucks },
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { stacked: true, grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 45, minRotation: 0 } }, y: { stacked: true, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: {
+                    legend: { labels: legendTheme.labels },
+                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => vehClassRows[items[0].dataIndex].junction } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-5">
+            <SectionHeader eyebrow="Network-Wide Mix" title="Vehicle-Class Composition" color={C.blue} />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Doughnut
+                data={{
+                  labels: ['Passenger Cars', 'Boda Bodas', 'Tricycles', 'Minibuses', 'Heavy Trucks'],
+                  datasets: [{
+                    data: [vehClassTotals.Cars, vehClassTotals.Boda_bodas, vehClassTotals.Tricycles, vehClassTotals.Minibuses, vehClassTotals.Heavy_Trucks],
+                    backgroundColor: [CLASS_COLORS.Cars, CLASS_COLORS.Boda_bodas, CLASS_COLORS.Tricycles, CLASS_COLORS.Minibuses, CLASS_COLORS.Heavy_Trucks],
+                    borderColor: '#ffffff', borderWidth: 3, hoverOffset: 8,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false, cutout: '64%',
+                  plugins: {
+                    legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } },
+                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${Math.round(ctx.parsed).toLocaleString()} veh/hr (${(ctx.parsed / vehClassTotals.Total * 100).toFixed(1)}%)` } }
+                  }
+                }}
+              />
+            </div>
+            <p className="a-footnote">Tricycles account for {(vehClassTotals.Tricycles / vehClassTotals.Total * 100).toFixed(1)}% of peak-hour motorized flow across the five study sites.</p>
+          </div>
+
+          <div className="a-card s-7">
+            <SectionHeader eyebrow="Modal Share" title="Tricycle Share by Site" color={C.pink} sub="% of peak-hour volume that is tricycles, per intersection" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: vehClassRows.map(r => stats.shortName(r.junction)),
+                  datasets: [{ label: 'Tricycle share (%)', data: vehClassRows.map(r => Number((r.Tricycles / r.Total * 100).toFixed(1))), backgroundColor: SITE_COLORS, borderRadius: 8 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { y: { ticks: { stepSize: 5, color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid } }, x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 }, autoSkip: false, maxRotation: 45, minRotation: 0 } } },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => vehClassRows[items[0].dataIndex].junction } }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Temporal Pattern, Per Site" title={<>Hourly Volume Profile by Study Site{showModeledOvernight && <span className="a-illustrative-badge">+ modeled overnight</span>}</>} color={C.blue2}
+              sub={`Mean Total Volume per 15-min interval by hour of day, computed separately for each site · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero`} />
+            <div className="a-chart-box">
+              <Line
+                data={{
+                  labels: ALL_HOUR_LABELS,
+                  datasets: [
+                    ...vehClassRows.map((r, idx) => {
+                      const profile = stats.hourlyProfileByIntersection[r.junction];
+                      return {
+                        label: stats.shortName(r.junction), data: hourlySeries(profile).map((v) => (v == null ? null : Math.round(v))),
+                        borderColor: SITE_COLORS[idx], backgroundColor: hex2rgba(SITE_COLORS[idx], 0.08), borderWidth: 2, tension: 0.35,
+                        pointRadius: 2, pointBackgroundColor: SITE_COLORS[idx], spanGaps: false,
+                      };
+                    }),
+                    ...(showModeledOvernight ? vehClassRows.map((r, idx) => ({
+                      label: `${stats.shortName(r.junction)} — modeled overnight`,
+                      data: (perSiteModeledOvernightSeries[r.junction] || []).map((v) => (v == null ? null : Math.round(v))),
+                      borderColor: hex2rgba(SITE_COLORS[idx], 0.65), backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4, 3], tension: 0.35,
+                      pointRadius: 0, spanGaps: false,
+                    })) : []),
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    y: { title: { display: true, text: 'Veh / 15-min interval (mean)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
+                    x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10 }, maxRotation: 0 } }
+                  },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Modal Mix, Per Site" title="Vehicle-Class Composition Profile by Site" color={C.indigo} sub="Each site's class mix (%), all 5 classes on one radar for shape comparison" />
+            <div className="a-chart-box">
+              <Radar
+                data={{
+                  labels: ['Cars', 'Boda Bodas', 'Tricycles', 'Minibuses', 'Heavy Trucks'],
+                  datasets: vehClassRows.map((r, idx) => {
+                    const comp = stats.byIntersection[r.junction].compositionPct;
+                    return {
+                      label: stats.shortName(r.junction),
+                      data: [comp.Cars, comp.Boda_bodas, comp.Tricycles, comp.Minibuses, comp.Heavy_Trucks].map((v) => Number(v.toFixed(1))),
+                      borderColor: SITE_COLORS[idx], backgroundColor: hex2rgba(SITE_COLORS[idx], 0.1), pointBackgroundColor: SITE_COLORS[idx], pointBorderColor: '#fff', pointRadius: 3, borderWidth: 2,
+                    };
+                  })
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { r: { min: 0, ticks: { color: chartSub, font: { size: 9 }, backdropColor: 'transparent' }, grid: { color: chartGrid }, angleLines: { color: chartGrid }, pointLabels: { color: chartSub, font: { size: 10 } } } },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.dataset.label} — ${ctx.label}: ${ctx.parsed.r}%` } } }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Interval-Level Relationship" title="PCU Ratio vs V/C Ratio" color={C.orange} sub="Every recorded 7-day baseline interval — does a locally higher tricycle/car headway ratio track with a busier V/C ratio? See Methodology for the correlation." />
+            <div className="a-chart-box">
+              <Scatter
+                data={{
+                  datasets: [{
+                    label: 'Baseline interval', data: stats.pcuVcPairs, backgroundColor: hex2rgba(C.orange, 0.35), pointRadius: 2.5,
+                  }]
+                }}
+                options={{
+                  animation: false, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'PCU ratio (tricycle ÷ car headway)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
+                    y: { title: { display: true, text: 'V/C ratio', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }
+                  },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">r = {stats.pcuVcCorrelation.r.toFixed(3)} (r² = {stats.pcuVcCorrelation.r2Pct.toFixed(1)}%), n = {stats.pcuVcCorrelation.n.toLocaleString()} intervals.</p>
+          </div>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Diurnal Comparison" title="Day vs Night Tricycle Volume by Site" color={C.green} sub="Bubble size = tricycle share of site volume (%) · 7-day baseline" />
+            <div className="a-chart-box">
+              <Bubble
+                data={{
+                  datasets: vehClassRows.map((r, idx) => {
+                    const dn = stats.dayNightByIntersection[r.junction];
+                    return {
+                      label: stats.shortName(r.junction),
+                      data: [{ x: Number(dn.dayMean.toFixed(1)), y: Number(dn.nightMean.toFixed(1)), r: Math.max(6, r.Tricycles / r.Total * 100 * 1.1) }],
+                      backgroundColor: hex2rgba(SITE_COLORS[idx], 0.6), borderColor: SITE_COLORS[idx], borderWidth: 1.5,
+                    };
+                  })
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'Day mean tricycles / interval', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
+                    y: { title: { display: true, text: 'Night mean tricycles / interval', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }
+                  },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-3">
+            <SectionHeader eyebrow="Safety Record" title="Incidents by Severity" color={C.red} sub="840 recorded incidents, network-wide" />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Pie
+                data={{
+                  labels: Object.keys(stats.incidentSeverityTotals),
+                  datasets: [{ data: Object.values(stats.incidentSeverityTotals), backgroundColor: [C.red, C.orange, C.yellow], borderColor: '#ffffff', borderWidth: 3 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed} (${(ctx.parsed / stats.incidentN * 100).toFixed(1)}%)` } } }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="a-card s-3">
+            <SectionHeader eyebrow="Safety Record" title="Incidents by Type" color={C.purple} sub="840 recorded incidents, network-wide" />
+            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <PolarArea
+                data={{
+                  labels: Object.keys(stats.incidentTotalsByType),
+                  datasets: [{ data: Object.values(stats.incidentTotalsByType), backgroundColor: [C.purple, C.blue, C.teal, C.pink, C.indigo, C.orange].slice(0, Object.keys(stats.incidentTotalsByType).length), borderColor: '#ffffff', borderWidth: 2 }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { r: { ticks: { display: false }, grid: { color: chartGrid } } },
+                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 9 } } }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ===================================================================
+            JUNCTION DIGITAL TWIN
+            Animated schematic -- disclosed as illustrative below. Every
+            number in the legend and details panel traces to a real stats.*
+            field, JUNCTION_LEG_CONFIG, or the real SITE_COORDS above. ======= */}
+        <div className="a-hero" style={{ maxWidth: '820px', marginTop: '8px' }}>
+          <p className="a-hero-eyebrow" style={{ color: C.blue }}>Junction Digital Twin</p>
+          <h2 className="a-title" style={{ fontSize: '1.9rem' }}>Animated Junction Schematic</h2>
+          <p className="a-hero-sub" style={{ fontSize: '0.92rem' }}>A schematic animation of one junction's approach legs — vehicle-class mix, leg volumes and V/C-driven congestion coloring are real field data; the moving vehicle icons themselves are an illustration.</p>
+        </div>
+
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Junction Digital Twin" title={<>Live Junction Animation<span className="a-illustrative-badge">Illustrative animation</span></>} color={C.blue}
+              sub="Choose a junction and an assumed corridor-bias skew — the same Directional Split model used on the Summary Tables tab." />
+            <div className="a-toggle-row" role="group" aria-label="Choose junction for digital twin" style={{ marginBottom: '18px' }}>
+              {Object.keys(JUNCTION_LEG_CONFIG).map((j) => (
+                <button key={j} type="button" className={`a-toggle-btn ${twinJunction === j ? 'active' : ''}`} onClick={() => setTwinJunction(j)}>
+                  {stats.shortName(j)}
+                </button>
+              ))}
+            </div>
+            <div style={{ maxWidth: '420px', marginBottom: '18px' }}>
+              <div className="a-slider-head"><span>Assumed primary-corridor bias</span><span>{Math.round(twinSkew * 100)}%</span></div>
+              <input type="range" min="0" max="0.6" step="0.05" value={twinSkew} onChange={(e) => setTwinSkew(parseFloat(e.target.value))} className="a-slider" aria-label="Assumed primary-corridor bias" />
+            </div>
+
+            <JunctionDigitalTwin
+              legConfig={JUNCTION_LEG_CONFIG[twinJunction]}
+              legFlows={legFlows}
+              classMix={classMix}
+              vcMean={vcMean}
+              classColors={CLASS_COLORS}
+            />
+
+            <div className="a-twin-legend">
+              {classMix.map((row) => (
+                <div className="a-twin-legend-item" key={row.vehicleClass}>
+                  <span className="a-twin-legend-dot" style={{ background: CLASS_COLORS[row.vehicleClass] }}></span>
+                  {(VEH_LABELS[row.vehicleClass] || row.vehicleClass.replace('_', ' '))}: {row.sharePct.toFixed(1)}%
+                </div>
+              ))}
+            </div>
+
+            <div className="a-grid" style={{ marginTop: '18px', marginBottom: 0 }}>
+              <div className="s-4"><div className="a-stat-box"><div className="a-stat-label">PCU (headway-ratio)</div><div className="a-stat-value" style={{ color: C.indigo }}>{stats.pcuByIntersection[twinJunction].pcuHeadway.toFixed(3)}</div></div></div>
+              <div className="s-4"><div className="a-stat-box"><div className="a-stat-label">ADT (Total)</div><div className="a-stat-value" style={{ color: C.blue }}>{Math.round(stats.adtByIntersection[twinJunction].adtTotal).toLocaleString()}</div></div></div>
+              <div className="s-4"><div className="a-stat-box"><div className="a-stat-label">ADT (Excl. Motorcycles)</div><div className="a-stat-value" style={{ color: C.purple }}>{Math.round(stats.adtByIntersection[twinJunction].adtExclMotorcycles).toLocaleString()}</div></div></div>
+              <div className="s-4"><div className="a-stat-box"><div className="a-stat-label">Tricycle Share</div><div className="a-stat-value" style={{ color: C.green }}>{stats.criticalityByIntersection[twinJunction].tricycleSharePct.toFixed(1)}%</div></div></div>
+              <div className="s-4"><div className="a-stat-box"><div className="a-stat-label">Mean V/C Ratio</div><div className="a-stat-value" style={{ color: C.teal }}>{vcMean.toFixed(3)}</div></div></div>
+              <div className="s-4"><div className="a-stat-box"><div className="a-stat-label">Criticality Index (Rank)</div><div className="a-stat-value" style={{ color: C.red }}>{stats.criticalityByIntersection[twinJunction].index.toFixed(1)} <span style={{ fontSize: '0.7rem', fontWeight: 700, color: C.faint }}>#{stats.criticalityRanking.find((r) => r.name === twinJunction)?.rank}</span></div></div></div>
+              <div className="s-4"><div className="a-stat-box"><div className="a-stat-label">Junction Type</div><div className="a-stat-value" style={{ fontSize: '0.95rem' }}>{JUNCTION_LEG_CONFIG[twinJunction].type}</div></div></div>
+              <div className="s-4"><div className="a-stat-box"><div className="a-stat-label">Leg Count</div><div className="a-stat-value">{JUNCTION_LEG_CONFIG[twinJunction].legs.length}</div></div></div>
+              <div className="s-4"><div className="a-stat-box"><div className="a-stat-label">Coordinates</div><div className="a-stat-value" style={{ fontSize: '0.95rem' }}>{SITE_COORDS[twinJunction] ? `${SITE_COORDS[twinJunction][0].toFixed(4)}, ${SITE_COORDS[twinJunction][1].toFixed(4)}` : '—'}</div></div></div>
+            </div>
+
+            <div className="a-dir-note" style={{ marginTop: '18px' }}>
+              <b>Illustrative animation, real underlying data.</b> The moving vehicle icons, their exact paths, speeds and on-screen positions are a schematic illustration only — not to scale, not true bearing, and not a physics simulation of actual traffic. What drives every number and behavior you can read off it is real: the junction type and leg count (author-confirmed), each leg's volume (the same disclosed Directional Split model used on the Summary Tables tab, applied to this junction's real ADT), the vehicle-class mix (real, measured field20 data for this junction), and the mean V/C ratio (real baseline7 data), which sets how congested — and how fast — the animation renders.
+            </div>
+            <p className="a-dir-source">Configuration source: {JUNCTION_LEG_CONFIG[twinJunction].source}</p>
           </div>
         </div>
 

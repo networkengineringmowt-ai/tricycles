@@ -1,18 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Tooltip as LeafletTooltip, LayersControl, LayerGroup, ScaleControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip as LeafletTooltip, LayersControl, LayerGroup, ScaleControl, ZoomControl, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import {
-  Chart as ChartJS, CategoryScale, LinearScale, RadialLinearScale, BarElement, PointElement, LineElement, ArcElement, Filler, Tooltip, Legend
-} from 'chart.js';
-import { Bar, Line, Doughnut, Pie, Radar, PolarArea, Scatter, Bubble } from 'react-chartjs-2';
 import PageControls, { downloadTextFile, downloadJsonFile, downloadChartsAsZip } from './PageControls';
 import MethodologyPanel from './MethodologyPanel';
 import SearchableSelect, { searchableSelectCss } from './SearchableSelect';
+import MapFlowOverlay from './MapFlowOverlay';
 import useTrafficStats from '../lib/useTrafficStats';
-import { ALL_HOUR_LABELS, hourlySeries } from '../lib/trafficStats';
-
-ChartJS.register(CategoryScale, LinearScale, RadialLinearScale, BarElement, PointElement, LineElement, ArcElement, Filler, Tooltip, Legend);
+import { simulateFullDayProfile, OVERNIGHT_TROUGH_FRACTION } from '../lib/trafficStats';
+import { JUNCTION_LEG_CONFIG, simulateDirectionalSplit } from '../lib/directionalSplit';
 
 // Fix Leaflet default marker icon issue in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -50,10 +46,48 @@ const MapFullscreenControl = () => {
         return container;
       },
     });
-    const control = new FullscreenControl({ position: 'topleft' });
+    // Positioned bottomleft (not Leaflet's usual topleft) -- with the map
+    // surface CSS-tilted for the Google-Earth-style oblique view, the top of
+    // the plane is the "far" edge that the perspective transform compresses
+    // most; bottomleft is the "near" edge closest to the transform's pivot,
+    // so controls placed there stay full-size and easily clickable.
+    const control = new FullscreenControl({ position: 'bottomleft' });
     control.addTo(map);
     return () => control.remove();
   }, [map]);
+  return null;
+};
+
+// Custom Leaflet control that resets the map back to the same dynamic
+// fit-all-study-sites extent the map opens with (bounds computed live from
+// the 5 real site coordinates, not a hardcoded lat/lng box) -- so "reset
+// view" always matches the default extent, never a separate hand-picked one.
+const MapResetViewControl = ({ bounds, fitOptions }) => {
+  const map = useMap();
+  useEffect(() => {
+    const ResetControl = L.Control.extend({
+      onAdd: function () {
+        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+        const link = L.DomUtil.create('a', 'a-map-reset-btn', container);
+        link.href = '#';
+        link.title = 'Reset to default extent (all 5 study sites)';
+        link.setAttribute('role', 'button');
+        link.setAttribute('aria-label', 'Reset map to default extent');
+        link.innerHTML = '<i class="fa-solid fa-crosshairs" aria-hidden="true"></i>';
+        L.DomEvent.disableClickPropagation(container);
+        L.DomEvent.on(link, 'click', (e) => {
+          L.DomEvent.preventDefault(e);
+          map.fitBounds(bounds, fitOptions);
+        });
+        return container;
+      },
+    });
+    // bottomleft for the same reason as MapFullscreenControl above -- it
+    // keeps this control in the tilted plane's undistorted "near" edge.
+    const control = new ResetControl({ position: 'bottomleft' });
+    control.addTo(map);
+    return () => control.remove();
+  }, [map, bounds, fitOptions]);
   return null;
 };
 
@@ -87,14 +121,6 @@ const hex2rgba = (hex, a) => {
   const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${a})`;
 };
-const chartSub = C.faint;
-const chartGrid = 'rgba(0,0,0,0.06)';
-const animConfig = { duration: 800, easing: 'easeOutQuart' };
-const tooltipTheme = {
-  backgroundColor: '#1d1d1f', titleColor: '#ffffff', bodyColor: '#f5f5f7',
-  padding: 10, cornerRadius: 10, titleFont: { weight: '600' }, displayColors: true, boxPadding: 4,
-};
-const legendTheme = { labels: { color: chartSub, boxWidth: 10, boxHeight: 10, padding: 14, font: { size: 11, weight: '600' }, usePointStyle: true, pointStyle: 'circle' } };
 const SITE_COLORS = [C.blue, C.indigo, C.teal, C.orange, C.purple];
 
 const SectionHeader = ({ eyebrow, title, color = C.blue, sub }) => (
@@ -120,7 +146,23 @@ const KpiCard = ({ icon, color, label, value, sub }) => (
 const OverviewTab = ({ goBack, canGoBack } = {}) => {
   const [selectedSite, setSelectedSite] = useState(null);
   const [weatherView, setWeatherView] = useState('Dry');
+  // Live per-leg-per-junction flow overlay state (Task: "show the simulated
+  // traffic flow on the map per direction per leg per junction") -- the
+  // hour being scrubbed/played, whether it's auto-advancing, and the same
+  // disclosed corridor-bias skew the Summary Tables / Digital Twin sections
+  // already expose (default matches theirs: 0.3).
+  const [selectedHour, setSelectedHour] = useState(8);
+  const [isFlowPlaying, setIsFlowPlaying] = useState(false);
+  const [flowSkew, setFlowSkew] = useState(0.3);
   const stats = useTrafficStats();
+
+  // Auto-advance the selected hour once per second while "playing", wrapping
+  // 23 -> 0. Cleared whenever isFlowPlaying turns off or the tab unmounts.
+  useEffect(() => {
+    if (!isFlowPlaying) return undefined;
+    const id = setInterval(() => setSelectedHour((h) => (h + 1) % 24), 1000);
+    return () => clearInterval(id);
+  }, [isFlowPlaying]);
 
   // Merge static geo/interaction info with the live-computed per-site
   // figures from useTrafficStats() -- this is the single place the two are
@@ -142,6 +184,58 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
       };
     });
   }, [stats]);
+
+  // The map's default/reset extent: a dynamic fit-all-5-real-sites bounds
+  // array (never a hardcoded lat/lng box), memoized so the same reference is
+  // used both for MapContainer's initial `bounds` prop and for the "reset
+  // view" control -- guaranteeing "reset" always returns to the exact same
+  // default extent this tab already opened with.
+  const siteBounds = useMemo(() => (studySites ? studySites.map((s) => s.coords) : []), [studySites]);
+
+  // Same fit-bounds behavior as before (40px padding on every side), just
+  // expressed as asymmetric Leaflet padding so the two edges that now carry
+  // a floating glass HUD (top: title/KPI strip, right: Site Detail panel)
+  // reserve enough clearance that no study-site marker ends up hidden
+  // underneath one on the default view -- the left/bottom edges, where
+  // nothing new was added, keep the original 40px untouched. This is the
+  // one dynamic fit-options object used both for the map's initial extent
+  // and the "reset view" control, so both always agree.
+  const fitOptions = useMemo(() => ({ paddingTopLeft: [40, 210], paddingBottomRight: [368, 40] }), []);
+
+  // Per-leg-per-junction simulated flow for the currently selected hour --
+  // real leg identity/count (JUNCTION_LEG_CONFIG, author-confirmed) x this
+  // hour's volume (simulateFullDayProfile: real for 06:00-21:45, disclosed
+  // model outside it) x the same disclosed directional-split assumption
+  // (simulateDirectionalSplit) already used on Summary Tables. The 15-min
+  // interval mean is converted to a veh/hr rate via x4, the same convention
+  // FORMULAS.peakHourly already uses elsewhere on this site.
+  const flowData = useMemo(() => {
+    if (!stats) return [];
+    return SITE_GEO
+      .map((geo) => {
+        const config = JUNCTION_LEG_CONFIG[geo.name];
+        if (!config) return null;
+        const fullProfile = simulateFullDayProfile(geo.name, stats.hourlyProfileByIntersection);
+        const hourEntry = fullProfile[selectedHour];
+        const hourlyRate = (hourEntry?.volume || 0) * 4;
+        const legs = simulateDirectionalSplit(hourlyRate, config, flowSkew);
+        return {
+          name: geo.name,
+          shortName: stats.shortName(geo.name),
+          coords: geo.coords,
+          legs,
+          vcMean: stats.vcByIntersection[geo.name]?.mean,
+          isModeledHour: !!hourEntry?.isModeled,
+          intervalVolume: hourEntry?.volume,
+          hourlyRate,
+          source: config.source,
+          type: config.type,
+        };
+      })
+      .filter(Boolean);
+  }, [stats, selectedHour, flowSkew]);
+
+  const flowIsRealHour = flowData.length ? !flowData[0].isModeledHour : true;
 
   const exportSites = () => {
     if (!studySites) return;
@@ -167,16 +261,12 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
 
   const chipVolume = (site) => (weatherView === 'Dry' ? site.meanIntervalVolumeDry : site.meanIntervalVolumeWet);
 
-  // Hours are recorded 06:00-21:45 only (field20's sampling window) --
-  // sorted numerically so the line reads left-to-right across the day.
-  const hourlySeriesData = stats ? hourlySeries(stats.hourlyProfile).map((v) => (v == null ? null : Math.round(v))) : [];
-
   return (
     <div className="apple-overview">
       <style>{`
-        .apple-overview { position: relative; width: 100vw; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; background: ${C.canvas}; padding: 44px 12px 90px; }
-        .apple-overview-inner { width: 100%; margin: 0 auto; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif; color: ${C.ink}; }
-        .a-hero { text-align: center; max-width: 760px; margin: 0 auto 40px; }
+        .apple-overview { position: relative; width: 100vw; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; background: ${C.canvas}; }
+        .apple-overview-inner { width: 100%; margin: 0 auto; padding: 36px 12px 90px; font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif; color: ${C.ink}; }
+        .a-hero { text-align: center; max-width: 760px; margin: 0 auto 40px; padding: 44px 12px 0; font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif; color: ${C.ink}; }
         .a-hero-eyebrow { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: ${C.blue}; margin: 0 0 10px; }
         .a-hero-title { font-size: clamp(2.1rem, 4vw, 3.4rem); font-weight: 800; letter-spacing: -0.03em; margin: 0 0 12px; line-height: 1.05;
           background: linear-gradient(90deg, ${C.blue}, ${C.teal} 50%, ${C.green}); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -209,14 +299,108 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         .a-toggle-btn.active { background: ${C.ink}; color: #fff; border-color: ${C.ink}; }
         .a-toggle-btn:hover:not(.active) { background: #f5f5f7; }
 
-        .a-map-wrap { height: 400px; border-radius: 16px; overflow: hidden; margin-top: 16px; border: 1px solid rgba(0,0,0,0.06); }
+        /* ===================================================================
+           FULL-BLEED GEOSPATIAL STAGE -- the map is the dominant element of
+           this tab: a near-full-viewport, edge-to-edge container sitting
+           directly under the sticky 72px topbar (+ the 20px top padding
+           main-content applies above every tab), with every other Overview
+           control floating on top of it as a HUD rather than sharing a grid
+           row with it. See OverviewTab.jsx header comment for the redesign
+           rationale.
+           =================================================================== */
+        .a-map-stage { position: relative; width: 100%; height: calc(100vh - 92px); min-height: 560px; overflow: hidden;
+          background: linear-gradient(180deg, #c7ccd6 0%, ${C.canvas} 55%); }
+
+        /* Tilt: a CSS 3D-perspective approximation of Google Earth Pro's
+           oblique viewing angle. Leaflet has no native pitch/3D -- this
+           wraps ONLY the map's tile/marker/control surface (one DOM node,
+           so Leaflet's internal panes move as a single rigid unit) in a
+           perspective context and rotates it back around its bottom (near)
+           edge, so the "far" edge recedes into the horizon-fade below.
+           Floating HUD panels are siblings of this wrapper, NOT descendants
+           of it, so they stay flat/upright/legible like a HUD over a tilted
+           3D view. */
+        .a-map-perspective { position: absolute; inset: 0; perspective: 1900px; perspective-origin: 50% 6%; }
+        .a-map-tilt { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotateX(35deg); transform-origin: 50% 100%; will-change: transform; }
+        .a-map-tilt .leaflet-container { width: 100%; height: 100%; }
         .a-map-fullscreen-btn { display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .a-map-reset-btn { display: flex; align-items: center; justify-content: center; font-size: 14px; }
         .leaflet-container:fullscreen { width: 100%; height: 100%; }
+
+        /* Leaflet renders no real horizon -- this flat (untilted) gradient
+           sibling fades the tilted plane's receding top edge into the page
+           background so the foreshortening reads as an intentional oblique
+           view rather than a rendering gap. Sits above the map tiles but
+           below every HUD panel and below Leaflet's own controls (z-index
+           1000+), so it never blocks interaction. */
+        .a-map-horizon-fade { position: absolute; top: 0; left: 0; right: 0; height: 24%;
+          background: linear-gradient(180deg, ${C.canvas} 0%, rgba(245,245,247,0) 100%); pointer-events: none; z-index: 450; }
 
         .a-map-label.leaflet-tooltip { background: ${C.ink}; color: #fff; border: none; border-radius: 8px; padding: 4px 9px; box-shadow: 0 3px 10px rgba(0,0,0,0.25); display: flex; flex-direction: column; align-items: center; line-height: 1.25; }
         .a-map-label.leaflet-tooltip::before { border-top-color: ${C.ink}; }
         .a-map-label-name { font-size: 10.5px; font-weight: 800; letter-spacing: 0.01em; white-space: nowrap; }
         .a-map-label-pcu { font-size: 9.5px; font-weight: 700; color: ${C.teal}; white-space: nowrap; }
+
+        /* ---- Floating glass HUD panels (glassmorphism, matches .a-card's
+           look but translucent + blurred so the map stays visible through
+           them). z-index kept below Leaflet's own leaflet-top/leaflet-bottom
+           control corners (z-index: 1000) so native zoom/layers/scale never
+           get covered, even where a panel's bounding box brushes a corner. */
+        .a-hud { position: absolute; z-index: 550; background: rgba(255,255,255,0.72); backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
+          border: 1px solid rgba(255,255,255,0.6); border-radius: 20px; box-shadow: 0 10px 34px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.06); font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif; }
+
+        .a-hud-top { top: 16px; left: 16px; right: 372px; padding: 14px 20px 12px; }
+        .a-hud-top-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+        .a-hud-eyebrow { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: ${C.blue}; margin: 0; }
+        .a-hud-title { font-size: 1.02rem; font-weight: 800; margin: 0; color: ${C.ink}; letter-spacing: -0.01em; }
+        .a-hud-kpis { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; }
+        .a-hud-kpis::-webkit-scrollbar { height: 5px; }
+        .a-hud-kpis .a-card.a-kpi { flex: 0 0 auto; min-width: 128px; padding: 9px 11px; gap: 2px; border-radius: 13px; box-shadow: none; border-color: rgba(0,0,0,0.06); background: rgba(255,255,255,0.55); }
+        .a-hud-kpis .a-card.a-kpi:hover { transform: none; box-shadow: none; }
+        .a-hud-kpis .a-kpi-icon { width: 26px; height: 26px; border-radius: 8px; font-size: 11px; margin-bottom: 1px; }
+        .a-hud-kpis .a-kpi-value { font-size: 1.0rem; }
+        .a-hud-kpis .a-kpi-label { font-size: 0.58rem; }
+        .a-hud-kpis .a-kpi-sub { font-size: 0.6rem; }
+
+        .a-hud-site { top: 16px; right: 16px; width: clamp(272px, 25vw, 344px); max-height: calc(100% - 32px); overflow-y: auto; padding: 20px; }
+
+        /* HUD: Simulated Traffic Flow time-of-day control -- floating
+           bottom-center, the one edge of the map stage Leaflet's native
+           controls and the other two HUD panels don't already occupy. */
+        /* pointer-events:none on the panel itself, re-enabled only on its
+           actual controls -- this floating panel's footprint can end up
+           geometrically over a real map marker (the 5 study sites are close
+           together and the panel is centered over the map), and without
+           this a click on the panel's glass background in that spot would
+           swallow a click meant for the marker underneath. Confirmed
+           empirically in this task's Playwright pass (a marker under this
+           panel was unclickable before this rule, clickable after). */
+        .a-hud-flow { bottom: 16px; left: 50%; transform: translateX(-50%); width: clamp(300px, 34vw, 420px); padding: 14px 20px 12px; pointer-events: none; }
+        .a-hud-flow-row .a-toggle-btn, .a-hud-flow input[type=range] { pointer-events: auto; }
+        .a-hud-flow-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+        .a-hud-flow-row .a-toggle-btn { padding: 8px 13px; flex-shrink: 0; }
+        .a-hud-flow-hours { display: flex; justify-content: space-between; font-size: 0.62rem; font-weight: 700; color: ${C.faint}; margin-top: 4px; font-feature-settings: "tnum" 1; }
+
+        .a-illustrative-badge { display: inline-block; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: ${C.orange}; background: ${hex2rgba(C.orange, 0.14)}; padding: 3px 8px; border-radius: 6px; vertical-align: middle; }
+
+        .a-slider { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 4px; background: #e5e5ea; margin: 4px 0; }
+        .a-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.06); cursor: pointer; border: 5px solid ${C.blue}; }
+        .a-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #ffffff; border: 5px solid ${C.blue}; cursor: pointer; }
+        .a-slider:focus-visible { outline: 2px solid ${C.blue}; outline-offset: 3px; }
+        .a-slider-purple::-webkit-slider-thumb { border-color: ${C.purple}; }
+        .a-slider-purple::-moz-range-thumb { border-color: ${C.purple}; }
+
+        /* Flow spoke hover/click tooltips + popups -- same visual language
+           as .a-map-label above, sized for the richer per-leg content. */
+        .a-flow-tooltip.leaflet-tooltip { background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 8px 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.18); }
+        .a-flow-popup .leaflet-popup-content-wrapper { border-radius: 12px; }
+
+        @media (max-width: 980px) {
+          .a-hud-top { right: 16px; }
+          .a-hud-site { top: auto; bottom: 78px; right: 16px; left: 16px; width: auto; max-height: 32%; }
+          .a-hud-flow { bottom: 16px; left: 16px; right: 16px; width: auto; transform: none; }
+          .a-map-stage { min-height: 760px; }
+        }
 
         .a-site-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
         .a-site-chip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: ${C.canvas}; cursor: pointer; transition: background .15s ease; border: 1px solid transparent; width: 100%; text-align: left; font: inherit; }
@@ -258,55 +442,45 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
 
       <PageControls onBack={goBack} canGoBack={canGoBack} exportOptions={overviewExportOptions} />
 
-      <div className="apple-overview-inner">
-
-        {/* HERO */}
-        <div className="a-hero">
-          <p className="a-hero-eyebrow">Geospatial Study Console</p>
-          <h1 className="a-hero-title">Network Overview</h1>
-          <p className="a-hero-sub">Five case-study intersections across the Kampala City road network, mapped and instrumented for the Tricycle Passenger Car Unit (PCU) survey.</p>
-        </div>
-
-        {!stats || !studySites ? (
+      {!stats || !studySites ? (
+        <div className="apple-overview-inner">
+          <div className="a-hero">
+            <p className="a-hero-eyebrow">Geospatial Study Console</p>
+            <h1 className="a-hero-title">Network Overview</h1>
+            <p className="a-hero-sub">Five case-study intersections across the Kampala City road network, mapped and instrumented for the Tricycle Passenger Car Unit (PCU) survey.</p>
+          </div>
           <div className="a-loading"><i className="fa-solid fa-circle-notch fa-spin" style={{ marginRight: '8px' }}></i>Computing live figures from field data…</div>
-        ) : (
-        <>
-        {/* KPI STRIP */}
-        <div className="a-kpi-grid">
-          <KpiCard icon="fa-location-dot" color={C.blue} label="Study Intersections" value="5" sub="Kampala City road network" />
-          <KpiCard icon="fa-car-side" color={C.indigo} label="Combined Daily Volume" value={Math.round(totalVolume).toLocaleString()} sub={`Veh/day · 20-day sample, n = ${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
-          <KpiCard icon="fa-ban" color={C.purple} label="Combined ADT (Excl. Motorcycles)" value={Math.round(totalVolumeExclMC).toLocaleString()} sub="Cars + Tricycles + Minibuses + Heavy Trucks · 20-day sample" />
-          <KpiCard icon="fa-gauge-high" color={C.teal} label="Mean PCU (headway-ratio)" value={stats.pcuHeadwayOverall.toFixed(2)} sub={`Range ${Math.min(...studySites.map(s=>s.pcuHeadway)).toFixed(2)}–${Math.max(...studySites.map(s=>s.pcuHeadway)).toFixed(2)} · n = 2,160 intervals`} />
-          <KpiCard icon="fa-fire" color={C.orange} label="Busiest Site" value={stats.shortName(busiest.name)} sub={`${Math.round(busiest.meanDailyVolume).toLocaleString()} veh/day mean · 20-day sample`} />
-          <KpiCard icon="fa-route" color={C.pink} label="Highest Tricycle Share" value={stats.shortName(highestTricycle.name)} sub={`${highestTricycle.tricycleSharePct.toFixed(1)}% of site volume · 20-day sample`} />
-          <KpiCard icon="fa-cloud-showers-heavy" color={C.red} label="Wet-Weather Volume Impact" value={`${weatherDelta.toFixed(1)}%`} sub={`vs Dry intervals · n = ${stats.weatherTest.nA.toLocaleString()} wet / ${stats.weatherTest.nB.toLocaleString()} dry`} />
         </div>
-
-        {/* MAP + SITE DETAIL */}
-        <div className="a-grid">
-          <div className="a-card s-8">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-              <SectionHeader eyebrow="Study Area" title="Interactive Case Study Map" color={C.blue} />
-              <div className="a-toggle-row" role="group" aria-label="Weather condition for site volume figures">
-                <button
-                  type="button"
-                  className={`a-toggle-btn ${weatherView === 'Dry' ? 'active' : ''}`}
-                  aria-pressed={weatherView === 'Dry'}
-                  onClick={() => setWeatherView('Dry')}
-                ><i className="fa-solid fa-sun" style={{ marginRight: '6px' }}></i>Dry</button>
-                <button
-                  type="button"
-                  className={`a-toggle-btn ${weatherView === 'Wet' ? 'active' : ''}`}
-                  aria-pressed={weatherView === 'Wet'}
-                  onClick={() => setWeatherView('Wet')}
-                ><i className="fa-solid fa-cloud-showers-heavy" style={{ marginRight: '6px' }}></i>Wet</button>
-              </div>
-            </div>
-            <div className="a-map-wrap">
-              <MapContainer bounds={studySites.map((s) => s.coords)} boundsOptions={{ padding: [40, 40] }} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
-                <ScaleControl position="bottomleft" metric imperial />
+      ) : (
+        <>
+        {/* ===============================================================
+            FULL-GEOSPATIAL STAGE -- the map fills essentially the whole
+            viewport for this tab. Every other Overview control (KPI strip,
+            Site Detail, Dry/Wet toggle) floats over it as a glass HUD panel
+            instead of sharing a side-by-side grid row with it. Leaflet's own
+            zoom/layer/fullscreen/scale controls render natively inside the
+            map and are left alone. The map opens on the SAME dynamic extent
+            as before -- bounds computed live from the 5 real site
+            coordinates, never a hardcoded lat/lng box (see `fitOptions`
+            above for the one padding adjustment this redesign required) --
+            and the added "reset view" control (bottomleft, crosshair icon)
+            returns to that exact same extent. */}
+        <div className="a-map-stage">
+          <div className="a-map-perspective">
+            <div className="a-map-tilt">
+              <MapContainer bounds={siteBounds} boundsOptions={fitOptions} scrollWheelZoom={true} zoomControl={false} style={{ height: '100%', width: '100%' }}>
+                {/* Every native Leaflet control lives at the BOTTOM corners
+                    (near edge of the tilted plane, closest to the transform's
+                    pivot) rather than Leaflet's usual topleft/topright --
+                    controls placed at the top of a CSS-tilted plane land in
+                    the most perspective-compressed region and become tiny
+                    and hard to hit. Verified empirically (see final report):
+                    at the bottom they stay full-size and clickable. */}
+                <ZoomControl position="bottomleft" />
                 <MapFullscreenControl />
-                <LayersControl position="topright" collapsed={true}>
+                <MapResetViewControl bounds={siteBounds} fitOptions={fitOptions} />
+                <ScaleControl position="bottomleft" metric imperial />
+                <LayersControl position="bottomright" collapsed={true}>
                   <LayersControl.BaseLayer checked name="Streets">
                     <TileLayer
                       url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -358,11 +532,105 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
                     </LayerGroup>
                   </LayersControl.Overlay>
                 </LayersControl>
+                {/* Live per-leg-per-junction simulated flow -- native Leaflet
+                    vector layers anchored by real lat/lng via useMap(), so
+                    they re-project automatically with every pan/zoom exactly
+                    like the markers above (see MapFlowOverlay.jsx header
+                    comment for why this approach was chosen over a manually
+                    positioned pixel overlay). Always mounted; the HUD below
+                    controls WHICH hour's simulated volumes it displays. */}
+                <MapFlowOverlay
+                  flowData={flowData}
+                  accentColor={C.blue}
+                  mutedColor="rgba(110,110,115,0.6)"
+                  onLegSelect={(name) => setSelectedSite(studySites.find((s) => s.name === name) || null)}
+                />
               </MapContainer>
             </div>
           </div>
+          <div className="a-map-horizon-fade" aria-hidden="true"></div>
 
-          <div className="a-card s-4">
+          {/* HUD: Simulated Traffic Flow control -- time-of-day scrubber +
+              play/pause for the MapFlowOverlay spokes/dots anchored at every
+              real junction marker. Floating bottom-center, the one edge of
+              the map stage not already claimed by Leaflet's own native
+              controls (bottomleft: zoom/fullscreen/reset/scale, bottomright:
+              layers) or the other two HUD panels (top, right). */}
+          <div className="a-hud a-hud-flow">
+            <div className="a-hud-flow-row">
+              <div>
+                <p className="a-hud-eyebrow" style={{ color: C.purple }}>Simulated Traffic Flow, Per Leg</p>
+                <h2 className="a-hud-title" style={{ fontSize: '0.92rem' }}>
+                  {String(selectedHour).padStart(2, '0')}:00
+                  <span className="a-illustrative-badge" style={{ marginLeft: '8px' }}>
+                    {flowIsRealHour ? 'Real hour · split modeled' : 'Modeled hour'}
+                  </span>
+                </h2>
+              </div>
+              <button
+                type="button"
+                className={`a-toggle-btn ${isFlowPlaying ? 'active' : ''}`}
+                aria-pressed={isFlowPlaying}
+                onClick={() => setIsFlowPlaying((v) => !v)}
+                aria-label={isFlowPlaying ? 'Pause hourly playback' : 'Play hourly playback'}
+              >
+                <i className={`fa-solid ${isFlowPlaying ? 'fa-pause' : 'fa-play'}`}></i>
+              </button>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="23"
+              step="1"
+              value={selectedHour}
+              onChange={(e) => { setIsFlowPlaying(false); setSelectedHour(parseInt(e.target.value, 10)); }}
+              className="a-slider a-slider-purple"
+              aria-label="Hour of day for simulated flow"
+            />
+            <div className="a-hud-flow-hours">
+              <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
+            </div>
+            <p className="a-footnote" style={{ margin: '8px 0 0' }}>
+              Leg identity/count real (author-confirmed) · this hour's volume is {flowIsRealHour ? 'real, measured' : 'a disclosed model (outside the 06:00–21:45 field sample)'} · the per-leg split shown is always a disclosed assumption — hover or tap any spoke for its citation.
+            </p>
+          </div>
+
+          {/* HUD: hero title + Dry/Wet toggle on one row, slim KPI strip
+              below -- floating top, flat/upright above the tilted map */}
+          <div className="a-hud a-hud-top">
+            <div className="a-hud-top-row">
+              <div>
+                <p className="a-hud-eyebrow">Geospatial Study Console</p>
+                <h1 className="a-hud-title">Network Overview — 5 Kampala Study Intersections</h1>
+              </div>
+              <div className="a-toggle-row" role="group" aria-label="Weather condition for site volume figures">
+                <button
+                  type="button"
+                  className={`a-toggle-btn ${weatherView === 'Dry' ? 'active' : ''}`}
+                  aria-pressed={weatherView === 'Dry'}
+                  onClick={() => setWeatherView('Dry')}
+                ><i className="fa-solid fa-sun" style={{ marginRight: '6px' }}></i>Dry</button>
+                <button
+                  type="button"
+                  className={`a-toggle-btn ${weatherView === 'Wet' ? 'active' : ''}`}
+                  aria-pressed={weatherView === 'Wet'}
+                  onClick={() => setWeatherView('Wet')}
+                ><i className="fa-solid fa-cloud-showers-heavy" style={{ marginRight: '6px' }}></i>Wet</button>
+              </div>
+            </div>
+            <div className="a-hud-kpis">
+              <KpiCard icon="fa-location-dot" color={C.blue} label="Study Intersections" value="5" sub="Kampala City road network" />
+              <KpiCard icon="fa-car-side" color={C.indigo} label="Combined Daily Volume" value={Math.round(totalVolume).toLocaleString()} sub={`Veh/day · n=${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
+              <KpiCard icon="fa-ban" color={C.purple} label="Combined ADT (Excl. MC)" value={Math.round(totalVolumeExclMC).toLocaleString()} sub="Cars+Tricycles+Minibus+Trucks" />
+              <KpiCard icon="fa-gauge-high" color={C.teal} label="Mean PCU (headway-ratio)" value={stats.pcuHeadwayOverall.toFixed(2)} sub={`Range ${Math.min(...studySites.map(s=>s.pcuHeadway)).toFixed(2)}–${Math.max(...studySites.map(s=>s.pcuHeadway)).toFixed(2)}`} />
+              <KpiCard icon="fa-fire" color={C.orange} label="Busiest Site" value={stats.shortName(busiest.name)} sub={`${Math.round(busiest.meanDailyVolume).toLocaleString()} veh/day mean`} />
+              <KpiCard icon="fa-route" color={C.pink} label="Highest Tricycle Share" value={stats.shortName(highestTricycle.name)} sub={`${highestTricycle.tricycleSharePct.toFixed(1)}% of site volume`} />
+              <KpiCard icon="fa-cloud-showers-heavy" color={C.red} label="Wet-Weather Impact" value={`${weatherDelta.toFixed(1)}%`} sub={`vs Dry · n=${stats.weatherTest.nA.toLocaleString()}/${stats.weatherTest.nB.toLocaleString()}`} />
+            </div>
+          </div>
+
+          {/* HUD: Site Detail panel, floating right side of the map */}
+          <div className="a-hud a-hud-site">
             <SectionHeader eyebrow="Site Detail" title={selectedSite ? selectedSite.name : 'Select a study site'} color={C.indigo} />
             <SearchableSelect
               label="Jump to Study Site"
@@ -439,240 +707,16 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
-        {/* CHARTS: Daily volume + PCU by site */}
-        <div className="a-grid">
-          <div className="a-card s-6">
-            <SectionHeader eyebrow="Baseline Volume" title="Mean Daily Volume by Study Site" color={C.blue} sub="20-day field sample, 2026 (veh/day)" />
-            <div className="a-chart-box">
-              <Bar
-                data={{
-                  labels: studySites.map(s => s.name),
-                  datasets: [{ label: 'Mean daily volume (veh/day)', data: studySites.map(s => Math.round(s.meanDailyVolume)), backgroundColor: SITE_COLORS, borderRadius: 8 }]
-                }}
-                options={{
-                  indexAxis: 'y', animation: animConfig, maintainAspectRatio: false,
-                  scales: { x: { grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } } },
-                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
-                }}
-              />
-            </div>
-          </div>
-          <div className="a-card s-6">
-            <SectionHeader eyebrow="Field Results" title="PCU by Study Site (headway-ratio)" color={C.indigo} sub="PCU = mean tricycle headway ÷ mean car headway · 7-day baseline, n = 432 intervals/site" />
-            <div className="a-chart-box">
-              <Bar
-                data={{
-                  labels: studySites.map(s => stats.shortName(s.name)),
-                  datasets: [{ label: 'PCU (headway-ratio)', data: studySites.map(s => Number(s.pcuHeadway.toFixed(3))), backgroundColor: SITE_COLORS, borderRadius: 8 }]
-                }}
-                options={{
-                  animation: animConfig, maintainAspectRatio: false,
-                  scales: {
-                    y: { min: 1.2, max: 1.4, ticks: { stepSize: 0.05, color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid } },
-                    x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10 }, autoSkip: false, maxRotation: 0 } }
-                  },
-                  plugins: {
-                    legend: { display: false },
-                    tooltip: { ...tooltipTheme, callbacks: { title: (items) => studySites[items[0].dataIndex].name } }
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
+        {/* All per-site charts (Mean Daily Volume, PCU by Site, Traffic
+            Criticality Ranking, Mean Volume by Hour of Day, Criticality
+            Factor Profile, Share of Combined Daily Volume, Daily Volume vs
+            Criticality Index, Volume/PCU/Tricycle-Share bubble, Recorded
+            Intervals by Weather, Dry vs Wet Mean Interval Volume) have moved
+            to the Analytics tab, where every other chart on this site now
+            lives -- see InfographicDashboard.jsx. The full-height map HUD
+            above, Site Directory and Methodology below are unchanged. */}
 
-        {/* TRAFFIC CRITICALITY RANKING — composite index from real per-site volume/V-C/PCU/tricycle-share figures */}
-        <div className="a-grid">
-          <div className="a-card s-12">
-            <SectionHeader eyebrow="Asset Prioritization" title="Traffic Criticality Ranking" color={C.red}
-              sub="Composite 0–100 index: 35% traffic demand + 35% congestion stress (V/C) + 15% tricycle-induced friction (PCU) + 15% mixed-traffic complexity (tricycle share) — see Methodology below." />
-            <div className="a-chart-box">
-              <Bar
-                data={{
-                  labels: [...studySites].sort((a, b) => b.criticalityIndex - a.criticalityIndex).map(s => stats.shortName(s.name)),
-                  datasets: [{ label: 'Criticality Index (0–100)', data: [...studySites].sort((a, b) => b.criticalityIndex - a.criticalityIndex).map(s => Number(s.criticalityIndex.toFixed(1))), backgroundColor: C.red, borderRadius: 8 }]
-                }}
-                options={{
-                  indexAxis: 'y', animation: animConfig, maintainAspectRatio: false,
-                  scales: { x: { min: 0, max: 100, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } } },
-                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* HOURLY PROFILE — new time-of-day view, computed live but not shown anywhere else on the site */}
-        <div className="a-grid">
-          <div className="a-card s-12">
-            <SectionHeader eyebrow="Temporal Pattern" title="Mean Volume by Hour of Day" color={C.teal} sub={`All 5 sites combined · field surveys only ran 06:00–21:45, so 22:00–05:45 show as a genuine gap, not zero · 20-day sample, n = ${stats.sampleSizeIntervals.toLocaleString()} intervals`} />
-            <div className="a-chart-box">
-              <Line
-                data={{
-                  labels: ALL_HOUR_LABELS,
-                  datasets: [{
-                    label: 'Mean vehicles / 15-min interval',
-                    data: hourlySeriesData,
-                    borderColor: C.teal, backgroundColor: hex2rgba(C.teal, 0.16), borderWidth: 3, fill: true, tension: 0.35,
-                    pointRadius: 3, pointBackgroundColor: C.teal, pointBorderColor: '#fff', pointBorderWidth: 1.5, spanGaps: false,
-                  }]
-                }}
-                options={{
-                  animation: animConfig, maintainAspectRatio: false,
-                  scales: {
-                    y: { title: { display: true, text: 'Veh / 15-min interval (mean, all sites)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
-                    x: { title: { display: true, text: 'Hour of day', color: chartSub, font: { size: 10.5 } }, grid: { display: false }, ticks: { color: chartSub, font: { size: 10 }, maxRotation: 0 } }
-                  },
-                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
-                }}
-              />
-            </div>
-            <p className="a-footnote">Peaks align with the 07-09h and 16-19h peak-period definition used throughout this study.</p>
-          </div>
-        </div>
-
-        {/* RADAR: normalized criticality profile per site */}
-        <div className="a-grid">
-          <div className="a-card s-6">
-            <SectionHeader eyebrow="Multi-Factor Comparison" title="Criticality Factor Profile by Site" color={C.purple}
-              sub="Each of the 4 Criticality Index inputs, min-max normalized 0–1 across the 5 sites — see Methodology for the composite formula" />
-            <div className="a-chart-box">
-              <Radar
-                data={{
-                  labels: ['Traffic Demand', 'Congestion Stress (V/C)', 'Tricycle Friction (PCU)', 'Mixed-Traffic Complexity'],
-                  datasets: studySites.map((s, idx) => {
-                    const crit = stats.criticalityByIntersection[s.name];
-                    return {
-                      label: stats.shortName(s.name),
-                      data: [crit.volumeNorm, crit.vcNorm, crit.pcuNorm, crit.triShareNorm],
-                      borderColor: SITE_COLORS[idx], backgroundColor: hex2rgba(SITE_COLORS[idx], 0.12),
-                      pointBackgroundColor: SITE_COLORS[idx], pointBorderColor: '#fff', pointRadius: 3, borderWidth: 2,
-                    };
-                  })
-                }}
-                options={{
-                  animation: animConfig, maintainAspectRatio: false,
-                  scales: { r: { min: 0, max: 1, ticks: { display: false }, grid: { color: chartGrid }, angleLines: { color: chartGrid }, pointLabels: { color: chartSub, font: { size: 10 } } } },
-                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: tooltipTheme }
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="a-card s-6">
-            <SectionHeader eyebrow="Load Distribution" title="Share of Combined Daily Volume" color={C.blue2} sub="Each site's mean daily volume as a % of the 5-site total" />
-            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Doughnut
-                data={{
-                  labels: studySites.map((s) => stats.shortName(s.name)),
-                  datasets: [{
-                    data: studySites.map((s) => Math.round(s.meanDailyVolume)),
-                    backgroundColor: SITE_COLORS, borderColor: '#ffffff', borderWidth: 3, hoverOffset: 8,
-                  }]
-                }}
-                options={{
-                  animation: animConfig, maintainAspectRatio: false, cutout: '64%',
-                  plugins: {
-                    legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } },
-                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed.toLocaleString()} veh/day (${(ctx.parsed / totalVolume * 100).toFixed(1)}%)` } }
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* SCATTER + BUBBLE: cross-site relationships */}
-        <div className="a-grid">
-          <div className="a-card s-6">
-            <SectionHeader eyebrow="Site-Level Relationship" title="Daily Volume vs Criticality Index" color={C.orange} sub="One point per study site — does the busiest site also rank most critical?" />
-            <div className="a-chart-box">
-              <Scatter
-                data={{
-                  datasets: [{
-                    label: 'Study site', data: studySites.map((s) => ({ x: Math.round(s.meanDailyVolume), y: Number(s.criticalityIndex.toFixed(1)) })),
-                    backgroundColor: SITE_COLORS, pointRadius: 7, pointHoverRadius: 9,
-                  }]
-                }}
-                options={{
-                  animation: animConfig, maintainAspectRatio: false,
-                  scales: {
-                    x: { title: { display: true, text: 'Mean daily volume (veh/day)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
-                    y: { title: { display: true, text: 'Criticality Index (0–100)', color: chartSub, font: { size: 10.5 } }, min: 0, max: 100, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }
-                  },
-                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => studySites[ctx.dataIndex].name } } }
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="a-card s-6">
-            <SectionHeader eyebrow="Three-Factor Summary" title="Volume, PCU &amp; Tricycle Share by Site" color={C.pink} sub="Bubble size = tricycle share of site volume (%)" />
-            <div className="a-chart-box">
-              <Bubble
-                data={{
-                  datasets: studySites.map((s, idx) => ({
-                    label: stats.shortName(s.name),
-                    data: [{ x: Math.round(s.meanDailyVolume), y: Number(s.pcuHeadway.toFixed(3)), r: Math.max(6, s.tricycleSharePct * 1.1) }],
-                    backgroundColor: hex2rgba(SITE_COLORS[idx], 0.6), borderColor: SITE_COLORS[idx], borderWidth: 1.5,
-                  }))
-                }}
-                options={{
-                  animation: animConfig, maintainAspectRatio: false,
-                  scales: {
-                    x: { title: { display: true, text: 'Mean daily volume (veh/day)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } },
-                    y: { title: { display: true, text: 'PCU (headway-ratio)', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }
-                  },
-                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.dataset.label}: tricycle share ${studySites[ctx.datasetIndex].tricycleSharePct.toFixed(1)}%` } } }
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* PIE + POLAR AREA: weather-condition sampling */}
-        <div className="a-grid">
-          <div className="a-card s-5">
-            <SectionHeader eyebrow="Sampling Composition" title="Recorded Intervals by Weather" color={C.teal} sub="Network-wide split of the 6,400 field20 intervals used for the weather-impact test" />
-            <div className="a-chart-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Pie
-                data={{
-                  labels: ['Dry', 'Wet (Rain)'],
-                  datasets: [{ data: [stats.weatherTest.nB, stats.weatherTest.nA], backgroundColor: [C.orange, C.blue2], borderColor: '#ffffff', borderWidth: 3 }]
-                }}
-                options={{
-                  animation: animConfig, maintainAspectRatio: false,
-                  plugins: {
-                    legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } },
-                    tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed.toLocaleString()} intervals (${(ctx.parsed / (stats.weatherTest.nA + stats.weatherTest.nB) * 100).toFixed(1)}%)` } }
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="a-card s-7">
-            <SectionHeader eyebrow="Weather Sensitivity" title="Dry vs Wet Mean Interval Volume by Site" color={C.red} sub="Mean vehicles per 15-min interval, split by recorded weather condition" />
-            <div className="a-chart-box">
-              <PolarArea
-                data={{
-                  labels: studySites.map((s) => `${stats.shortName(s.name)} (Dry)`),
-                  datasets: [{
-                    data: studySites.map((s) => Math.round(s.meanIntervalVolumeDry || 0)),
-                    backgroundColor: SITE_COLORS.map((c) => hex2rgba(c, 0.55)), borderColor: '#ffffff', borderWidth: 2,
-                  }]
-                }}
-                options={{
-                  animation: animConfig, maintainAspectRatio: false,
-                  scales: { r: { ticks: { color: chartSub, font: { size: 9 }, backdropColor: 'transparent' }, grid: { color: chartGrid } } },
-                  plugins: { legend: { position: 'bottom', labels: { ...legendTheme.labels, font: { size: 10 } } }, tooltip: tooltipTheme }
-                }}
-              />
-            </div>
-            <p className="a-footnote">Wet-weather figures are shown per site in the Site Detail panel above; this chart isolates the Dry baseline by site for comparison.</p>
-          </div>
-        </div>
-
+        <div className="apple-overview-inner">
         {/* SITE DIRECTORY */}
         <div className="a-grid">
           <div className="a-card s-12">
@@ -699,10 +743,10 @@ const OverviewTab = ({ goBack, canGoBack } = {}) => {
         <div className="a-grid">
           <MethodologyPanel color={C.blue} keys={['meanDailyVolume', 'compositionPct', 'pcuHeadway', 'weatherTest', 'criticalityIndex', 'adtByIntersection', 'networkAdt']} />
         </div>
+        </div>
         </>
-        )}
+      )}
 
-      </div>
     </div>
   );
 };
