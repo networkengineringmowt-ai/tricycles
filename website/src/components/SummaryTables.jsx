@@ -1086,9 +1086,123 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* KRUSKAL-WALLIS H TEST */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Robustness Check · New Test" title="Kruskal-Wallis H Test — Tricycle Volume by Site" color={C.teal}
+              sub="Non-parametric counterpart to the tricycle-volume one-way ANOVA — chart version in Analytics" />
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead><tr><th>Site</th><th>Mean Rank</th><th>n</th></tr></thead>
+                <tbody>
+                  {stats.tricycleAnova && Object.keys(stats.tricycleByIntersection).map((name, i) => (
+                    <tr key={name}>
+                      <td>{stats.shortName(name)}</td>
+                      <td>{stats.tricycleKruskalWallis.meanRankByGroup[i].toFixed(0)}</td>
+                      <td>{stats.tricycleByIntersection[name].n.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td style={{ fontWeight: 800 }}>Kruskal-Wallis H</td>
+                    <td colSpan={2} style={{ fontWeight: 800 }}>H({stats.tricycleKruskalWallis.df}) = {stats.tricycleKruskalWallis.H.toFixed(1)}, p {stats.tricycleKruskalWallis.p < 0.001 ? '< 0.001' : `= ${stats.tricycleKruskalWallis.p.toFixed(3)}`}, n = {stats.tricycleKruskalWallis.N.toLocaleString()}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">Reaches the same conclusion as the parametric ANOVA without assuming equal variances or normality — a distribution-free confirmation that tricycle volume genuinely differs by site.</p>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Robustness Check · New Test" title="Mann-Whitney U Test — Peak vs Off-Peak" color={C.yellow}
+              sub="Non-parametric counterpart to the peak/off-peak Welch's t-test — chart version in Analytics" />
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead><tr><th>Period</th><th>Mean Rank</th><th>n</th></tr></thead>
+                <tbody>
+                  <tr><td>Peak</td><td>{stats.peakOffpeakMannWhitney.meanRankA.toFixed(0)}</td><td>{stats.peakOffpeakMannWhitney.na.toLocaleString()}</td></tr>
+                  <tr><td>Off-Peak</td><td>{stats.peakOffpeakMannWhitney.meanRankB.toFixed(0)}</td><td>{stats.peakOffpeakMannWhitney.nb.toLocaleString()}</td></tr>
+                  <tr>
+                    <td style={{ fontWeight: 800 }}>Mann-Whitney U</td>
+                    <td colSpan={2} style={{ fontWeight: 800 }}>U = {stats.peakOffpeakMannWhitney.U.toLocaleString()}, z = {stats.peakOffpeakMannWhitney.z.toFixed(1)}, p {stats.peakOffpeakMannWhitney.p < 0.001 ? '< 0.001' : `= ${stats.peakOffpeakMannWhitney.p.toFixed(3)}`}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">Compares the entire Peak and Off-Peak distributions via ranks and agrees with the Welch's t-test — peak intervals rank consistently higher, not just on average.</p>
+          </div>
+        </div>
+
+        {/* WILCOXON SIGNED-RANK TEST */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Robustness Check · New Test" title="Wilcoxon Signed-Rank Test — Tricycle vs Car Headway" color={C.indigo}
+              sub="Non-parametric counterpart to the paired headway t-test — chart version in Analytics" />
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead><tr><th>Statistic</th><th>Value</th></tr></thead>
+                <tbody>
+                  <tr><td>Sum of positive ranks (W+, Tricycle &gt; Car)</td><td>{stats.headwayWilcoxon.Wpos.toLocaleString()}</td></tr>
+                  <tr><td>Sum of negative ranks (W−, Car &gt; Tricycle)</td><td>{stats.headwayWilcoxon.Wneg.toLocaleString()}</td></tr>
+                  <tr><td>Test statistic W (smaller of the two)</td><td>{stats.headwayWilcoxon.W.toLocaleString()}</td></tr>
+                  <tr><td>z (normal approximation)</td><td>{stats.headwayWilcoxon.z.toFixed(2)}</td></tr>
+                  <tr><td>p-value</td><td>{stats.headwayWilcoxon.p < 0.001 ? '< 0.001' : stats.headwayWilcoxon.p.toFixed(3)}</td></tr>
+                  <tr><td>n (non-tied pairs)</td><td>{stats.headwayWilcoxon.n.toLocaleString()}</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">6 of the 2,160 recorded pairs had identical tricycle and car headway values and were dropped per the standard Wilcoxon convention. The overwhelming dominance of W+ over W− confirms tricycles consistently occupy more road time-space than cars, without assuming the headway differences are normally distributed.</p>
+          </div>
+        </div>
+
+        {/* MULTIPLE LINEAR REGRESSION */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Regression Method · New Test" title="Multiple Linear Regression: V/C Ratio ~ Vehicle-Class Counts" color={C.pink}
+              sub="Operationalizes the Section 2.3.2 'Multiple Linear Regression' PCU-estimation method with real computed coefficients — chart version in Analytics" />
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead><tr><th>Predictor</th><th>β (coefficient)</th><th>Std. Error</th><th>t</th><th>p</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Intercept</td>
+                    <td>{stats.vcMultipleRegression.intercept.beta.toFixed(6)}</td>
+                    <td>{stats.vcMultipleRegression.intercept.se.toFixed(6)}</td>
+                    <td>{stats.vcMultipleRegression.intercept.t.toFixed(2)}</td>
+                    <td>{stats.vcMultipleRegression.intercept.p < 0.001 ? '< 0.001' : stats.vcMultipleRegression.intercept.p.toFixed(3)}</td>
+                  </tr>
+                  {stats.vcMultipleRegression.coefficients.map((c) => (
+                    <tr key={c.key}>
+                      <td>{c.key.replace('Boda_bodas', 'Motorcycles')}</td>
+                      <td>{c.beta.toFixed(6)}</td>
+                      <td>{c.se.toFixed(6)}</td>
+                      <td>{c.t.toFixed(2)}</td>
+                      <td>{c.p < 0.001 ? '< 0.001' : c.p.toFixed(3)}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td style={{ fontWeight: 800 }}>Model fit</td>
+                    <td colSpan={4} style={{ fontWeight: 800 }}>R² = {stats.vcMultipleRegression.r2.toFixed(3)}, adj. R² = {stats.vcMultipleRegression.adjR2.toFixed(3)}, F({stats.vcMultipleRegression.dfModel},{stats.vcMultipleRegression.dfResidual}) = {Math.round(stats.vcMultipleRegression.F).toLocaleString()}, p {stats.vcMultipleRegression.pF < 0.001 ? '< 0.001' : `= ${stats.vcMultipleRegression.pF.toFixed(3)}`}, n = {stats.vcMultipleRegression.n.toLocaleString()}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto', marginTop: '12px' }}>
+              <table className="a-plain-table">
+                <thead><tr><th>Cross-Method PCU Comparison</th><th>Value</th></tr></thead>
+                <tbody>
+                  <tr><td>MLR-derived PCU (Tricycle ÷ Cars coefficient)</td><td>{stats.vcMultipleRegression.mlrDerivedPcu.toFixed(3)}</td></tr>
+                  <tr><td>MLR-derived PCU (Motorcycle ÷ Cars coefficient)</td><td>{stats.vcMultipleRegression.mlrMotorcyclePcu.toFixed(3)}</td></tr>
+                  <tr><td>Headway-ratio PCU (Tricycle, Overview tab)</td><td>{stats.vcMultipleRegression.headwayRatioPcu.toFixed(3)}</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">All 5 coefficients are positive and statistically significant, but the 5 vehicle-class counts are themselves strongly correlated (Section 4.9.11's correlation matrix, r = 0.53–0.96) — a multicollinearity condition under which individual coefficients can be unstable even though the overall model fits extremely well. The MLR-derived tricycle PCU diverges from the headway-ratio PCU; both agree tricycles exceed a car's road time-space, but disagree on magnitude, an honest cross-method discrepancy disclosed here rather than resolved by picking one number.</p>
+          </div>
+        </div>
+
         {/* METHODOLOGY */}
         <div className="a-grid">
-          <MethodologyPanel color={C.teal} keys={['peakHourly', 'compositionPct', 'pcuHeadway', 'criticalityIndex', 'hourlyProfileByIntersection', 'pcuVcCorrelation', 'dayNightByIntersection', 'incidentSeverity', 'incidentSeverityTotals', 'adtByIntersection', 'networkAdt', 'dailyBreakdown', 'weeklyBreakdown', 'monthlyYearlyBreakdown', 'vehicleClassBreakdown', 'weekdayWeekendTest', 'tricyclePostHoc', 'vehicleClassCorrelationMatrix', 'incidentChiSquare', 'weatherPointBiserial', 'lag1Autocorrelation', 'tricycleLeveneTest', 'intersectionPeriodAnova']} />
+          <MethodologyPanel color={C.teal} keys={['peakHourly', 'compositionPct', 'pcuHeadway', 'criticalityIndex', 'hourlyProfileByIntersection', 'pcuVcCorrelation', 'dayNightByIntersection', 'incidentSeverity', 'incidentSeverityTotals', 'adtByIntersection', 'networkAdt', 'dailyBreakdown', 'weeklyBreakdown', 'monthlyYearlyBreakdown', 'vehicleClassBreakdown', 'weekdayWeekendTest', 'tricyclePostHoc', 'vehicleClassCorrelationMatrix', 'incidentChiSquare', 'weatherPointBiserial', 'lag1Autocorrelation', 'tricycleLeveneTest', 'intersectionPeriodAnova', 'tricycleKruskalWallis', 'peakOffpeakMannWhitney', 'headwayWilcoxon', 'vcMultipleRegression']} />
         </div>
         </>
         )}

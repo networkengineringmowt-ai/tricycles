@@ -2040,6 +2040,109 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* --- Kruskal-Wallis + Mann-Whitney: non-parametric robustness checks (new test) --- */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Robustness Check · new test" title="Kruskal-Wallis H Test — Tricycle Volume by Site" color={C.teal}
+              sub={`Non-parametric (rank-based) counterpart to the one-way ANOVA above: H(${stats.tricycleKruskalWallis.df}) = ${stats.tricycleKruskalWallis.H.toFixed(1)}, ${pFmt(stats.tricycleKruskalWallis.p)}, n = ${stats.tricycleKruskalWallis.N.toLocaleString()}`} />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: siteNames.map((n) => stats.shortName(n)),
+                  datasets: [{
+                    label: 'Mean rank', data: siteNames.map((n, i) => Number(stats.tricycleKruskalWallis.meanRankByGroup[i].toFixed(0))),
+                    backgroundColor: siteNames.map((n) => siteColorOf[n]), borderRadius: 6,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { title: { display: true, text: 'Mean rank (of 6,400)', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">Makes no assumption of equal variance or normal distribution within each site, unlike the ANOVA above (which tricycleLeveneTest found genuinely violates that assumption) — and reaches the identical conclusion ({pFmt(stats.tricycleKruskalWallis.p)}): tricycle volume differs significantly by site regardless of which test's assumptions one trusts.</p>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Robustness Check · new test" title="Mann-Whitney U Test — Peak vs Off-Peak" color={C.yellow}
+              sub={`Non-parametric counterpart to the Welch's t-test above: z = ${stats.peakOffpeakMannWhitney.z.toFixed(1)}, ${pFmt(stats.peakOffpeakMannWhitney.p)}, n = ${stats.peakOffpeakMannWhitney.na.toLocaleString()}/${stats.peakOffpeakMannWhitney.nb.toLocaleString()}`} />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: ['Peak', 'Off-Peak'],
+                  datasets: [{
+                    label: 'Mean rank', data: [Number(stats.peakOffpeakMannWhitney.meanRankA.toFixed(0)), Number(stats.peakOffpeakMannWhitney.meanRankB.toFixed(0))],
+                    backgroundColor: [C.red, C.blue2], borderRadius: 6,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 11 } } }, y: { title: { display: true, text: 'Mean rank (of 6,400)', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">Compares the entire Peak and Off-Peak volume distributions via ranks rather than group means alone, and agrees with the Welch's t-test above ({pFmt(stats.peakOffpeakTest.p)}) — peak intervals rank consistently higher across virtually the whole distribution, not just on average.</p>
+          </div>
+        </div>
+
+        {/* --- Wilcoxon signed-rank: non-parametric headway robustness check (new test) --- */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Robustness Check · new test" title="Wilcoxon Signed-Rank Test — Tricycle vs Car Headway" color={C.indigo}
+              sub={`Non-parametric counterpart to the paired t-test above: W = ${stats.headwayWilcoxon.W.toLocaleString()}, z = ${stats.headwayWilcoxon.z.toFixed(1)}, ${pFmt(stats.headwayWilcoxon.p)}, n = ${stats.headwayWilcoxon.n.toLocaleString()} non-tied pairs`} />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: ['W+ (Tricycle > Car)', 'W− (Car > Tricycle)'],
+                  datasets: [{
+                    label: 'Sum of signed ranks', data: [stats.headwayWilcoxon.Wpos, stats.headwayWilcoxon.Wneg],
+                    backgroundColor: [C.indigo, C.orange], borderRadius: 6,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false, indexAxis: 'y',
+                  scales: { x: { title: { display: true, text: 'Sum of ranks', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { grid: { display: false }, ticks: { color: chartSub, font: { size: 11 } } } },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">Ranks the {stats.headwayWilcoxon.n.toLocaleString()} pairs where tricycle and car headway genuinely differ (6 identical-value pairs dropped per convention) by the size of their difference, not just its sign — the near-total dominance of W+ confirms the paired t-test's "blocking friction" finding without assuming the headway differences are normally distributed.</p>
+          </div>
+        </div>
+
+        {/* --- Multiple linear regression: V/C ~ vehicle-class counts (new test) --- */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Regression Method · new test" title="Multiple Linear Regression: V/C Ratio ~ Vehicle-Class Counts" color={C.pink}
+              sub={`R² = ${stats.vcMultipleRegression.r2.toFixed(3)}, adj. R² = ${stats.vcMultipleRegression.adjR2.toFixed(3)}, F(${stats.vcMultipleRegression.dfModel},${stats.vcMultipleRegression.dfResidual}) = ${Math.round(stats.vcMultipleRegression.F).toLocaleString()}, ${pFmt(stats.vcMultipleRegression.pF)}, n = ${stats.vcMultipleRegression.n.toLocaleString()} — operationalizes the Section 2.3.2 "Multiple Linear Regression" PCU method with real coefficients`} />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: stats.vcMultipleRegression.coefficients.map((c) => c.key.replace('Boda_bodas', 'Motorcycles').replace('_', ' ')),
+                  datasets: [{
+                    label: 'Regression coefficient (β) on V/C Ratio', data: stats.vcMultipleRegression.coefficients.map((c) => Number(c.beta.toFixed(6))),
+                    backgroundColor: [C.blue, C.orange, C.pink, C.green, C.red], borderRadius: 6,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { title: { display: true, text: 'β (V/C per additional vehicle)', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => { const c = stats.vcMultipleRegression.coefficients[ctx.dataIndex]; return `β = ${c.beta.toFixed(6)}, t = ${c.t.toFixed(1)}, ${pFmt(c.p)}`; } } } }
+                }}
+              />
+            </div>
+            <div className="a-grid" style={{ marginTop: '0.9rem' }}>
+              <div className="s-3"><div className="a-stat-box"><div className="a-stat-label">MLR-Derived PCU (Tricycle)</div><div className="a-stat-value" style={{ color: C.pink }}>{stats.vcMultipleRegression.mlrDerivedPcu.toFixed(3)}</div></div></div>
+              <div className="s-3"><div className="a-stat-box"><div className="a-stat-label">Headway-Ratio PCU (Overview)</div><div className="a-stat-value" style={{ color: C.indigo }}>{stats.vcMultipleRegression.headwayRatioPcu.toFixed(3)}</div></div></div>
+              <div className="s-3"><div className="a-stat-box"><div className="a-stat-label">MLR-Derived PCU (Motorcycle)</div><div className="a-stat-value" style={{ color: C.orange }}>{stats.vcMultipleRegression.mlrMotorcyclePcu.toFixed(3)}</div></div></div>
+              <div className="s-3"><div className="a-stat-box"><div className="a-stat-label">Adjusted R²</div><div className="a-stat-value" style={{ color: C.green }}>{stats.vcMultipleRegression.adjR2.toFixed(3)}</div></div></div>
+            </div>
+            <p className="a-footnote">All 5 coefficients are positive and statistically significant, but should be read cautiously: the 5 vehicle-class counts are themselves strongly positively correlated (Section 4.9.11's correlation matrix, r = 0.53–0.96), a textbook multicollinearity condition under which individual OLS coefficients can be unstable even when the overall model fits extremely well. Consistent with that caution, the MLR-derived tricycle PCU ({stats.vcMultipleRegression.mlrDerivedPcu.toFixed(2)}) diverges meaningfully from the headway-ratio PCU ({stats.vcMultipleRegression.headwayRatioPcu.toFixed(2)}) computed independently in the Overview tab — both methods agree tricycles exceed a passenger car's road time-space (PCU &gt; 1), but disagree on the exact magnitude, an honest cross-method discrepancy rather than a single authoritative number.</p>
+          </div>
+        </div>
+
         {/* ===================================================================
             CHARTS MOVED FROM THE SUMMARY TABLES TAB
             `rows` in SummaryTables.jsx is renamed `vehClassRows` here (see
