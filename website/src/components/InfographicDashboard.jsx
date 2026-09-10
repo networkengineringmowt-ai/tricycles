@@ -1917,6 +1917,129 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* --- Point-biserial weather correlation (new test) --- */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Correlation Framing · new test" title="Point-Biserial Correlation: Weather × Total Volume" color={C.blue2}
+              sub={`Weather binary-coded (Wet=1/Dry=0) correlated directly against Total Volume per interval: r = ${stats.weatherPointBiserial.r.toFixed(3)}, r² = ${stats.weatherPointBiserial.r2Pct.toFixed(2)}%, ${pFmt(stats.weatherPointBiserial.p)}, n = ${stats.weatherPointBiserial.n.toLocaleString()} — the same underlying relationship as the Welch's t-test above, re-expressed as a correlation-strength effect size`} />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: ['Dry', 'Wet (Rain)'],
+                  datasets: [{
+                    label: 'Mean Total Volume / interval', data: [stats.weatherTest.meanB, stats.weatherTest.meanA],
+                    backgroundColor: [C.orange, C.blue2], borderRadius: 6,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 11 } } }, y: { title: { display: true, text: 'Mean vehicles / 15-min interval', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">A small-magnitude but statistically significant negative correlation (r² &lt; 1% of variance explained) — weather measurably suppresses volume, consistent with the {Math.abs(stats.weatherTest.pctChange).toFixed(1)}% wet-vs-dry mean difference already reported above, but is far from the dominant driver of interval-to-interval variation.</p>
+          </div>
+        </div>
+
+        {/* --- Lag-1 autocorrelation / serial dependence (new test) --- */}
+        <div className="a-grid">
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Serial Dependence · new test" title="Lag-1 Autocorrelation — Traffic Volume" color={C.green}
+              sub={`Network-wide: r = ${stats.lag1AutocorrelationNetwork.r.toFixed(3)}, r² = ${stats.lag1AutocorrelationNetwork.r2Pct.toFixed(1)}%, ${pFmt(stats.lag1AutocorrelationNetwork.p)}, n = ${stats.lag1AutocorrelationNetwork.n.toLocaleString()} consecutive-interval pairs`} />
+            <div className="a-chart-box">
+              <Scatter
+                data={{
+                  datasets: [{
+                    label: 'Interval t vs t+1', data: stats.lag1AutocorrelationNetwork.samplePairs,
+                    backgroundColor: hex2rgba(C.green, 0.35), pointRadius: 3, pointHoverRadius: 5,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: {
+                    x: { title: { display: true, text: 'Total Volume, interval t', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } },
+                    y: { title: { display: true, text: 'Total Volume, interval t+1', color: chartSub, font: { size: 10.5 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10 } } }
+                  },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">Chart plots a {stats.lag1AutocorrelationNetwork.samplePairs.length.toLocaleString()}-point systematic subsample of the real {stats.lag1AutocorrelationNetwork.n.toLocaleString()} pooled pairs for readability — r/p above are computed from the full pooled set. Pairs never span a day boundary (computed within each real Intersection×Date sequence).</p>
+          </div>
+
+          <div className="a-card s-6">
+            <SectionHeader eyebrow="Serial Dependence · by site" title="Lag-1 Autocorrelation by Intersection" color={C.green}
+              sub="Same test repeated within each site — a strongly positive r at every site means traffic 'platoons': a busy interval tends to be followed by another busy interval, everywhere in the network" />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: siteNames.map((n) => stats.shortName(n)),
+                  datasets: [{
+                    label: 'Lag-1 r', data: siteNames.map((n) => Number(stats.lag1AutocorrelationByIntersection[n].r.toFixed(3))),
+                    backgroundColor: siteNames.map((n) => siteColorOf[n]), borderRadius: 6,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { min: 0, max: 1, title: { display: true, text: 'Lag-1 Pearson r', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { display: false }, tooltip: { ...tooltipTheme, callbacks: { label: (ctx) => `r = ${ctx.parsed.y.toFixed(3)}, n = ${stats.lag1AutocorrelationByIntersection[siteNames[ctx.dataIndex]].n.toLocaleString()}` } } }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* --- Levene's test: homogeneity of variance (new test) --- */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Assumption Check · new test" title="Homogeneity of Variance Across Sites (Levene's Test)" color={C.purple}
+              sub={`Brown-Forsythe Levene's test on Tricycles/interval across the 5 sites: F(${stats.tricycleLeveneTest.df1}, ${stats.tricycleLeveneTest.df2}) = ${stats.tricycleLeveneTest.F.toFixed(1)}, ${pFmt(stats.tricycleLeveneTest.p)} — tests the equal-variance assumption the tricycle-volume ANOVA above has always relied on`} />
+            <div className="a-chart-box">
+              <Bar
+                data={{
+                  labels: siteNames.map((n) => stats.shortName(n)),
+                  datasets: [{
+                    label: 'Std dev, tricycles/interval', data: siteNames.map((n) => Number(stats.tricycleByIntersection[n].std.toFixed(1))),
+                    backgroundColor: siteNames.map((n) => siteColorOf[n]), borderRadius: 6,
+                  }]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { title: { display: true, text: 'Std dev (tricycles/interval)', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { display: false }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">The homogeneity-of-variance assumption is significantly violated ({pFmt(stats.tricycleLeveneTest.p)}) — standard deviation ranges from {Math.min(...siteNames.map((n)=>stats.tricycleByIntersection[n].std)).toFixed(1)} to {Math.max(...siteNames.map((n)=>stats.tricycleByIntersection[n].std)).toFixed(1)} tricycles/interval across sites. This is disclosed as a genuine limitation of the classical ANOVA F-test above rather than smoothed over; the Bonferroni-corrected pairwise post-hoc test (Welch's t-test per pair, which does not assume equal variances) remains the methodologically sound way to compare specific site pairs.</p>
+          </div>
+        </div>
+
+        {/* --- Two-way ANOVA: Intersection x Period interaction (new test) --- */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Factorial Design · new test" title="Interaction: Intersection × Period on Tricycle Volume" color={C.red}
+              sub={`Two-way ANOVA, Tricycles/interval — Intersection: F(${stats.intersectionPeriodAnova.factorA.df1},${stats.intersectionPeriodAnova.factorA.df2}) = ${stats.intersectionPeriodAnova.factorA.F.toFixed(1)}, ${pFmt(stats.intersectionPeriodAnova.factorA.p)} · Period: F(${stats.intersectionPeriodAnova.factorB.df1},${stats.intersectionPeriodAnova.factorB.df2}) = ${stats.intersectionPeriodAnova.factorB.F.toFixed(1)}, ${pFmt(stats.intersectionPeriodAnova.factorB.p)} · Interaction: F(${stats.intersectionPeriodAnova.interaction.df1},${stats.intersectionPeriodAnova.interaction.df2}) = ${stats.intersectionPeriodAnova.interaction.F.toFixed(1)}, ${pFmt(stats.intersectionPeriodAnova.interaction.p)} — full table in Summary Tables`} />
+            <div className="a-chart-box">
+              <Line
+                data={{
+                  labels: siteNames.map((n) => stats.shortName(n)),
+                  datasets: [
+                    { label: 'Off-Peak mean', data: siteNames.map((n) => Number(stats.intersectionPeriodAnova.cellMeans[n]['Off-Peak'].mean.toFixed(1))), borderColor: C.blue2, backgroundColor: hex2rgba(C.blue2, 0.15), tension: 0.2, pointRadius: 5 },
+                    { label: 'Peak mean', data: siteNames.map((n) => Number(stats.intersectionPeriodAnova.cellMeans[n].Peak.mean.toFixed(1))), borderColor: C.red, backgroundColor: hex2rgba(C.red, 0.15), tension: 0.2, pointRadius: 5 },
+                  ]
+                }}
+                options={{
+                  animation: animConfig, maintainAspectRatio: false,
+                  scales: { x: { grid: { display: false }, ticks: { color: chartSub, font: { size: 10.5 } } }, y: { title: { display: true, text: 'Mean tricycles / interval', color: chartSub, font: { size: 10 } }, grid: { color: chartGrid }, ticks: { color: chartSub, font: { size: 10.5 } } } },
+                  plugins: { legend: { labels: legendTheme.labels }, tooltip: tooltipTheme }
+                }}
+              />
+            </div>
+            <p className="a-footnote">A significant interaction means the two lines above are not simply parallel: the size of the peak-hour surge itself differs by site — from an absolute increase of {Math.min(...siteNames.map((n)=>stats.intersectionPeriodAnova.cellMeans[n].Peak.mean-stats.intersectionPeriodAnova.cellMeans[n]['Off-Peak'].mean)).toFixed(0)} to {Math.max(...siteNames.map((n)=>stats.intersectionPeriodAnova.cellMeans[n].Peak.mean-stats.intersectionPeriodAnova.cellMeans[n]['Off-Peak'].mean)).toFixed(0)} tricycles/interval — even though the relative surge (roughly a doubling) is similar network-wide, since sites with a higher off-peak baseline see a proportionally larger absolute jump at peak.</p>
+          </div>
+        </div>
+
         {/* ===================================================================
             CHARTS MOVED FROM THE SUMMARY TABLES TAB
             `rows` in SummaryTables.jsx is renamed `vehClassRows` here (see

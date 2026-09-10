@@ -946,9 +946,149 @@ const SummaryTables = ({ goBack, canGoBack } = {}) => {
           </div>
         </div>
 
+        {/* POINT-BISERIAL WEATHER CORRELATION */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Correlation Framing · New Test" title="Point-Biserial Correlation — Weather × Total Volume" color={C.blue2}
+              sub="Weather binary-coded (Wet=1/Dry=0) correlated directly against Total Volume per interval — chart version in Analytics" />
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead><tr><th>r</th><th>r²</th><th>p</th><th>n</th><th>Mean, Dry</th><th>Mean, Wet</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>{stats.weatherPointBiserial.r.toFixed(3)}</td>
+                    <td>{stats.weatherPointBiserial.r2Pct.toFixed(2)}%</td>
+                    <td>{stats.weatherPointBiserial.p < 0.001 ? '< 0.001' : stats.weatherPointBiserial.p.toFixed(3)}</td>
+                    <td>{stats.weatherPointBiserial.n.toLocaleString()}</td>
+                    <td>{stats.weatherTest.meanB.toFixed(1)}</td>
+                    <td>{stats.weatherTest.meanA.toFixed(1)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">Same underlying relationship as the weather Welch's t-test elsewhere on this tab, re-expressed as a correlation-strength effect size (r² &lt; 1% of variance explained) rather than a group-mean-difference test.</p>
+          </div>
+        </div>
+
+        {/* LAG-1 AUTOCORRELATION */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Serial Dependence · New Test" title="Lag-1 Autocorrelation — Traffic Volume" color={C.green}
+              sub="Pearson r between each interval's Total Volume and the following interval's, computed within each real Intersection×Date sequence so no pair spans a day boundary — chart version in Analytics" />
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead><tr><th>Scope</th><th>r</th><th>r²</th><th>p</th><th>n (pairs)</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td style={{ fontWeight: 800 }}>Network-wide</td>
+                    <td>{stats.lag1AutocorrelationNetwork.r.toFixed(3)}</td>
+                    <td>{stats.lag1AutocorrelationNetwork.r2Pct.toFixed(1)}%</td>
+                    <td>{stats.lag1AutocorrelationNetwork.p < 0.001 ? '< 0.001' : stats.lag1AutocorrelationNetwork.p.toFixed(3)}</td>
+                    <td>{stats.lag1AutocorrelationNetwork.n.toLocaleString()}</td>
+                  </tr>
+                  {Object.entries(stats.lag1AutocorrelationByIntersection).map(([name, v]) => (
+                    <tr key={name}>
+                      <td>{stats.shortName(name)}</td>
+                      <td>{v.r.toFixed(3)}</td>
+                      <td>{v.r2Pct.toFixed(1)}%</td>
+                      <td>{v.p < 0.001 ? '< 0.001' : v.p.toFixed(3)}</td>
+                      <td>{v.n.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">Strongly positive at every site (r ≈ 0.76–0.78) and network-wide — a busy 15-min interval reliably tends to be followed by another busy interval ("platooning"), a time-ordered pattern the Poisson-dispersion test elsewhere on this tab cannot detect on its own.</p>
+          </div>
+        </div>
+
+        {/* LEVENE'S TEST */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Assumption Check · New Test" title="Homogeneity of Variance Across Sites (Levene's Test)" color={C.purple}
+              sub="Brown-Forsythe Levene's test on Tricycles/interval across the 5 sites — chart version in Analytics" />
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead><tr><th>Site</th><th>Std Dev</th><th>n</th></tr></thead>
+                <tbody>
+                  {Object.entries(stats.tricycleByIntersection).map(([name, v]) => (
+                    <tr key={name}>
+                      <td>{stats.shortName(name)}</td>
+                      <td>{v.std.toFixed(1)}</td>
+                      <td>{v.n.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td style={{ fontWeight: 800 }}>Levene's F</td>
+                    <td colSpan={2} style={{ fontWeight: 800 }}>F({stats.tricycleLeveneTest.df1}, {stats.tricycleLeveneTest.df2}) = {stats.tricycleLeveneTest.F.toFixed(1)}, p {stats.tricycleLeveneTest.p < 0.001 ? '< 0.001' : `= ${stats.tricycleLeveneTest.p.toFixed(3)}`}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">The equal-variance assumption behind the tricycle-volume one-way ANOVA is significantly violated — disclosed here as a genuine methodological limitation, not smoothed over. The Bonferroni-corrected pairwise post-hoc test above uses Welch's t-test per pair, which does not assume equal variances and remains sound regardless.</p>
+          </div>
+        </div>
+
+        {/* TWO-WAY ANOVA: INTERSECTION x PERIOD INTERACTION */}
+        <div className="a-grid">
+          <div className="a-card s-12">
+            <SectionHeader eyebrow="Factorial Design · New Test" title="Two-Way ANOVA: Intersection × Period on Tricycle Volume" color={C.red}
+              sub="Full factorial design on field20's real per-interval Tricycle counts (exactly orthogonal: every site shares the identical 400 Peak / 880 Off-Peak split) — chart version in Analytics" />
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto' }}>
+              <table className="a-plain-table">
+                <thead><tr><th>Effect</th><th>F</th><th>df1</th><th>df2</th><th>p</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Intersection (main effect)</td>
+                    <td>{stats.intersectionPeriodAnova.factorA.F.toFixed(1)}</td>
+                    <td>{stats.intersectionPeriodAnova.factorA.df1}</td>
+                    <td>{stats.intersectionPeriodAnova.factorA.df2}</td>
+                    <td>{stats.intersectionPeriodAnova.factorA.p < 0.001 ? '< 0.001' : stats.intersectionPeriodAnova.factorA.p.toFixed(3)}</td>
+                  </tr>
+                  <tr>
+                    <td>Period (main effect)</td>
+                    <td>{stats.intersectionPeriodAnova.factorB.F.toFixed(1)}</td>
+                    <td>{stats.intersectionPeriodAnova.factorB.df1}</td>
+                    <td>{stats.intersectionPeriodAnova.factorB.df2}</td>
+                    <td>{stats.intersectionPeriodAnova.factorB.p < 0.001 ? '< 0.001' : stats.intersectionPeriodAnova.factorB.p.toFixed(3)}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontWeight: 800 }}>Intersection × Period (interaction)</td>
+                    <td style={{ fontWeight: 800 }}>{stats.intersectionPeriodAnova.interaction.F.toFixed(1)}</td>
+                    <td>{stats.intersectionPeriodAnova.interaction.df1}</td>
+                    <td>{stats.intersectionPeriodAnova.interaction.df2}</td>
+                    <td style={{ fontWeight: 800 }}>{stats.intersectionPeriodAnova.interaction.p < 0.001 ? '< 0.001' : stats.intersectionPeriodAnova.interaction.p.toFixed(3)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="a-scroll-x-dark" style={{ overflowX: 'auto', marginTop: '12px' }}>
+              <table className="a-plain-table">
+                <thead><tr><th>Site</th><th>Off-Peak Mean</th><th>Peak Mean</th><th>Absolute Increase</th><th>Ratio (Peak÷Off-Peak)</th></tr></thead>
+                <tbody>
+                  {stats.intersectionPeriodAnova.aLevels.map((name) => {
+                    const off = stats.intersectionPeriodAnova.cellMeans[name]['Off-Peak'];
+                    const pk = stats.intersectionPeriodAnova.cellMeans[name].Peak;
+                    return (
+                      <tr key={name}>
+                        <td>{stats.shortName(name)}</td>
+                        <td>{off.mean.toFixed(1)}</td>
+                        <td>{pk.mean.toFixed(1)}</td>
+                        <td>+{(pk.mean - off.mean).toFixed(1)}</td>
+                        <td>{(pk.mean / off.mean).toFixed(2)}×</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="a-footnote">All three effects are significant, including the interaction — the size of the peak-hour surge itself differs by site. Relative surge is similar network-wide (all sites roughly double from off-peak to peak), but the absolute increase scales with each site's baseline: sites with higher off-peak volume see a proportionally larger absolute jump at peak.</p>
+          </div>
+        </div>
+
         {/* METHODOLOGY */}
         <div className="a-grid">
-          <MethodologyPanel color={C.teal} keys={['peakHourly', 'compositionPct', 'pcuHeadway', 'criticalityIndex', 'hourlyProfileByIntersection', 'pcuVcCorrelation', 'dayNightByIntersection', 'incidentSeverity', 'incidentSeverityTotals', 'adtByIntersection', 'networkAdt', 'dailyBreakdown', 'weeklyBreakdown', 'monthlyYearlyBreakdown', 'vehicleClassBreakdown', 'weekdayWeekendTest', 'tricyclePostHoc', 'vehicleClassCorrelationMatrix', 'incidentChiSquare']} />
+          <MethodologyPanel color={C.teal} keys={['peakHourly', 'compositionPct', 'pcuHeadway', 'criticalityIndex', 'hourlyProfileByIntersection', 'pcuVcCorrelation', 'dayNightByIntersection', 'incidentSeverity', 'incidentSeverityTotals', 'adtByIntersection', 'networkAdt', 'dailyBreakdown', 'weeklyBreakdown', 'monthlyYearlyBreakdown', 'vehicleClassBreakdown', 'weekdayWeekendTest', 'tricyclePostHoc', 'vehicleClassCorrelationMatrix', 'incidentChiSquare', 'weatherPointBiserial', 'lag1Autocorrelation', 'tricycleLeveneTest', 'intersectionPeriodAnova']} />
         </div>
         </>
         )}
