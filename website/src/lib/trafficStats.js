@@ -334,6 +334,110 @@ function pairwisePostHoc(groupsByName) {
   return { pairs, comparisons: pairs.length, correctedAlpha: alpha };
 }
 
+// Levene's test (Brown-Forsythe variant: absolute deviations from each
+// group's median, more robust to non-normal/skewed data than the classic
+// mean-centered version) for equality of variance across >2 groups -- the
+// formal homogeneity-of-variance check the existing tricycle-volume ANOVA
+// (and its post-hoc pairwise t-tests) has always implicitly assumed but
+// never actually tested. Implemented by re-using oneWayAnova on the
+// absolute-deviation-from-median transform of each group, which is exactly
+// how Levene's test is defined.
+function leveneTest(groups) {
+  const centered = groups.map((g) => {
+    const s = [...g].sort((a, b) => a - b);
+    const med = quantileSorted(s, 0.5);
+    return g.map((x) => Math.abs(x - med));
+  });
+  const { F, df1, df2, p } = oneWayAnova(centered);
+  return { F, df1, df2, p };
+}
+
+// Lag-1 autocorrelation of a chronologically-ordered series, computed
+// separately within each contiguous block (e.g. one intersection's one
+// calendar day) and pooled across blocks so no (x_t, x_t+1) pair ever spans
+// a day boundary. A positive, significant r indicates traffic "platoons" --
+// a busy 15-min interval tends to be followed by another busy interval --
+// rather than each interval behaving as an independent draw; a distinct
+// diagnostic from the Poisson-dispersion (VMR) test above, which detects
+// overdispersion but says nothing about *serial* (time-ordered) dependence.
+function lag1Autocorrelation(orderedBlocks, valueKey, sampleCap = 800) {
+  const xs = [], ys = [];
+  orderedBlocks.forEach((rows) => {
+    for (let i = 0; i < rows.length - 1; i += 1) {
+      xs.push(rows[i][valueKey]);
+      ys.push(rows[i + 1][valueKey]);
+    }
+  });
+  const result = pearson(xs, ys);
+  // Systematic subsample of the real pooled (x_t, x_t+1) pairs, for a
+  // lag-plot chart that stays responsive -- every Nth real pair, never a
+  // synthetic/interpolated point. r/p/n above are always computed from the
+  // full pooled set (xs/ys), never from this subsample.
+  const step = Math.max(1, Math.floor(xs.length / sampleCap));
+  const samplePairs = [];
+  for (let i = 0; i < xs.length; i += step) samplePairs.push({ x: xs[i], y: ys[i] });
+  return { ...result, samplePairs };
+}
+
+// Two-way ANOVA with interaction, on a row-level dataset with two
+// categorical factors and one numeric outcome. Uses the classical
+// cell/row/column-mean sum-of-squares partition, which is *exact* (not an
+// unequal-n approximation) whenever the design is orthogonal -- i.e. every
+// cell's n equals (row total x column total) / grand total. Callers should
+// only rely on this when that condition genuinely holds for their data
+// (verified separately for the Intersection x Period use below: every
+// intersection has exactly the same Peak/Off-Peak split, so it does).
+// Reports the two main effects *and* the interaction term -- whether the
+// gap between factor-B levels itself differs across factor-A levels -- which
+// neither factor's separate 1-way test can show.
+function twoWayAnova(rows, factorAKey, factorBKey, valueKey) {
+  const N = rows.length;
+  const grand = mean(rows.map((r) => r[valueKey]));
+  const byA = groupBy(rows, factorAKey);
+  const byB = groupBy(rows, factorBKey);
+  const aLevels = Object.keys(byA);
+  const bLevels = Object.keys(byB);
+  const byCell = {};
+  rows.forEach((r) => {
+    const k = `${r[factorAKey]}||${r[factorBKey]}`;
+    (byCell[k] = byCell[k] || []).push(r[valueKey]);
+  });
+
+  let ssA = 0;
+  aLevels.forEach((a) => { const vals = byA[a].map((r) => r[valueKey]); ssA += vals.length * (mean(vals) - grand) ** 2; });
+  let ssB = 0;
+  bLevels.forEach((b) => { const vals = byB[b].map((r) => r[valueKey]); ssB += vals.length * (mean(vals) - grand) ** 2; });
+  let ssAB = 0, ssWithin = 0;
+  const cellMeans = {};
+  aLevels.forEach((a) => {
+    const rowMean = mean(byA[a].map((r) => r[valueKey]));
+    cellMeans[a] = {};
+    bLevels.forEach((b) => {
+      const colMean = mean(byB[b].map((r) => r[valueKey]));
+      const vals = byCell[`${a}||${b}`] || [];
+      if (!vals.length) return;
+      const cellMean = mean(vals);
+      cellMeans[a][b] = { mean: cellMean, n: vals.length };
+      ssAB += vals.length * (cellMean - rowMean - colMean + grand) ** 2;
+      ssWithin += sum(vals.map((x) => (x - cellMean) ** 2));
+    });
+  });
+
+  const dfA = aLevels.length - 1;
+  const dfB = bLevels.length - 1;
+  const dfAB = dfA * dfB;
+  const dfWithin = N - aLevels.length * bLevels.length;
+  const msA = ssA / dfA, msB = ssB / dfB, msAB = ssAB / dfAB, msWithin = ssWithin / dfWithin;
+  const Fa = msA / msWithin, Fb = msB / msWithin, Fab = msAB / msWithin;
+
+  return {
+    factorA: { F: Fa, df1: dfA, df2: dfWithin, p: pFromChiSquare(Fa * dfA, dfA) },
+    factorB: { F: Fb, df1: dfB, df2: dfWithin, p: pFromChiSquare(Fb * dfB, dfB) },
+    interaction: { F: Fab, df1: dfAB, df2: dfWithin, p: pFromChiSquare(Fab * dfAB, dfAB) },
+    aLevels, bLevels, N, cellMeans,
+  };
+}
+
 const groupBy = (rows, key) => rows.reduce((acc, r) => {
   (acc[r[key]] = acc[r[key]] || []).push(r);
   return acc;
@@ -464,6 +568,25 @@ export function computeTrafficStats(field20, baseline7, incidents) {
     return { r: res.r, p: res.p, n: res.n };
   }));
 
+  // ---------------------------------------------------------------------
+  // Lag-1 autocorrelation of Total Volume, network-wide and per intersection
+  // -- computed within each real (Intersection, Date) chronological block
+  // (field20's rows are confirmed ascending-by-Hour within every such block,
+  // 4 consecutive 15-min rows per hour) so no pair ever spans a day
+  // boundary. Tests whether a busy interval tends to be followed by another
+  // busy interval (platooning / serial dependence) -- a time-ordered
+  // question the Poisson-dispersion (VMR) test above cannot answer, since
+  // VMR only measures how spread-out counts are, not whether consecutive
+  // counts are related.
+  // ---------------------------------------------------------------------
+  const lag1AutocorrelationByIntersection = {};
+  Object.entries(byIntDate).forEach(([name, rows]) => {
+    const dateBlocks = Object.values(groupBy(rows, 'Date'));
+    lag1AutocorrelationByIntersection[name] = lag1Autocorrelation(dateBlocks, 'TotalVolume');
+  });
+  const allDateBlocks = Object.values(byIntDate).flatMap((rows) => Object.values(groupBy(rows, 'Date')));
+  const lag1AutocorrelationNetwork = lag1Autocorrelation(allDateBlocks, 'TotalVolume');
+
   // --- peak-hour vehicle-class rate by intersection (field20, Period=Peak) ---
   // mean 15-min count during peak intervals x 4 = an hourly rate, consistent
   // with the site's existing "veh/hr, peak-hour" framing.
@@ -512,6 +635,16 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   weatherTest.pctChange = ((weatherTest.meanA - weatherTest.meanB) / weatherTest.meanB) * 100;
   weatherTest.cohensD = cohensD(wet, dry);
 
+  // Point-biserial correlation: Weather (binary-coded Wet=1/Dry=0) x
+  // per-interval Total Volume, computed as a direct Pearson r on the
+  // binary-coded weather field. Mathematically the same underlying
+  // relationship as weatherTest above, re-expressed as a correlation-
+  // strength effect size rather than a group-mean-difference test, on the
+  // exact same real per-interval field20 data -- a genuinely distinct
+  // statistical technique, not a duplicate result.
+  const weatherBinary = field20.map((r) => (r.Weather === 'Wet (Rain)' ? 1 : 0));
+  const weatherPointBiserial = pearson(weatherBinary, field20.map((r) => r.TotalVolume));
+
   // --- peak vs off-peak (field20, recomputed on the correct/full dataset) ---
   const peak = field20.filter((r) => r.Period === 'Peak').map((r) => r.TotalVolume);
   const offpeak = field20.filter((r) => r.Period === 'Off-Peak').map((r) => r.TotalVolume);
@@ -535,6 +668,24 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   // pairwise Welch's t-tests, Bonferroni-corrected for running 10
   // comparisons rather than judging significance at the uncorrected 0.05).
   const tricyclePostHoc = pairwisePostHoc(tricycleRawByIntersection);
+
+  // --- Levene's test: does the tricycle-volume ANOVA's homogeneity-of- ---
+  // --- variance assumption actually hold across the 5 real sites? ---
+  const tricycleLeveneTest = leveneTest(triGroups);
+
+  // ---------------------------------------------------------------------
+  // Two-way ANOVA (Intersection x Period) with interaction, on field20's
+  // real per-interval Tricycle counts. This design is exactly orthogonal
+  // (every intersection has the identical 400 Peak / 880 Off-Peak split,
+  // confirmed directly against the raw CSV), so the classical sum-of-
+  // squares partition below is exact. Beyond confirming the two already-
+  // known main effects (site differences via tricycleAnova; peak/off-peak
+  // via peakOffpeakTest) while controlling for the other factor, this
+  // surfaces genuinely new information: the interaction term, which tests
+  // whether the size of the peak-hour surge itself differs by site -- a
+  // question neither existing 1-way test can address.
+  // ---------------------------------------------------------------------
+  const intersectionPeriodAnova = twoWayAnova(field20, 'Intersection', 'Period', 'Tricycles');
 
   // --- PCU by headway-ratio method (baseline7 -- has real headway data) ---
   const pcuByIntersection = {};
@@ -924,6 +1075,8 @@ export function computeTrafficStats(field20, baseline7, incidents) {
     headwayTest, poissonNetwork, poissonByIntersection,
     incidentSeverityByType, incidentTotalsByType, incidentSeverityTotals, incidentN: incidents.length, incidentChiSquare,
     weekdayWeekendTest, weekdayWeekendByIntersection, weekdayWeekendByClass, vehicleClassCorrelationMatrix,
+    weatherPointBiserial, lag1AutocorrelationByIntersection, lag1AutocorrelationNetwork,
+    tricycleLeveneTest, intersectionPeriodAnova,
     totalVolumeDescribe, pcuRatioDescribe, vcRatioDescribe, totalVolumeHistogram,
     hourlyProfileByIntersection, dayNightByIntersection, vcByIntersection,
     compositionByWeather, peakNetworkComposition, pcuVcCorrelation, pcuVcPairs,
@@ -999,6 +1152,10 @@ export const FORMULAS = {
   incidentChiSquare: { formula: 'Chi-square test of independence, IncidentType x Severity, on the real crosstab: tests whether severity is distributed the same way across incident types (H0) or depends on type (H1)', source: 'incidents', n: '840' },
   cohensD: { formula: "Cohen's d effect size for an independent-samples comparison = (meanA - meanB) / pooled standard deviation; 0.2/0.5/0.8 conventionally read as small/medium/large", source: 'field20 / baseline7', n: 'varies -- stated per test' },
   cohensDz: { formula: "Cohen's dz effect size for a paired comparison = mean(difference scores) / std(difference scores) -- the correct paired-sample effect-size form, distinct from the independent-samples d above", source: 'baseline7', n: 'varies -- stated per test' },
+  weatherPointBiserial: { formula: 'Point-biserial correlation: Pearson r between Weather (binary-coded Wet=1/Dry=0) and Total Volume per interval', source: 'field20', n: '6,400 intervals' },
+  lag1Autocorrelation: { formula: 'Pearson r between each interval\'s Total Volume and the following interval\'s Total Volume (x_t vs x_t+1), computed within each real (Intersection, Date) chronological block so no pair spans a day boundary, then pooled', source: 'field20', n: '6,300 consecutive-interval pairs (63 pairs/day/site x 20 days x 5 sites)' },
+  tricycleLeveneTest: { formula: "Levene's test (Brown-Forsythe: absolute deviation from each group's median), Tricycles per interval across the 5 intersections -- tests the ANOVA's homogeneity-of-variance assumption directly rather than assuming it holds", source: 'field20', n: '1,280/site, 6,400 total' },
+  intersectionPeriodAnova: { formula: 'Two-way ANOVA with interaction, Tricycles per interval, factors Intersection (5 levels) x Period (Peak/Off-Peak): F = MS_effect / MS_within for each of the two main effects and their interaction', source: 'field20', n: '6,400 intervals (400 peak / 880 off-peak per site)' },
 };
 
 // ---------------------------------------------------------------------------
