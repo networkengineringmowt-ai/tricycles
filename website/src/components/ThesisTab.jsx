@@ -376,8 +376,14 @@ const ThesisTab = ({ goBack, canGoBack } = {}) => {
            right edge (not a card edge) -- same rationale as the TOC's
            custom scrollbar above, applied to the page/window scroll. */
         .thesis-page-scrollbar-track {
-          position: fixed; top: 10px; bottom: 10px; right: 5px; width: 6px;
-          background: rgba(0,0,0,0.08); border-radius: 4px; pointer-events: none; z-index: 40;
+          /* top starts below the sticky site header (.topbar: 72px tall,
+             z-index 1000) -- at top:10px this track's top ~63px sat entirely
+             behind the header, which paints over it, so the thumb was
+             invisible whenever it was near the top of the page (including on
+             first load, unscrolled). z-index raised past the header's too,
+             as a second line of defense against any future overlay. */
+          position: fixed; top: 82px; bottom: 10px; right: 5px; width: 6px;
+          background: rgba(0,0,0,0.08); border-radius: 4px; pointer-events: none; z-index: 1001;
         }
         .thesis-page-scrollbar-thumb {
           position: absolute; left: 0; width: 100%; border-radius: 4px;
