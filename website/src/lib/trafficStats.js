@@ -438,6 +438,164 @@ function twoWayAnova(rows, factorAKey, factorBKey, valueKey) {
   };
 }
 
+// Assigns 1-indexed ranks to a numeric array with the standard mid-rank
+// (average-rank) convention for ties -- the shared ranking primitive behind
+// every rank-based test below (Kruskal-Wallis, Mann-Whitney, Wilcoxon).
+// Returns { ranks, tieSum } where ranks[i] is value[i]'s rank and tieSum is
+// sum(t^3 - t) over every tied group of size t, the standard tie-correction
+// term for those tests' variance formulas.
+function rankWithTies(values) {
+  const indexed = values.map((v, i) => ({ v, i }));
+  indexed.sort((a, b) => a.v - b.v);
+  const ranks = new Array(values.length);
+  let tieSum = 0;
+  let i = 0;
+  while (i < indexed.length) {
+    let j = i;
+    while (j + 1 < indexed.length && indexed[j + 1].v === indexed[i].v) j += 1;
+    const avgRank = (i + j) / 2 + 1;
+    for (let m = i; m <= j; m += 1) ranks[indexed[m].i] = avgRank;
+    const t = j - i + 1;
+    tieSum += t ** 3 - t;
+    i = j + 1;
+  }
+  return { ranks, tieSum };
+}
+
+// Kruskal-Wallis H test -- the non-parametric (rank-based) counterpart to a
+// one-way ANOVA across >2 groups. Makes no assumption about equal variance
+// or normal distribution within each group, so it serves as an honest
+// robustness check on tricycleAnova given that tricycleLeveneTest above
+// found the equal-variance assumption genuinely violated: if Kruskal-Wallis
+// agrees with the parametric ANOVA's conclusion, the site differences are
+// real regardless of which test's assumptions one trusts.
+function kruskalWallis(groups) {
+  const all = groups.flatMap((g, gi) => g.map((v) => ({ v, gi })));
+  const { ranks, tieSum } = rankWithTies(all.map((x) => x.v));
+  const N = all.length;
+  const rankSumByGroup = groups.map(() => 0);
+  all.forEach((item, idx) => { rankSumByGroup[item.gi] += ranks[idx]; });
+  let H = 0;
+  groups.forEach((g, gi) => { H += (rankSumByGroup[gi] ** 2) / g.length; });
+  H = (12 / (N * (N + 1))) * H - 3 * (N + 1);
+  const C = 1 - tieSum / (N ** 3 - N); // tie correction
+  const Hc = H / C;
+  const df = groups.length - 1;
+  return { H: Hc, df, p: pFromChiSquare(Hc, df), N, k: groups.length, meanRankByGroup: rankSumByGroup.map((s, gi) => s / groups[gi].length) };
+}
+
+// Mann-Whitney U test -- the non-parametric counterpart to an independent-
+// samples t-test, comparing whole distributions via ranks rather than means.
+// Uses the standard large-sample normal approximation with a tie-correction
+// term on the variance (exact here since every n involved is in the
+// thousands). Serves as a distribution-free robustness check on
+// peakOffpeakTest's Welch's t-test.
+function mannWhitneyU(a, b) {
+  const na = a.length, nb = b.length, N = na + nb;
+  const combined = [...a.map((v) => ({ v, g: 0 })), ...b.map((v) => ({ v, g: 1 }))];
+  const { ranks, tieSum } = rankWithTies(combined.map((x) => x.v));
+  let rankSumA = 0;
+  combined.forEach((item, idx) => { if (item.g === 0) rankSumA += ranks[idx]; });
+  const U1 = rankSumA - (na * (na + 1)) / 2;
+  const meanU = (na * nb) / 2;
+  const varU = ((na * nb) / 12) * ((N + 1) - tieSum / (N * (N - 1)));
+  const z = (U1 - meanU) / Math.sqrt(varU);
+  return { U: U1, z, p: pFromZ(z), na, nb, meanRankA: rankSumA / na, meanRankB: (sum(ranks) - rankSumA) / nb };
+}
+
+// Wilcoxon signed-rank test -- the non-parametric counterpart to a paired-
+// samples t-test: ranks the absolute paired differences rather than assuming
+// they are normally distributed. Serves as a distribution-free robustness
+// check on headwayTest's paired t-test (the "tricycles occupy more road
+// time-space than cars" finding). Zero-differences (identical paired values)
+// are dropped per the standard Wilcoxon convention; none occur in this
+// dataset's continuous headway measurements.
+function wilcoxonSignedRank(a, b) {
+  const diffs = a.map((v, i) => v - b[i]).filter((d) => d !== 0);
+  const n = diffs.length;
+  const { ranks } = rankWithTies(diffs.map((d) => Math.abs(d)));
+  let Wpos = 0, Wneg = 0;
+  diffs.forEach((d, i) => { if (d > 0) Wpos += ranks[i]; else Wneg += ranks[i]; });
+  const W = Math.min(Wpos, Wneg);
+  const meanW = (n * (n + 1)) / 4;
+  const varW = (n * (n + 1) * (2 * n + 1)) / 24;
+  const z = (W - meanW) / Math.sqrt(varW);
+  return { W, Wpos, Wneg, z, p: pFromZ(z), n };
+}
+
+// Gauss-Jordan matrix inversion with partial pivoting -- the one piece of
+// generic linear algebra multipleLinearRegression needs (solving the OLS
+// normal equations and, from the same inverse, deriving coefficient
+// standard errors). Square matrices only, sized to the small
+// (predictors+1) x (predictors+1) design used below.
+function invertMatrix(A) {
+  const nDim = A.length;
+  const M = A.map((row, i) => [...row, ...Array.from({ length: nDim }, (_, j) => (i === j ? 1 : 0))]);
+  for (let col = 0; col < nDim; col += 1) {
+    let pivotRow = col;
+    for (let r = col + 1; r < nDim; r += 1) {
+      if (Math.abs(M[r][col]) > Math.abs(M[pivotRow][col])) pivotRow = r;
+    }
+    [M[col], M[pivotRow]] = [M[pivotRow], M[col]];
+    const pivot = M[col][col];
+    for (let c = 0; c < 2 * nDim; c += 1) M[col][c] /= pivot;
+    for (let r = 0; r < nDim; r += 1) {
+      if (r === col) continue;
+      const factor = M[r][col];
+      for (let c = 0; c < 2 * nDim; c += 1) M[r][c] -= factor * M[col][c];
+    }
+  }
+  return M.map((row) => row.slice(nDim));
+}
+
+// Ordinary-least-squares multiple linear regression: targetKey ~ predictorKeys,
+// solved exactly via the normal equations (X'X)^-1 X'y rather than iterative
+// gradient descent, since the design here is small (a handful of predictors).
+// Reports R^2/adjusted R^2/overall F-test plus a per-coefficient standard
+// error, t-stat and p-value (from the same (X'X)^-1 used to solve for beta),
+// operationalizing the "Multiple Linear Regression" PCU-estimation method
+// described narratively in Section 2.3.2 with actual computed coefficients
+// on the real field data, rather than leaving it as a textbook formula.
+function multipleLinearRegression(rows, predictorKeys, targetKey) {
+  const n = rows.length;
+  const p = predictorKeys.length + 1;
+  const X = rows.map((r) => [1, ...predictorKeys.map((k) => r[k])]);
+  const y = rows.map((r) => r[targetKey]);
+  const XtX = Array.from({ length: p }, () => new Array(p).fill(0));
+  const Xty = new Array(p).fill(0);
+  for (let i = 0; i < n; i += 1) {
+    for (let a = 0; a < p; a += 1) {
+      Xty[a] += X[i][a] * y[i];
+      for (let b = 0; b < p; b += 1) XtX[a][b] += X[i][a] * X[i][b];
+    }
+  }
+  const XtXInv = invertMatrix(XtX);
+  const beta = XtXInv.map((row) => sum(row.map((v, j) => v * Xty[j])));
+  const yHat = X.map((row) => sum(row.map((v, j) => v * beta[j])));
+  const residuals = y.map((yi, i) => yi - yHat[i]);
+  const yMean = mean(y);
+  const ssTotal = sum(y.map((yi) => (yi - yMean) ** 2));
+  const ssResidual = sum(residuals.map((e) => e ** 2));
+  const r2 = 1 - ssResidual / ssTotal;
+  const dfModel = predictorKeys.length;
+  const dfResidual = n - p;
+  const adjR2 = 1 - ((1 - r2) * (n - 1)) / dfResidual;
+  const msResidual = ssResidual / dfResidual;
+  const msModel = (ssTotal - ssResidual) / dfModel;
+  const F = msModel / msResidual;
+  const pF = pFromChiSquare(F * dfModel, dfModel);
+  const seBeta = XtXInv.map((row, i) => Math.sqrt(Math.max(0, msResidual * row[i])));
+  const tStats = beta.map((b, i) => b / seBeta[i]);
+  const pValues = tStats.map((t) => pFromZ(t));
+  return {
+    intercept: { beta: beta[0], se: seBeta[0], t: tStats[0], p: pValues[0] },
+    coefficients: predictorKeys.map((k, i) => ({
+      key: k, beta: beta[i + 1], se: seBeta[i + 1], t: tStats[i + 1], p: pValues[i + 1],
+    })),
+    r2, adjR2, F, dfModel, dfResidual, pF, n,
+  };
+}
+
 const groupBy = (rows, key) => rows.reduce((acc, r) => {
   (acc[r[key]] = acc[r[key]] || []).push(r);
   return acc;
@@ -652,9 +810,19 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   peakOffpeakTest.ratio = peakOffpeakTest.meanA / peakOffpeakTest.meanB;
   peakOffpeakTest.cohensD = cohensD(peak, offpeak);
 
+  // --- Mann-Whitney U test: non-parametric robustness check on the Welch's
+  //     t-test above, comparing the whole Peak vs Off-Peak distributions via
+  //     ranks rather than assuming near-normal group means ---
+  const peakOffpeakMannWhitney = mannWhitneyU(peak, offpeak);
+
   // --- tricycle-volume ANOVA across intersections (field20, recomputed) ---
   const triGroups = Object.values(groupBy(field20, 'Intersection')).map((rows) => rows.map((r) => r.Tricycles));
   const tricycleAnova = oneWayAnova(triGroups);
+
+  // --- Kruskal-Wallis H test: non-parametric robustness check on the ANOVA
+  //     above, given tricycleLeveneTest (below) finds the equal-variance
+  //     assumption genuinely violated ---
+  const tricycleKruskalWallis = kruskalWallis(triGroups);
   const tricycleByIntersection = {};
   const tricycleRawByIntersection = {};
   Object.entries(groupBy(field20, 'Intersection')).forEach(([name, rows]) => {
@@ -700,6 +868,36 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   const vcValues = baseline7.map((r) => r.VC);
   const vcStats = { mean: mean(vcValues), min: Math.min(...vcValues), max: Math.max(...vcValues), n: vcValues.length };
 
+  // ---------------------------------------------------------------------
+  // Multiple linear regression: V/C Ratio ~ Cars + Boda_bodas (Motorcycles)
+  // + Tricycles + Minibuses + Heavy_Trucks, on baseline7's real per-interval
+  // vehicle-class counts (n = 2,160). This is the "Multiple Linear
+  // Regression" PCU-estimation method described narratively in Section
+  // 2.3.2 -- T = b0 + b1(Cars) + b2(Tricycles) + ... -- applied here to the
+  // real field data with V/C ratio as the outcome (the closest real
+  // per-interval "congestion/clearance" measure baseline7 carries) rather
+  // than left as an abstract textbook formula. Dividing the Tricycles
+  // coefficient by the Cars coefficient gives a second, independent,
+  // regression-based PCU estimate for direct comparison against the
+  // headway-ratio PCU (pcuHeadwayOverall) computed above -- two genuinely
+  // different methods triangulated on the same question. Because the 5
+  // vehicle-class counts are themselves strongly positively correlated
+  // (vehicleClassCorrelationMatrix, r = 0.53-0.96), this regression is
+  // reported together with that context rather than in isolation, since
+  // multicollinearity among predictors is a known limitation of this
+  // classical MLR method and is not smoothed over here.
+  // ---------------------------------------------------------------------
+  const vcMultipleRegression = multipleLinearRegression(baseline7, ['Cars', 'Boda_bodas', 'Tricycles', 'Minibuses', 'Heavy_Trucks'], 'VC');
+  const mlrCarsCoef = vcMultipleRegression.coefficients.find((c) => c.key === 'Cars').beta;
+  const mlrTricyclesCoef = vcMultipleRegression.coefficients.find((c) => c.key === 'Tricycles').beta;
+  vcMultipleRegression.mlrDerivedPcu = mlrTricyclesCoef / mlrCarsCoef;
+  vcMultipleRegression.headwayRatioPcu = pcuHeadwayOverall;
+  // Same ratio-to-Cars method applied to Boda_bodas (motorcycles) -- shown
+  // alongside the tricycle figure as context for interpreting how stable
+  // these MLR-derived equivalence values are under severe predictor
+  // multicollinearity (see the block comment above).
+  vcMultipleRegression.mlrMotorcyclePcu = vcMultipleRegression.coefficients.find((c) => c.key === 'Boda_bodas').beta / mlrCarsCoef;
+
   // --- V/C <-> tricycle-volume correlation (baseline7) ---
   const volumeVcCorrelation = pearson(baseline7.map((r) => r.Tricycles), baseline7.map((r) => r.VC));
   // raw paired points backing the correlation above, for a scatter chart --
@@ -715,6 +913,11 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   // --- headway paired t-test (baseline7) ---
   const headwayTest = pairedTTest(baseline7.map((r) => r.TriHeadway), baseline7.map((r) => r.CarHeadway));
   headwayTest.cohensDz = cohensDz(baseline7.map((r) => r.TriHeadway), baseline7.map((r) => r.CarHeadway));
+
+  // --- Wilcoxon signed-rank test: non-parametric robustness check on the
+  //     paired t-test above, ranking absolute headway differences rather
+  //     than assuming they are normally distributed ---
+  const headwayWilcoxon = wilcoxonSignedRank(baseline7.map((r) => r.TriHeadway), baseline7.map((r) => r.CarHeadway));
 
   // --- Poisson dispersion / platooning (baseline7) ---
   const poissonNetwork = poissonDispersion(baseline7.map((r) => r.Tricycles));
@@ -1070,9 +1273,9 @@ export function computeTrafficStats(field20, baseline7, incidents) {
   return {
     byIntersection, peakHourlyByIntersection, busiestIntersection, highestTricycleShareIntersection,
     overallCompositionPct, totalVehiclesRecorded, totalVehiclesRecordedExclMC, sampleSizeIntervals, hourlyProfile,
-    weatherTest, peakOffpeakTest, tricycleAnova, tricycleByIntersection, tricyclePostHoc,
-    pcuByIntersection, pcuHeadwayOverall, vcStats, volumeVcCorrelation, volumeVcPairs, dayNightTest,
-    headwayTest, poissonNetwork, poissonByIntersection,
+    weatherTest, peakOffpeakTest, peakOffpeakMannWhitney, tricycleAnova, tricycleKruskalWallis, tricycleByIntersection, tricyclePostHoc,
+    pcuByIntersection, pcuHeadwayOverall, vcStats, vcMultipleRegression, volumeVcCorrelation, volumeVcPairs, dayNightTest,
+    headwayTest, headwayWilcoxon, poissonNetwork, poissonByIntersection,
     incidentSeverityByType, incidentTotalsByType, incidentSeverityTotals, incidentN: incidents.length, incidentChiSquare,
     weekdayWeekendTest, weekdayWeekendByIntersection, weekdayWeekendByClass, vehicleClassCorrelationMatrix,
     weatherPointBiserial, lag1AutocorrelationByIntersection, lag1AutocorrelationNetwork,
@@ -1156,6 +1359,10 @@ export const FORMULAS = {
   lag1Autocorrelation: { formula: 'Pearson r between each interval\'s Total Volume and the following interval\'s Total Volume (x_t vs x_t+1), computed within each real (Intersection, Date) chronological block so no pair spans a day boundary, then pooled', source: 'field20', n: '6,300 consecutive-interval pairs (63 pairs/day/site x 20 days x 5 sites)' },
   tricycleLeveneTest: { formula: "Levene's test (Brown-Forsythe: absolute deviation from each group's median), Tricycles per interval across the 5 intersections -- tests the ANOVA's homogeneity-of-variance assumption directly rather than assuming it holds", source: 'field20', n: '1,280/site, 6,400 total' },
   intersectionPeriodAnova: { formula: 'Two-way ANOVA with interaction, Tricycles per interval, factors Intersection (5 levels) x Period (Peak/Off-Peak): F = MS_effect / MS_within for each of the two main effects and their interaction', source: 'field20', n: '6,400 intervals (400 peak / 880 off-peak per site)' },
+  tricycleKruskalWallis: { formula: 'Kruskal-Wallis H test (non-parametric one-way ANOVA on ranks), Tricycles per interval across the 5 intersections -- a distribution-free robustness check on tricycleAnova, since tricycleLeveneTest finds that ANOVA\'s equal-variance assumption violated', source: 'field20', n: '1,280/site, 6,400 total' },
+  peakOffpeakMannWhitney: { formula: 'Mann-Whitney U test (rank-sum comparison of whole distributions, normal approximation with tie correction), Total Volume per interval, Period=Peak vs Off-Peak -- a distribution-free robustness check on peakOffpeakTest', source: 'field20', n: '2,000 peak / 4,400 off-peak' },
+  headwayWilcoxon: { formula: 'Wilcoxon signed-rank test (ranks of the absolute paired differences, normal approximation), Avg Tricycle Headway vs Avg Car Headway recorded on the same interval -- a distribution-free robustness check on the paired headwayTest', source: 'baseline7', n: '2,160' },
+  vcMultipleRegression: { formula: 'Ordinary-least-squares multiple linear regression, V/C Ratio ~ Cars + Boda_bodas (Motorcycles) + Tricycles + Minibuses + Heavy_Trucks (per-interval counts), solved exactly via the normal equations (X\'X)^-1 X\'y; R^2, adjusted R^2, overall F-test, and per-coefficient standard error/t/p all computed from the same fit. The Tricycles-coefficient/Cars-coefficient ratio gives a second, MLR-based PCU estimate for direct comparison against the headway-ratio PCU -- reported alongside the vehicle-class correlation matrix (r = 0.53-0.96 among predictors) as necessary context, since strong inter-predictor correlation is a genuine limitation of this classical method', source: 'baseline7', n: '2,160' },
 };
 
 // ---------------------------------------------------------------------------
