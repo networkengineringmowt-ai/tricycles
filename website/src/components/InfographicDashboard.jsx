@@ -245,6 +245,12 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
   // to show only the 12 real surveyed hours (07:00-18:00).
   const [showOvernightModel, setShowOvernightModel] = useState(true);
 
+  // Which site's 24-hour profile to chart -- 'All Sites' (mean across the 4
+  // real junctions) or one real site, using the matching precomputed profile
+  // from trafficStats.js (both grains use the same real-hours + disclosed-
+  // overnight-model construction).
+  const [hourlyProfileSite, setHourlyProfileSite] = useState('All Sites');
+
   const exportVolumeTable = () => {
     if (!stats) return;
     const header = 'Study Site,Mean Tricycle Total per Record,Median,Std Dev,n';
@@ -390,48 +396,59 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
         <div className="a-grid">
           <div className="a-card s-12">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-              <SectionHeader eyebrow="24-Hour Traffic Volume Profile" title="Hourly Traffic Pattern, All Sites Combined" color={C.blue}
-                sub="Mean hourly value per surveyed junction, averaged across the 2 survey days and across the 4 sites" />
-              <div className="a-toggle-row" role="group" aria-label="Overnight hours display">
-                <button type="button" className={`a-toggle-btn ${!showOvernightModel ? 'active' : ''}`} aria-pressed={!showOvernightModel} onClick={() => setShowOvernightModel(false)}>
-                  <i className="fa-solid fa-sun" style={{ marginRight: '6px' }}></i>Measured only (07:00–18:00)
-                </button>
-                <button type="button" className={`a-toggle-btn ${showOvernightModel ? 'active' : ''}`} aria-pressed={showOvernightModel} onClick={() => setShowOvernightModel(true)}>
-                  <i className="fa-solid fa-moon" style={{ marginRight: '6px' }}></i>Full 24h (incl. modeled overnight)
-                </button>
+              <SectionHeader eyebrow="24-Hour Traffic Volume Profile" title={`Hourly Traffic Pattern — ${hourlyProfileSite === 'All Sites' ? 'All Sites (Mean)' : hourlyProfileSite}`} color={hourlyProfileSite === 'All Sites' ? C.blue : SITE_COLORS[hourlyProfileSite]}
+                sub={hourlyProfileSite === 'All Sites' ? 'Mean hourly value per surveyed junction, averaged across the 2 survey days and across the 4 sites' : `Mean hourly value at ${hourlyProfileSite}, averaged across the 2 survey days`} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                <div className="a-toggle-row" role="group" aria-label="Study site">
+                  {['All Sites', ...REAL_SITES].map((s) => (
+                    <button key={s} type="button" className={`a-toggle-btn ${hourlyProfileSite === s ? 'active' : ''}`} aria-pressed={hourlyProfileSite === s} onClick={() => setHourlyProfileSite(s)}>{s}</button>
+                  ))}
+                </div>
+                <div className="a-toggle-row" role="group" aria-label="Overnight hours display">
+                  <button type="button" className={`a-toggle-btn ${!showOvernightModel ? 'active' : ''}`} aria-pressed={!showOvernightModel} onClick={() => setShowOvernightModel(false)}>
+                    <i className="fa-solid fa-sun" style={{ marginRight: '6px' }}></i>Measured only (07:00–18:00)
+                  </button>
+                  <button type="button" className={`a-toggle-btn ${showOvernightModel ? 'active' : ''}`} aria-pressed={showOvernightModel} onClick={() => setShowOvernightModel(true)}>
+                    <i className="fa-solid fa-moon" style={{ marginRight: '6px' }}></i>Full 24h (incl. modeled overnight)
+                  </button>
+                </div>
               </div>
             </div>
             <div className="a-chart-box" style={{ minHeight: '340px' }}>
               <Line
-                data={{
-                  labels: stats.hourlyProfile24.motorizedFlow.map((h) => `${String(h.hour).padStart(2, '0')}:00`),
-                  datasets: [
-                    {
-                      label: 'Motorized flow (mean, veh/hr)',
-                      data: stats.hourlyProfile24.motorizedFlow.map((h) => (showOvernightModel || h.isReal ? h.value : null)),
-                      borderColor: C.blue, backgroundColor: hex2rgba(C.blue, 0.12), fill: true, tension: 0.35,
-                      pointRadius: stats.hourlyProfile24.motorizedFlow.map((h) => (h.isReal ? 4 : 3)),
-                      pointBackgroundColor: stats.hourlyProfile24.motorizedFlow.map((h) => (h.isReal ? C.blue : hex2rgba(C.blue, 0.4))),
-                      pointBorderWidth: 0, spanGaps: false,
-                      segment: {
-                        borderDash: (ctx) => (stats.hourlyProfile24.motorizedFlow[ctx.p0DataIndex].isReal && stats.hourlyProfile24.motorizedFlow[ctx.p1DataIndex].isReal ? undefined : [6, 4]),
-                        borderColor: (ctx) => (stats.hourlyProfile24.motorizedFlow[ctx.p0DataIndex].isReal && stats.hourlyProfile24.motorizedFlow[ctx.p1DataIndex].isReal ? C.blue : hex2rgba(C.blue, 0.45)),
+                data={(() => {
+                  const profile = hourlyProfileSite === 'All Sites' ? stats.hourlyProfile24 : stats.hourlyProfile24BySite[hourlyProfileSite];
+                  const lineColor = hourlyProfileSite === 'All Sites' ? C.blue : SITE_COLORS[hourlyProfileSite];
+                  return {
+                    labels: profile.motorizedFlow.map((h) => `${String(h.hour).padStart(2, '0')}:00`),
+                    datasets: [
+                      {
+                        label: 'Motorized flow (mean, veh/hr)',
+                        data: profile.motorizedFlow.map((h) => (showOvernightModel || h.isReal ? h.value : null)),
+                        borderColor: lineColor, backgroundColor: hex2rgba(lineColor, 0.12), fill: true, tension: 0.35,
+                        pointRadius: profile.motorizedFlow.map((h) => (h.isReal ? 4 : 3)),
+                        pointBackgroundColor: profile.motorizedFlow.map((h) => (h.isReal ? lineColor : hex2rgba(lineColor, 0.4))),
+                        pointBorderWidth: 0, spanGaps: false,
+                        segment: {
+                          borderDash: (ctx) => (profile.motorizedFlow[ctx.p0DataIndex].isReal && profile.motorizedFlow[ctx.p1DataIndex].isReal ? undefined : [6, 4]),
+                          borderColor: (ctx) => (profile.motorizedFlow[ctx.p0DataIndex].isReal && profile.motorizedFlow[ctx.p1DataIndex].isReal ? lineColor : hex2rgba(lineColor, 0.45)),
+                        },
                       },
-                    },
-                    {
-                      label: 'Tricycle total (mean, veh/hr)',
-                      data: stats.hourlyProfile24.tricycleTotal.map((h) => (showOvernightModel || h.isReal ? h.value : null)),
-                      borderColor: C.green, backgroundColor: 'transparent', fill: false, tension: 0.35, yAxisID: 'y1',
-                      pointRadius: stats.hourlyProfile24.tricycleTotal.map((h) => (h.isReal ? 4 : 3)),
-                      pointBackgroundColor: stats.hourlyProfile24.tricycleTotal.map((h) => (h.isReal ? C.green : hex2rgba(C.green, 0.4))),
-                      pointBorderWidth: 0, spanGaps: false,
-                      segment: {
-                        borderDash: (ctx) => (stats.hourlyProfile24.tricycleTotal[ctx.p0DataIndex].isReal && stats.hourlyProfile24.tricycleTotal[ctx.p1DataIndex].isReal ? undefined : [6, 4]),
-                        borderColor: (ctx) => (stats.hourlyProfile24.tricycleTotal[ctx.p0DataIndex].isReal && stats.hourlyProfile24.tricycleTotal[ctx.p1DataIndex].isReal ? C.green : hex2rgba(C.green, 0.45)),
+                      {
+                        label: 'Tricycle total (mean, veh/hr)',
+                        data: profile.tricycleTotal.map((h) => (showOvernightModel || h.isReal ? h.value : null)),
+                        borderColor: C.green, backgroundColor: 'transparent', fill: false, tension: 0.35, yAxisID: 'y1',
+                        pointRadius: profile.tricycleTotal.map((h) => (h.isReal ? 4 : 3)),
+                        pointBackgroundColor: profile.tricycleTotal.map((h) => (h.isReal ? C.green : hex2rgba(C.green, 0.4))),
+                        pointBorderWidth: 0, spanGaps: false,
+                        segment: {
+                          borderDash: (ctx) => (profile.tricycleTotal[ctx.p0DataIndex].isReal && profile.tricycleTotal[ctx.p1DataIndex].isReal ? undefined : [6, 4]),
+                          borderColor: (ctx) => (profile.tricycleTotal[ctx.p0DataIndex].isReal && profile.tricycleTotal[ctx.p1DataIndex].isReal ? C.green : hex2rgba(C.green, 0.45)),
+                        },
                       },
-                    },
-                  ],
-                }}
+                    ],
+                  };
+                })()}
                 options={{
                   responsive: true, maintainAspectRatio: false, animation: animConfig,
                   plugins: {
@@ -440,7 +457,8 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
                       ...tooltipTheme,
                       callbacks: {
                         label: (ctx) => {
-                          const arr = ctx.dataset.label.startsWith('Motorized') ? stats.hourlyProfile24.motorizedFlow : stats.hourlyProfile24.tricycleTotal;
+                          const profile = hourlyProfileSite === 'All Sites' ? stats.hourlyProfile24 : stats.hourlyProfile24BySite[hourlyProfileSite];
+                          const arr = ctx.dataset.label.startsWith('Motorized') ? profile.motorizedFlow : profile.tricycleTotal;
                           const isReal = arr[ctx.dataIndex]?.isReal;
                           return `${ctx.dataset.label}: ${ctx.parsed.y === null ? '—' : Math.round(ctx.parsed.y).toLocaleString()}${isReal ? '' : ' (modeled)'}`;
                         },
@@ -456,7 +474,7 @@ const InfographicDashboard = ({ goBack, canGoBack } = {}) => {
               />
             </div>
             <p className="a-footnote">
-              Solid markers and solid line = real measured hourly means, 07:00–18:00 (96 real site-hour rows). Dashed, lighter line = 19:00–06:00, when no vehicle was ever counted at any of the 4 sites: a disclosed, purely mathematical connector between the real 18:00 and 07:00 values (a cosine-shaped dip reaching {(ASSUMPTIONS.overnightTroughRatio * 100).toFixed(0)}% of the straight trend line at its midpoint, an editable assumption) -- never a measured or literature-sourced result. Toggle above to view the measured window alone.
+              Solid markers and solid line = real measured hourly means, 07:00–18:00 ({hourlyProfileSite === 'All Sites' ? '96 real site-hour rows across all 4 sites' : '24 real hourly rows at this site'}). Dashed, lighter line = 19:00–06:00, when no vehicle was ever counted{hourlyProfileSite === 'All Sites' ? ' at any of the 4 sites' : ' at this site'}: a disclosed, purely mathematical connector between the real 18:00 and 07:00 values (a cosine-shaped dip reaching {(ASSUMPTIONS.overnightTroughRatio * 100).toFixed(0)}% of the straight trend line at its midpoint, an editable assumption) -- never a measured or literature-sourced result. Toggle above to switch site or view the measured window alone.
             </p>
           </div>
         </div>
